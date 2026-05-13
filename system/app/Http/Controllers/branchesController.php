@@ -401,11 +401,24 @@ class branchesController extends Controller
 
                         $treasuryController->insert($transaction_number,'branch_deposit','plus',$auto_id,'',$value,$currency,0,$branch,$notes);
 
+                        $this->logAudit(
+                            'branch_deposit',
+                            'branches_transactions',
+                            $auto_id,
+                            [
+                                'branch'             => $branch,
+                                'value'              => $value,
+                                'currency'           => $currency,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Branch deposit'
+                        );
+
                         $err = false;
                     }else{
                         $err = true;
                     }
-                    
+
                 }else{
                     $err = true;
                 }
@@ -491,11 +504,24 @@ class branchesController extends Controller
 
                         $treasuryController->insert($transaction_number,'branch_deposit','plus',$auto_id,json_encode(['type' => 'commission']),$value,$currency,0,$branch,$notes);
 
+                        $this->logAudit(
+                            'branch_deposit_commission',
+                            'branches_transactions',
+                            $auto_id,
+                            [
+                                'branch'             => $branch,
+                                'value'              => $value,
+                                'currency'           => $currency,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Branch commission deposit'
+                        );
+
                         $err = false;
                     }else{
                         $err = true;
                     }
-                    
+
                 }else{
                     $err = true;
                 }
@@ -592,11 +618,27 @@ class branchesController extends Controller
 
                         $branchesController->update_balance($branch);
                         $treasuryController->insert($transaction_number,$type,'minus',$auto_id,$data,$value,$currency,0,$branch,$notes);
+
+                        $this->logAudit(
+                            'branch_expense',
+                            'branches_transactions',
+                            $auto_id,
+                            [
+                                'branch'             => $branch,
+                                'value'              => $value,
+                                'currency'           => $currency,
+                                'purpose'            => $purpose,
+                                'type'               => $type,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Branch expense'
+                        );
+
                         $err = false;
                     }else{
                         $err = true;
                     }
-                    
+
                 }else{
                     $err = true;
                 }
@@ -715,11 +757,25 @@ class branchesController extends Controller
                         $treasuryController->insert($transaction_number,'branch_withdraw','minus',$auto_id,json_encode($data),$value,$currency,0,$from,$notes);
                         $treasuryController->insert($transaction_number,'branch_deposit','plus',$auto_id,json_encode($data),$value,$currency,0,$to,$notes);
 
+                        $this->logAudit(
+                            'branch_fix',
+                            'branches_transactions',
+                            $auto_id,
+                            [
+                                'from_branch'        => $from,
+                                'to_branch'          => $to,
+                                'value'              => $value,
+                                'currency'           => $currency,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Branch fix (transfer between branches)'
+                        );
+
                         $err = false;
                     }else{
                         $err = true;
                     }
-                    
+
                 }else{
                     $err = true;
                 }
@@ -802,7 +858,23 @@ class branchesController extends Controller
                         $branchesController->update_balance($branch);
                         $treasuryController->insert($transaction_number,'transfer_branch','minus',$auto_id,json_encode(['type'=>'transfer_branch' , 'exchange_rate' => $exchange_rate]),$value,$from,0,$branch,$notes);
                         $treasuryController->insert($transaction_number,'transfer_branch','plus',$auto_id,json_encode(['type' =>'transfer_branch' , 'exchange_rate' => $exchange_rate]),$result,$to,0,$branch,$notes);
-                        
+
+                        $this->logAudit(
+                            'branch_transfer_currency',
+                            'branches_transactions',
+                            $auto_id,
+                            [
+                                'branch'             => $branch,
+                                'from_currency'      => $from,
+                                'to_currency'        => $to,
+                                'value'              => $value,
+                                'result'             => $result,
+                                'exchange_rate'      => $exchange_rate,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Branch currency conversion'
+                        );
+
                         $err = false;
                     }else{
                         $err = true;

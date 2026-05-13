@@ -418,7 +418,14 @@ class dataController extends Controller
                     }else{
                         DB::table($request->table)->whereIn('id',$ids)->update(['deleted'=>'true']);
                     }
-                    
+
+                    $this->logAudit(
+                        'soft_delete_bulk',
+                        $request->table,
+                        null,
+                        ['ids' => $ids],
+                        'Bulk soft-delete on ' . $request->table
+                    );
                 }
 
             } catch (\Throwable $th) {
@@ -439,6 +446,14 @@ class dataController extends Controller
 
                 if(count($ids) > 0){
                     DB::table($request->table)->whereIn('id',$ids)->update(['deleted'=>'false']);
+
+                    $this->logAudit(
+                        'restore_bulk',
+                        $request->table,
+                        null,
+                        ['ids' => $ids],
+                        'Bulk restore on ' . $request->table
+                    );
                 }
 
             } catch (\Throwable $th) {
@@ -447,7 +462,7 @@ class dataController extends Controller
                 ]);
             }
         });
-        
+
     }
 
     public function del_recs_permanent(Request $request){
@@ -462,6 +477,14 @@ class dataController extends Controller
                     DB::table($request->table)->whereIn('id',$ids)->update([
                         'not_active' => 'true'
                     ]);
+
+                    $this->logAudit(
+                        'permanent_delete_bulk',
+                        $request->table,
+                        null,
+                        ['ids' => $ids],
+                        'Bulk permanent-delete (not_active) on ' . $request->table
+                    );
                 }
 
                 if($request->table === 'clients'){

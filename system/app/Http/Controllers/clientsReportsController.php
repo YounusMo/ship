@@ -140,7 +140,28 @@ class clientsReportsController extends Controller
                     $clientsController->update_remaining_balance_old_data($get->client_id);
                     $branchesController->update_balance($get->branch,$get->currency);
                 }
-                
+
+                // Log the status change AFTER all the side-effect writes have
+                // completed inside the transaction. The auto_id pins this to a
+                // specific transaction in clients_transactions.
+                $this->logAudit(
+                    'transaction_status_change',
+                    'clients_transactions',
+                    $get->auto_id,
+                    [
+                        'transaction_id'     => $id,
+                        'client_id'          => $get->client_id,
+                        'type'               => $type,
+                        'previous_status'    => $get->status,
+                        'new_status'         => $status,
+                        'value'              => $request->value ?? $get->value,
+                        'currency'           => $get->currency,
+                        'branch'             => $get->branch,
+                        'transaction_number' => $get->transaction_number,
+                    ],
+                    $status === 'approved' ? 'Approved pending transaction' : 'Rejected pending transaction'
+                );
+
             });
 
             return $response;
