@@ -384,12 +384,26 @@ class clientsController extends Controller
                             'created_time'  => date('H:i:s'),
                         ]);
 
-                        $this->update_balance($id); 
-                        $this->update_balance($to_client); 
+                        $this->update_balance($id);
+                        $this->update_balance($to_client);
 
-                        $this->update_remaining_balance_old_data($id); 
-                        $this->update_remaining_balance_old_data($to_client); 
-                       
+                        $this->update_remaining_balance_old_data($id);
+                        $this->update_remaining_balance_old_data($to_client);
+
+                        $this->logAudit(
+                            'transfer_clients',
+                            'clients_transactions',
+                            $auto_id,
+                            [
+                                'from_client'        => $id,
+                                'to_client'          => $to_client,
+                                'value'              => $value,
+                                'currency'           => $currency,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Transfer between clients'
+                        );
+
                         $err = false;
                     }else{
                         $err = true;
@@ -404,7 +418,7 @@ class clientsController extends Controller
                 }else{
                     $response = response()->json(['type' => 'success'],200);
                 }
-                    
+
             });
         }catch (\Throwable $th) {
             Log::error($th->getMessage(), [
@@ -664,6 +678,24 @@ class clientsController extends Controller
                                 }
                             }
                         }
+
+                        $this->logAudit(
+                            'deposit',
+                            'clients_transactions',
+                            $auto_id,
+                            [
+                                'client_id'          => $id,
+                                'value'              => $value,
+                                'currency'           => $currency,
+                                'commission'         => $commission,
+                                'branch'             => $branch,
+                                'status'             => $status,
+                                'type'               => $type,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Client deposit'
+                        );
+
                         $err = false;
                     // }else{
                     //     $err = true;
@@ -792,7 +824,23 @@ class clientsController extends Controller
                                 }
                             }
                         }
-                        
+
+                        $this->logAudit(
+                            'withdraw',
+                            'clients_transactions',
+                            $auto_id,
+                            [
+                                'client_id'          => $id,
+                                'value'              => $value,
+                                'currency'           => $currency,
+                                'commission'         => $commission,
+                                'branch'             => $branch,
+                                'status'             => $status,
+                                'type'               => $type,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Client withdraw'
+                        );
 
                         $err = false;
                     // }else{
@@ -916,13 +964,26 @@ class clientsController extends Controller
                         //         }
                         //     }
                         // }
-                        
+
+                        $this->logAudit(
+                            'withdraw_commission',
+                            'clients_transactions',
+                            $auto_id,
+                            [
+                                'client_id'          => $id,
+                                'value'              => $value,
+                                'currency'           => $currency,
+                                'status'             => $status,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Withdraw commission'
+                        );
 
                         $err = false;
                     // }else{
                     //     $err = true;
                     // }
-                    
+
                 }else{
                     $err = true;
                 }
@@ -1002,11 +1063,27 @@ class clientsController extends Controller
                             'created_time'  => date('H:i:s'),
                         ]);
 
-                        // $this->update_balance($id); 
-                       
+                        // $this->update_balance($id);
+
                         // $treasuryController->insert($transaction_number,'withdraw','minus',$auto_id,json_encode(['type'=>'transfer' , 'exchange_rate' => $exchange_rate]),$value,$from,0,null,$notes,$id,$remaining_balance_from - $value);
                         // $treasuryController->insert($transaction_number,'deposit','plus',$auto_id,json_encode(['type'=>'transfer' , 'exchange_rate' => $exchange_rate]),$result,$to,0,null,$notes,$id,$remaining_balance_to + $result);
-                        
+
+                        $this->logAudit(
+                            'transfer_currency',
+                            'clients_transactions',
+                            $auto_id,
+                            [
+                                'client_id'          => $id,
+                                'from_currency'      => $from,
+                                'to_currency'        => $to,
+                                'value'              => $value,
+                                'result'             => $result,
+                                'exchange_rate'      => $exchange_rate,
+                                'transaction_number' => $transaction_number,
+                            ],
+                            'Client currency transfer (pending approval)'
+                        );
+
                         $err = false;
                     }else{
                         $err = true;
@@ -1069,7 +1146,7 @@ class clientsController extends Controller
                 $client_id = floatval($get->client_id);
 
                 $chk_data = json_decode($get->data,true);
-                
+
                 if(isset($chk_data['from_client']) && isset($chk_data['to_client'])){
                     DB::table('clients_transactions')->where('transaction_number',$get->transaction_number)->delete();
                     $this->update_balance($chk_data['from_client']);
@@ -1084,14 +1161,37 @@ class clientsController extends Controller
                         DB::table('treasury_transactions')->where('type','deposit_commission')->where('transaction_number',$get->transaction_number)->where('client_id',$get->client_id)->delete();
                     }
                     DB::table('clients_transactions')->where('id',$request->id)->delete();
-        
+
                     $branchesController->update_balance($branch,$cur);
-                    
+
                     $this->update_balance($client_id);
                     $this->update_remaining_balance_old_data($client_id);
                 }
-                
-               
+
+                // Record the deletion AFTER it succeeds. We pass the original
+                // row contents so we can reconstruct it if a dispute arises.
+                $this->logAudit(
+                    'transaction_delete',
+                    'clients_transactions',
+                    $get->id,
+                    [
+                        'transaction_number' => $get->transaction_number,
+                        'auto_id'            => $get->auto_id,
+                        'type'               => $get->type,
+                        'plus_minus'         => $get->plus_minus,
+                        'value'              => $get->value,
+                        'currency'           => $get->currency,
+                        'commission'         => $get->commission,
+                        'branch'             => $get->branch,
+                        'client_id'          => $get->client_id,
+                        'status'             => $get->status,
+                        'notes'              => $get->notes,
+                        'created_by'         => $get->created_by,
+                        'created_date'       => $get->created_date,
+                        'created_time'       => $get->created_time,
+                    ],
+                    'Client transaction deleted'
+                );
 
             }else{
                 return response()->json(['type' => 'error'],500);

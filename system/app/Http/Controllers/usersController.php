@@ -117,11 +117,21 @@ class usersController extends Controller
 
         DB::transaction(function() use($request){
             try {
-                
+
                 $ids = json_decode($request->ids , true);
- 
+
                 if(count($ids) > 0){
                     DB::table('users')->whereIn('id',$ids)->update(['deleted'=>'true' , 'not_active'=>'true']);
+
+                    foreach ($ids as $uid) {
+                        $this->logAudit(
+                            'user_delete',
+                            'users',
+                            $uid,
+                            null,
+                            'User account soft-deleted'
+                        );
+                    }
                 }
 
             } catch (\Throwable $th) {
@@ -194,6 +204,15 @@ class usersController extends Controller
         DB::table('users')->where('id',$request->id)->update([
             'password' => Hash::make($request->password),
         ]);
+
+        // Never log the new password — only that one was set.
+        $this->logAudit(
+            'password_change',
+            'users',
+            $request->id,
+            null,
+            'Admin reset user password'
+        );
     }
 
     public function save(Request $request){
@@ -215,6 +234,9 @@ class usersController extends Controller
         ->exists();
 
         if (!$exists && !$exists2) {
+            $before = DB::table('users')->where('id', $request->id)
+                ->first(['name','email','branch','type']);
+
             DB::table('users')
                 ->where('id', $request->id)
                 ->update([
@@ -223,6 +245,22 @@ class usersController extends Controller
                     'branch' => $request->branch,
                     'type'   => $request->type,
                 ]);
+
+            $this->logAudit(
+                'user_update',
+                'users',
+                $request->id,
+                [
+                    'before' => $before ? (array) $before : null,
+                    'after'  => [
+                        'name'   => $request->name,
+                        'email'  => $request->email,
+                        'branch' => $request->branch,
+                        'type'   => $request->type,
+                    ],
+                ],
+                'User account updated'
+            );
         } else {
             return response()->json('exist');
         }

@@ -97,4 +97,47 @@ abstract class Controller
             abort(403, 'Unauthorized');
         }
     }
+
+    /**
+     * Append a row to audit_log. Failure of the audit insert is logged but
+     * NEVER propagated — we will not let a logging hiccup break a payroll
+     * deposit.
+     *
+     * Call from inside the same DB::transaction as the change being recorded
+     * so a rolled-back business operation also rolls back its audit row.
+     *
+     * Use a stable verb for $action ("deposit", "withdraw", "transfer",
+     * "transaction_delete", "password_change", "role_change", …). The
+     * audit-log viewer groups by it.
+     */
+    protected function logAudit(
+        string $action,
+        string $targetTable,
+        $targetId = null,
+        ?array $payload = null,
+        ?string $context = null
+    ): void {
+        try {
+            $user = auth()->user();
+            \Illuminate\Support\Facades\DB::table('audit_log')->insert([
+                'user_id'      => $user?->id,
+                'user_type'    => $user?->type,
+                'branch_id'    => $user?->branch ?? null,
+                'action'       => $action,
+                'target_table' => $targetTable,
+                'target_id'    => is_numeric($targetId) ? (int) $targetId : null,
+                'payload'      => $payload !== null
+                    ? json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR)
+                    : null,
+                'ip'           => request()?->ip(),
+                'context'      => $context !== null ? mb_substr($context, 0, 191) : null,
+                'created_at'   => date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                'audit_log insert failed: ' . $e->getMessage(),
+                ['action' => $action, 'target' => $targetTable . ':' . $targetId]
+            );
+        }
+    }
 }

@@ -19,6 +19,7 @@ use App\Http\Controllers\customsBrokersController;
 use App\Http\Controllers\profitsController;
 use App\Http\Controllers\matchingController;
 use App\Http\Controllers\oldBalanceArchiveController;
+use App\Http\Controllers\auditController;
 
 Route::get('/logout', [usersController::class,'logout']);
 
@@ -422,6 +423,16 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
         Route::post('/save',[settingsController::class,'save']);
         Route::post('/save2',[settingsController::class,'save2']);
         Route::post('/update_exchange',[settingsController::class,'update_exchange']);
+    });
+
+    Route::prefix('audit')->group(function(){
+        Route::get('/', function () {
+            return view('pages.audit.index',[
+                'section' => 'audit',
+                'page'    => 'audit'
+            ]);
+        });
+        Route::post('/load',[auditController::class,'load']);
     });
 
     Route::get('/', function () {
