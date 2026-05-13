@@ -167,6 +167,16 @@
                 {{$lang->write('Audit log')}}
             </a>
         </li>
+        <li class="{{$page === 'reconciliation'  ? 'active' : ''}}">
+            <a href="{{url('/reconciliation')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
+                    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 7h12l-3-3M3 7l3 3M21 17H9l3 3M21 17l-3-3" />
+                    </g>
+                </svg>
+                {{$lang->write('Reconciliation')}}
+            </a>
+        </li>
         @endif
 
          <li class="{{$page === 'settings'  ? 'active' : ''}}">

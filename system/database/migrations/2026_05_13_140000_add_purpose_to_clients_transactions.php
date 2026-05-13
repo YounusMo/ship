@@ -19,37 +19,19 @@ use Illuminate\Support\Facades\Schema;
  * write to both tables and we want consistent reporting.
  */
 return new class extends Migration {
-    public function up(): void
-    {
-        Schema::table('clients_transactions', function (Blueprint $t) {
-            if (!Schema::hasColumn('clients_transactions', 'purpose')) {
-                $t->string('purpose', 64)->nullable()->after('notes');
-                $t->index('purpose');
-            }
+	public function up(): void
+   {
+   	 if (Schema::hasTable('clients_transactions') && ! Schema::hasColumn('clients_transactions', 'purpose')) {
+        Schema::table('clients_transactions', function (Blueprint $table) {
+            $table->string('purpose', 64)->nullable()->after('notes');
         });
-
-        Schema::table('treasury_transactions', function (Blueprint $t) {
-            if (!Schema::hasColumn('treasury_transactions', 'purpose')) {
-                $t->string('purpose', 64)->nullable()->after('notes');
-                $t->index('purpose');
-            }
+   	 }
+   }
+	public function down(): void
+    {
+    	if (Schema::hasTable('clients_transactions') && Schema::hasColumn('clients_transactions', 'purpose')) {
+        Schema::table('clients_transactions', function (Blueprint $table) {
+            $table->dropColumn('purpose');
         });
     }
-
-    public function down(): void
-    {
-        Schema::table('clients_transactions', function (Blueprint $t) {
-            if (Schema::hasColumn('clients_transactions', 'purpose')) {
-                $t->dropIndex(['purpose']);
-                $t->dropColumn('purpose');
-            }
-        });
-
-        Schema::table('treasury_transactions', function (Blueprint $t) {
-            if (Schema::hasColumn('treasury_transactions', 'purpose')) {
-                $t->dropIndex(['purpose']);
-                $t->dropColumn('purpose');
-            }
-        });
-    }
-};
+    }};

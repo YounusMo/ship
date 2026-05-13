@@ -20,6 +20,7 @@ use App\Http\Controllers\profitsController;
 use App\Http\Controllers\matchingController;
 use App\Http\Controllers\oldBalanceArchiveController;
 use App\Http\Controllers\auditController;
+use App\Http\Controllers\reconciliationController;
 
 Route::get('/logout', [usersController::class,'logout']);
 
@@ -433,6 +434,12 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
             ]);
         });
         Route::post('/load',[auditController::class,'load']);
+    });
+
+    Route::prefix('reconciliation')->group(function(){
+        Route::get('/', [reconciliationController::class, 'index']);
+        Route::post('/clients',  [reconciliationController::class, 'clients']);
+        Route::post('/branches', [reconciliationController::class, 'branches']);
     });
 
     Route::get('/', function () {
