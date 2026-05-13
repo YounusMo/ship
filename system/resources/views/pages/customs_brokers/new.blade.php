@@ -1,0 +1,48 @@
+@php
+  use App\Http\Controllers\dataController;
+  use App\Http\Controllers\langController;
+  
+  use Illuminate\Support\Facades\Cache;
+
+  $lang           = new langController();
+  $dataController = new dataController();
+
+@endphp
+<div class="modal fade" id="new" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{$lang->write('Create')}}</h5>
+        <button type="button" class="btn-card-close" data-bs-dismiss="modal" aria-label="Close">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
+            <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="m7 7l10 10M7 17L17 7" stroke-width="1.3" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          
+          <div class="mb-3 col-12">
+            <label for="">{{$lang->write('Name')}} : *</label>
+            <input type="text" class="form-control inp req" data-name='name'>
+          </div>
+
+          <div class="mb-3 col-12">
+            <label for="">{{$lang->write('Type')}} :</label>
+            <select class="form-select inp req" data-name="type">
+              <option value="">{{$lang->write('Select')}}</option>
+              <option value="export_port_customs_fee">{{$lang->write('Export Port Customs Fee')}}</option>
+              <option value="import_port_customs_fee">{{$lang->write('Import Port Customs Fee')}}</option>
+            </select>
+          </div>
+          
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{$lang->write('Close')}}</button>
+        <button type="button" class="btn btn-primary create_btn" onclick="create()">{{$lang->write('Create')}}</button>
+      </div>
+    </div>
+  </div>
+</div>
+

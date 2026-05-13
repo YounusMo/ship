@@ -1,0 +1,45 @@
+@media(max-width : 1100px){
+    .content{
+        margin-left: 0 !important;
+        margin-top: 50px;
+    }
+
+    .main{
+        margin-right: 0 !important;
+    }
+
+    .mobile_data{
+        display: flex !important;
+        flex-direction: column;
+    }
+
+    .closed{
+        display: none;
+    }
+
+    .topbar_pc{
+        display: none;
+    }
+
+    .topbar_mobile{
+        width: 100vw;
+        right: 0;
+        display: block !important;
+    }
+
+   .login_frm{
+        padding: 0 10px;
+        form{
+            margin-bottom: 20px;
+        }
+
+        .div_{
+            width: 90% !important;
+        }
+    }
+}
+
+.toggle_menu{
+    background-color: transparent;
+    border: 0;
+}

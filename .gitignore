@@ -1,0 +1,36 @@
+# Heavy, regenerable, or sensitive paths excluded from the local baseline.
+# This .gitignore exists for the local rollback repo only — not for sharing.
+
+# Composer / npm artifacts (regenerable from lockfiles)
+system/vendor/
+system/node_modules/
+system/public/build/
+
+# Laravel runtime / cache / logs (regenerable, can contain request data)
+system/storage/framework/cache/
+system/storage/framework/sessions/
+system/storage/framework/views/
+system/storage/framework/testing/
+system/storage/logs/*.log
+system/bootstrap/cache/*.php
+!system/bootstrap/cache/.gitignore
+
+# Database dumps — large + sensitive. Keep backups out of the source repo.
+cron_jobs/backups/*.sql
+cron_jobs/backups_zip/
+backups_sub/
+*.sql
+
+# OS / editor junk
+.DS_Store
+__MACOSX/
+*.swp
+Thumbs.db
+
+# User-uploaded content directories — track structure not contents
+photos/sea/*/
+photos/sky/*/
+photos/teacher/*/
+!photos/.htaccess
+!photos/sea/.gitkeep
+!photos/sky/.gitkeep

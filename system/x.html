@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Currency Switcher — Buy/Sell</title>
+<style>
+  :root{
+    --bg:#0f172a;        /* slate-900 */
+    --card:#111827;      /* gray-900 */
+    --muted:#94a3b8;     /* slate-400 */
+    --text:#e5e7eb;      /* gray-200 */
+    --accent:#38bdf8;    /* sky-400 */
+    --ok:#22c55e;        /* green-500 */
+    --warn:#f59e0b;      /* amber-500 */
+    --danger:#ef4444;    /* red-500 */
+    --ring:#7dd3fc;      /* sky-300 */
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font:16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+    background:linear-gradient(135deg,#0b1225,#0f172a 40% 60%,#0b1225);
+    color:var(--text);
+    min-height:100vh; display:grid; place-items:center; padding:24px;
+  }
+  .wrap{
+    width:100%; max-width:760px; background:var(--card);
+    border:1px solid #1f2937; border-radius:var(--radius);
+    box-shadow:0 10px 30px rgba(0,0,0,.45);
+    overflow:hidden;
+  }
+  header{
+    padding:20px 22px; border-bottom:1px solid #1f2937;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  header h1{ font-size:18px; margin:0; letter-spacing:.3px }
+  header .badge{ font-size:12px; color:var(--bg); background:var(--accent); border-radius:999px; padding:4px 10px; font-weight:600 }
+  .content{ padding:22px; display:grid; gap:18px }
+  .grid{
+    display:grid; gap:14px;
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 720px){ .grid{ grid-template-columns: 1fr } }
+  label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px }
+  select, input[type="number"], input[type="text"]{
+    width:100%; background:#0b1220; border:1px solid #263041; color:var(--text);
+    padding:12px 14px; border-radius:12px; outline:none; transition: .15s border, .15s box-shadow;
+  }
+  select:focus, input:focus{ border-color:var(--ring); box-shadow:0 0 0 3px rgba(125,211,252,.15) }
+  .row{ display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap }
+  .row > div{ flex:1 1 200px }
+  .hint{ font-size:12px; color:var(--muted); margin-top:6px }
+  .seg{
+    display:flex; background:#0b1220; border:1px solid #263041; border-radius:12px; overflow:hidden;
+  }
+  .seg button{
+    flex:1; padding:10px 14px; border:0; background:transparent; color:var(--muted); cursor:pointer; font-weight:600;
+  }
+  .seg button.active{ color:var(--bg); background:var(--accent) }
+  .actions{ display:flex; gap:12px; flex-wrap:wrap }
+  .btn{
+    padding:12px 16px; border-radius:12px; border:1px solid #263041; background:#0b1220; color:var(--text); font-weight:700; cursor:pointer;
+    transition: .15s transform, .15s background, .15s border;
+  }
+  .btn:hover{ transform: translateY(-1px) }
+  .btn.primary{ background:var(--accent); color:var(--bg); border-color:transparent }
+  .btn.ghost{ background:transparent }
+  .btn.ok{ background:var(--ok); color:#052e13; border-color:transparent }
+  .btn.warn{ background:var(--warn); color:#3a2201; border-color:transparent }
+  .out{
+    background:#09111f; border:1px dashed #2a3649; border-radius:12px; padding:16px; display:grid; gap:8px
+  }
+  .out strong{ font-size:18px }
+  .inline{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+  .mini{
+    width:110px; padding:8px 10px; border-radius:10px; background:#0b1220; border:1px solid #263041; color:var(--text);
+  }
+  .swap{
+    width:44px; height:44px; border-radius:12px; border:1px solid #263041; background:#0b1220; color:var(--text); cursor:pointer;
+  }
+  footer{ padding:16px 22px; border-top:1px solid #1f2937; color:var(--muted); font-size:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap }
+  .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#0a1220; border:1px solid #233048; padding:2px 6px; border-radius:6px; color:#cbd5e1 }
+</style>
+</head>
+<body>
+  <div class="wrap" role="application" aria-label="Currency Switcher">
+    <header>
+      <h1>Currency Switcher</h1>
+      <span class="badge">Buy / Sell</span>
+    </header>
+
+    <div class="content">
+      <!-- CURRENCY PAIR -->
+      <div class="grid" aria-label="Currency pair">
+        <div>
+          <label for="fromCur">From</label>
+          <select id="fromCur">
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="CNY">CNY — Chinese Yuan (CHY)</option>
+            <option value="LYD">LYD — Libyan Dinar</option>
+          </select>
+        </div>
+        <div>
+          <label for="toCur">To</label>
+          <select id="toCur">
+            <option value="USD">USD — US Dollar</option>
+            <option value="EUR">EUR — Euro</option>
+            <option value="CNY">CNY — Chinese Yuan (CHY)</option>
+            <option value="LYD">LYD — Libyan Dinar</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- RATE / AMOUNT -->
+      <div class="row">
+        <div>
+          <label for="rate">Rate</label>
+          <input id="rate" type="number" inputmode="decimal" step="any" placeholder="e.g., 0.92 means 1 From = 0.92 To" />
+          <div class="hint">Enter market rate as: <span class="kbd">1 (From) = Rate (To)</span></div>
+        </div>
+
+        <div>
+          <label for="amount">Amount (From)</label>
+          <input id="amount" type="number" inputmode="decimal" step="any" placeholder="Type amount to convert" />
+        </div>
+
+        <div>
+          <label>Action</label>
+          <div class="seg" role="tablist" aria-label="Buy or Sell">
+            <button type="button" class="active" id="buyBtn" role="tab" aria-selected="true">Buy</button>
+            <button type="button" id="sellBtn" role="tab" aria-selected="false">Sell</button>
+          </div>
+          <div class="hint">Buy = you buy <strong>To</strong> currency using <strong>From</strong>.<br/>Sell = you sell <strong>From</strong> for <strong>To</strong>.</div>
+        </div>
+
+        <div style="min-width:120px;flex:0 0 120px">
+          <label>&nbsp;</label>
+          <button class="swap" title="Swap currencies" id="swapBtn" aria-label="Swap From/To">⇄</button>
+        </div>
+      </div>
+
+      <!-- OPTIONAL SPREAD -->
+      <div class="inline" aria-label="Optional spread">
+        <span class="hint">Optional spread (%):</span>
+        <label class="hint" for="buySpread">Buy +</label>
+        <input id="buySpread" class="mini" type="number" step="any" value="0" />
+        <label class="hint" for="sellSpread">Sell −</label>
+        <input id="sellSpread" class="mini" type="number" step="any" value="0" />
+        <span class="hint">Leave 0 if you don’t use a spread.</span>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="actions">
+        <button class="btn primary" id="convertBtn">Convert</button>
+        <button class="btn ghost" id="clearBtn">Clear</button>
+      </div>
+
+      <!-- OUTPUT -->
+      <div class="out" id="output" aria-live="polite">
+        <div><strong>Result:</strong> <span id="result">—</span></div>
+        <div class="hint" id="effRateHint">Effective rate: —</div>
+      </div>
+    </div>
+
+    <footer>
+      <div>Tip: Press <span class="kbd">Enter</span> to convert.</div>
+      <div>“Rate” is always interpreted as 1 <span id="fromCodeFoot">FROM</span> = x <span id="toCodeFoot">TO</span>.</div>
+    </footer>
+  </div>
+
+<script>
+  const fromCur = document.getElementById('fromCur');
+  const toCur   = document.getElementById('toCur');
+  const rate    = document.getElementById('rate');
+  const amount  = document.getElementById('amount');
+  const buyBtn  = document.getElementById('buyBtn');
+  const sellBtn = document.getElementById('sellBtn');
+  const convertBtn = document.getElementById('convertBtn');
+  const clearBtn   = document.getElementById('clearBtn');
+  const output  = document.getElementById('output');
+  const result  = document.getElementById('result');
+  const effRateHint = document.getElementById('effRateHint');
+  const swapBtn = document.getElementById('swapBtn');
+  const buySpread  = document.getElementById('buySpread');
+  const sellSpread = document.getElementById('sellSpread');
+  const fromCodeFoot = document.getElementById('fromCodeFoot');
+  const toCodeFoot   = document.getElementById('toCodeFoot');
+
+  let mode = 'buy'; // 'buy' or 'sell'
+
+  function updateFootCodes(){
+    fromCodeFoot.textContent = fromCur.value;
+    toCodeFoot.textContent = toCur.value;
+  }
+  updateFootCodes();
+
+  function setMode(newMode){
+    mode = newMode;
+    if(mode === 'buy'){
+      buyBtn.classList.add('active'); buyBtn.setAttribute('aria-selected','true');
+      sellBtn.classList.remove('active'); sellBtn.setAttribute('aria-selected','false');
+    }else{
+      sellBtn.classList.add('active'); sellBtn.setAttribute('aria-selected','true');
+      buyBtn.classList.remove('active'); buyBtn.setAttribute('aria-selected','false');
+    }
+  }
+
+  buyBtn.addEventListener('click', ()=> setMode('buy'));
+  sellBtn.addEventListener('click', ()=> setMode('sell'));
+
+  swapBtn.addEventListener('click', ()=>{
+    const a = fromCur.value, b = toCur.value;
+    fromCur.value = b; toCur.value = a;
+    updateFootCodes();
+  });
+
+  [fromCur, toCur].forEach(el => el.addEventListener('change', updateFootCodes));
+
+  function parseNum(el){
+    const v = Number(el.value);
+    return Number.isFinite(v) ? v : NaN;
+  }
+
+  function convert(){
+    const r = parseNum(rate);
+    const amt = parseNum(amount);
+    if(!Number.isFinite(r) || r <= 0){
+      result.textContent = 'Please enter a valid positive rate.'; effRateHint.textContent = 'Effective rate: —'; return;
+    }
+    if(!Number.isFinite(amt) || amt <= 0){
+      result.textContent = 'Please enter a valid positive amount.'; effRateHint.textContent = 'Effective rate: —'; return;
+    }
+
+    let effRate = r;
+    const buyPct  = Math.max(0, parseNum(buySpread));
+    const sellPct = Math.max(0, parseNum(sellSpread));
+
+    if(mode === 'buy' && Number.isFinite(buyPct) && buyPct > 0){
+      effRate = r * (1 + buyPct/100);
+    }
+    if(mode === 'sell' && Number.isFinite(sellPct) && sellPct > 0){
+      effRate = r * (1 - sellPct/100);
+    }
+
+    // amount (From) * effRate = amount in To
+    const outAmt = amt * effRate;
+
+    const fmt = (n)=> new Intl.NumberFormat(undefined, { maximumFractionDigits: 6 }).format(n);
+    result.textContent = `${fmt(amt)} ${fromCur.value} → ${fmt(outAmt)} ${toCur.value} (${mode.toUpperCase()})`;
+    effRateHint.textContent = `Effective rate: 1 ${fromCur.value} = ${fmt(effRate)} ${toCur.value}`;
+  }
+
+  function clearAll(){
+    rate.value = '';
+    amount.value = '';
+    buySpread.value = '0';
+    sellSpread.value = '0';
+    result.textContent = '—';
+    effRateHint.textContent = 'Effective rate: —';
+    amount.focus();
+  }
+
+  convertBtn.addEventListener('click', convert);
+  clearBtn.addEventListener('click', clearAll);
+
+  // Enter to convert
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter'){ convert(); }
+  });
+
+  // Prefill sane defaults for demo (you can remove)
+  fromCur.value = 'USD';
+  toCur.value   = 'EUR';
+  updateFootCodes();
+</script>
+</body>
+</html>

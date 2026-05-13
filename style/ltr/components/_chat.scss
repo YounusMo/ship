@@ -1,0 +1,15 @@
+.chat_container{
+    position: fixed;
+    z-index: 999;
+    bottom: 40px;
+    right: 24px;
+
+    .icon_{
+        background: #fefefe;
+        color: black;
+        cursor: pointer;
+        border-radius: 50%;
+        padding: 13px;
+        box-shadow: 1px 1px 10px #0000003d;
+    }
+}

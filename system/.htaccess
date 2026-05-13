@@ -1,0 +1,3 @@
+# Defense-in-depth: the application source tree must never be served directly.
+# The front controller is /index.php at the docroot, which require()s system/bootstrap/app.php.
+Require all denied

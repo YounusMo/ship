@@ -1,0 +1,41 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+.wrapper {
+    display: flex;
+    height: 100vh;
+}
+
+.content {
+    flex: 1;
+    margin-top: 50px;
+    padding: 20px;
+    margin-left: 250px;
+    width: 100%;
+    background-color: #f8f9fa;
+    position: relative;
+    .main-table{
+        position: absolute;
+        width: 97.5%;
+        height: 80vh !important;
+        overflow: scroll;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* Internet Explorer 10+ */
+        table{
+            // table-layout: fixed !important;
+        }
+    }
+
+    .main-table::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+}
+
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
