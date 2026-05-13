@@ -8,7 +8,7 @@
   $dataController = new dataController();
 
   $currencies = $dataController->currencies;
-     
+  $purposes   = $dataController->branch_transfer_purposes;
 
 @endphp
 <div class="modal fade" id="transfer" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -77,8 +77,18 @@
         
         
         <div class="mb-3">
+          <label for="">{{$lang->write('Purpose')}} :</label>
+          <select class="form-select inp req" data-name="purpose">
+            <option value="">{{$lang->write('Select')}}</option>
+            @foreach ($purposes as $code => $label)
+                <option value="{{ $code }}">{{ $lang->write($label) }}</option>
+            @endforeach
+          </select>
+        </div>
+
+        <div class="mb-3">
           <label for="">{{$lang->write('Notes')}} :</label>
-          <textarea rows="5" class="form-control notes" data-name="notes"></textarea>
+          <textarea rows="3" class="form-control notes" data-name="notes" placeholder="{{$lang->write('Optional context — only if the purpose above is not enough')}}"></textarea>
         </div>
         {{-- <div class="mb-3">
           <label for="">{{$lang->write('Result')}} :</label>

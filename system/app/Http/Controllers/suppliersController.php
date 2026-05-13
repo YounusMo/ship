@@ -255,6 +255,7 @@ class suppliersController extends Controller
             $created_time = date('H:i:s');
             $created_by   = auth()->user()->id;
 
+            $purpose = $this->normalizePurpose($request->purpose, $dataController->supplier_deposit_purposes);
 
             DB::table('suppliers_transactions')->insert([
                 'transaction_number' => $transaction_number,
@@ -270,6 +271,7 @@ class suppliersController extends Controller
                 'from_value'         => $from_value,
                 'from_currency'      => $currency,
                 'notes'              => $notes,
+                'purpose'            => $purpose,
                 'plus_minus'         => 'plus',
                 'type'               => $type,
                 'created_date'       => $created_date,
@@ -287,16 +289,31 @@ class suppliersController extends Controller
                 $branchesController->update_balance($branch,$currency);
                 $treasuryController->insert($transaction_number,'supplier_deposit','minus',$auto_id,$treasuryData,$from_value,$currency,0,$branch,$notes,null);
             }
-            
+
+            $this->logAudit(
+                'supplier_deposit',
+                'suppliers_transactions',
+                $auto_id,
+                [
+                    'supplier_id'        => $supplier_id,
+                    'branch'             => $branch,
+                    'value'              => $value,
+                    'currency'           => $currency,
+                    'purpose'            => $purpose,
+                    'transaction_number' => $transaction_number,
+                ],
+                'Supplier deposit'
+            );
+
             $err  = false;
 
             if($err){
                 return response()->json(['type' => 'error'],500);
             }else{
-                
+
                 return response()->json(['type' => 'success',$supplier_id],200);
             }
-           
+
         } catch (\Throwable $th) {
             Log::error($th->getMessage(), [
                 'exception' => $th,

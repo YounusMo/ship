@@ -167,6 +167,55 @@ class dataController extends Controller
         'other'                 => 'Other',
     ];
 
+    public $branch_deposit_purposes = [
+        'opening_balance'  => 'Opening balance',
+        'cash_injection'   => 'Cash injection from owner',
+        'bank_transfer_in' => 'Bank transfer received',
+        'fx_adjustment'    => 'FX adjustment',
+        'correction'       => 'Balance correction',
+        'other'            => 'Other',
+    ];
+
+    public $branch_commission_purposes = [
+        'shipping_commission' => 'Shipping commission',
+        'service_fee'         => 'Service fee',
+        'fx_adjustment'       => 'FX adjustment',
+        'correction'          => 'Balance correction',
+        'other'               => 'Other',
+    ];
+
+    public $branch_transfer_purposes = [
+        'currency_exchange' => 'Currency exchange',
+        'fx_adjustment'     => 'FX adjustment',
+        'correction'        => 'Balance correction',
+        'other'             => 'Other',
+    ];
+
+    public $branch_fix_purposes = [
+        'move_cash_between_branches' => 'Move cash between branches',
+        'settle_internal_debt'       => 'Settle internal debt',
+        'correction'                 => 'Balance correction',
+        'other'                      => 'Other',
+    ];
+
+    public $supplier_deposit_purposes = [
+        'goods_payment'   => 'Payment for goods',
+        'advance_payment' => 'Advance payment',
+        'refund'          => 'Supplier refund',
+        'fx_adjustment'   => 'FX adjustment',
+        'correction'      => 'Balance correction',
+        'other'           => 'Other',
+    ];
+
+    public $customs_broker_deposit_purposes = [
+        'customs_clearance' => 'Customs clearance fee',
+        'port_handling'     => 'Port handling fee',
+        'penalty'           => 'Customs penalty',
+        'fx_adjustment'     => 'FX adjustment',
+        'correction'        => 'Balance correction',
+        'other'             => 'Other',
+    ];
+
     /**
      * Resolve a purpose code into a translatable human label. Falls back to
      * the raw code (so dropped/renamed entries still render something) and
@@ -181,6 +230,12 @@ class dataController extends Controller
             $this->client_withdraw_purposes,
             $this->client_transfer_purposes,
             $this->client_client_transfer_purposes,
+            $this->branch_deposit_purposes,
+            $this->branch_commission_purposes,
+            $this->branch_transfer_purposes,
+            $this->branch_fix_purposes,
+            $this->supplier_deposit_purposes,
+            $this->customs_broker_deposit_purposes,
             ['commission' => 'Commission charge']
         );
         $label = $all[$code] ?? $code;

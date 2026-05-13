@@ -115,6 +115,7 @@ function deposit(){
     const value = $('#deposit .inp[data-name="value"]').val();
     const branch = $('#deposit .inp[data-name="branch"]').val();
     const notes = $('#deposit .inp[data-name="notes"]').val();
+    const purpose = $('#deposit .inp[data-name="purpose"]').val();
     const transactionNumber = $('#deposit .inp[data-name="transaction_number"]').val();
 
     formData.append('_token', token);
@@ -123,10 +124,11 @@ function deposit(){
     formData.append('value', value);
     formData.append('branch', branch);
     formData.append('notes', notes);
+    formData.append('purpose', purpose);
     formData.append('transaction_number', transactionNumber);;
-    
-    if(!currency || !value || !branch){
-        showErr(langContent['Insert required data']) 
+
+    if(!currency || !value || !branch || !purpose){
+        showErr(langContent['Insert required data'])
         return;
     }
     showLoader()

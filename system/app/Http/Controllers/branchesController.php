@@ -380,6 +380,8 @@ class branchesController extends Controller
                             $exchange_rate = $rate;
                         }
 
+                        $purpose = $this->normalizePurpose($request->purpose, $dataController->branch_deposit_purposes);
+
                         DB::table('branches_transactions')->insert([
                             'transaction_number' => $transaction_number,
                             'value'        => $value,
@@ -392,6 +394,7 @@ class branchesController extends Controller
                             'exchange_rate'=> $exchange_rate,
                             'usd_value'    => $usd_value,
                             'notes'        => $notes,
+                            'purpose'      => $purpose,
                             'created_by'   => auth()->user()->id,
                             'created_date' => date('Y-m-d'),
                             'created_time' => date('H:i:s'),
@@ -409,6 +412,7 @@ class branchesController extends Controller
                                 'branch'             => $branch,
                                 'value'              => $value,
                                 'currency'           => $currency,
+                                'purpose'            => $purpose,
                                 'transaction_number' => $transaction_number,
                             ],
                             'Branch deposit'
@@ -482,6 +486,8 @@ class branchesController extends Controller
                             $exchange_rate = $rate;
                         }
 
+                        $purpose = $this->normalizePurpose($request->purpose, $dataController->branch_commission_purposes);
+
                         DB::table('branches_transactions')->insert([
                             'transaction_number' => $transaction_number,
                             'value'        => $value,
@@ -495,6 +501,7 @@ class branchesController extends Controller
                             'exchange_rate'=> $exchange_rate,
                             'usd_value'    => $usd_value,
                             'notes'        => $notes,
+                            'purpose'      => $purpose,
                             'created_by'   => auth()->user()->id,
                             'created_date' => date('Y-m-d'),
                             'created_time' => date('H:i:s'),
@@ -512,6 +519,7 @@ class branchesController extends Controller
                                 'branch'             => $branch,
                                 'value'              => $value,
                                 'currency'           => $currency,
+                                'purpose'            => $purpose,
                                 'transaction_number' => $transaction_number,
                             ],
                             'Branch commission deposit'
@@ -705,6 +713,7 @@ class branchesController extends Controller
                         $data = [
                             'type' => 'fix_branch'
                         ];
+                        $purpose = $this->normalizePurpose($request->purpose, $dataController->branch_fix_purposes);
 
                         $exchange_rate = null;
 
@@ -727,6 +736,7 @@ class branchesController extends Controller
                             'plus_minus'   => 'minus',
                             'branch'       => $from,
                             'notes'        => $notes,
+                            'purpose'      => $purpose,
                             'exchange_rate'=> $exchange_rate,
                             'usd_value'    => $usd_value,
                             'created_by'   => auth()->user()->id,
@@ -744,6 +754,7 @@ class branchesController extends Controller
                             'plus_minus'   => 'plus',
                             'branch'       => $to,
                             'notes'        => $notes,
+                            'purpose'      => $purpose,
                             'exchange_rate'=> $exchange_rate,
                             'usd_value'    => $usd_value,
                             'created_by'   => auth()->user()->id,
@@ -766,6 +777,7 @@ class branchesController extends Controller
                                 'to_branch'          => $to,
                                 'value'              => $value,
                                 'currency'           => $currency,
+                                'purpose'            => $purpose,
                                 'transaction_number' => $transaction_number,
                             ],
                             'Branch fix (transfer between branches)'
@@ -837,6 +849,7 @@ class branchesController extends Controller
                     if($chk == 0){
                         
                         $data = null;
+                        $purpose = $this->normalizePurpose($request->purpose, $dataController->branch_transfer_purposes);
 
                         DB::table('branches_transactions')->insert([
                             'transaction_number' => $transaction_number,
@@ -849,6 +862,7 @@ class branchesController extends Controller
                             'data'          => $data,
                             'type'          => 'transfer_branch',
                             'notes'         => $notes,
+                            'purpose'       => $purpose,
                             'branch'        => $branch,
                             'created_by'    => auth()->user()->id,
                             'created_date'  => date('Y-m-d'),
@@ -870,6 +884,7 @@ class branchesController extends Controller
                                 'value'              => $value,
                                 'result'             => $result,
                                 'exchange_rate'      => $exchange_rate,
+                                'purpose'            => $purpose,
                                 'transaction_number' => $transaction_number,
                             ],
                             'Branch currency conversion'

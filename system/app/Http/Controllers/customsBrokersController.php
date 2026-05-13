@@ -265,6 +265,8 @@ class customsBrokersController extends Controller
                 $created_time = date('H:i:s');
                 $created_by   = auth()->user()->id;
 
+                $purpose = $this->normalizePurpose($request->purpose, $dataController->customs_broker_deposit_purposes);
+
                 DB::table('customs_brokers_transactions')->insert([
                     'transaction_number' => $transaction_number,
                     'container_id'       => $container_id,
@@ -280,6 +282,7 @@ class customsBrokersController extends Controller
                     'from_value'         => $from_value,
                     'from_currency'      => $currency,
                     'notes'              => $notes,
+                    'purpose'            => $purpose,
                     'plus_minus'         => 'plus',
                     'type'               => $type,
                     'created_date'       => $created_date,
@@ -298,7 +301,22 @@ class customsBrokersController extends Controller
                     $branchesController->update_balance($branch,$currency);
                     $treasuryController->insert($transaction_number,$type,'minus',$auto_id,$treasuryData,$from_value,$currency,0,$branch,$notes,null);
                 }
-                
+
+                $this->logAudit(
+                    'customs_broker_deposit',
+                    'customs_brokers_transactions',
+                    $auto_id,
+                    [
+                        'broker_id'          => $broker_id,
+                        'branch'             => $branch,
+                        'value'              => $value,
+                        'currency'           => $currency,
+                        'purpose'            => $purpose,
+                        'transaction_number' => $transaction_number,
+                    ],
+                    'Customs broker deposit'
+                );
+
             });
 
             return $response;
