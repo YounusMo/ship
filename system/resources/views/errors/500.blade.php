@@ -18,6 +18,7 @@
 
     {{-- Custom --}}
     <link rel="stylesheet" href="{{asset('style/ltr/style.css')}}">
+    <link rel="stylesheet" href="{{asset('style/design-tokens.css')}}">
 
     <title>{{env('APP_NAME')}}</title>
 </head>

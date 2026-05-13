@@ -37,6 +37,10 @@
     {{-- Custom --}}
     <link rel="stylesheet" href="{{asset('style/'.$dir.'/style.css')}}?ver={{env('VERSION')}}">
 
+    {{-- Design tokens — loaded AFTER style.css so overrides apply --}}
+    <link rel="stylesheet" href="{{asset('style/design-tokens.css')}}?ver={{env('VERSION')}}">
+    <link rel="stylesheet" href="{{asset('style/design-components.css')}}?ver={{env('VERSION')}}">
+
     <title>{{env('APP_NAME')}}</title>
 
 
