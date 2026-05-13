@@ -127,6 +127,67 @@ class dataController extends Controller
         'other_services' => 'Other Services',
     ];
 
+    // Reason-codes for the common client-side cash flows. Free-text `notes`
+    // stays for the rare 5% of rows that need real context, but the operator
+    // is forced to pick a reason from this list. Translations go through
+    // langController::write() so AR / EN / ZH all show.
+    public $client_deposit_purposes = [
+        'cash_received'    => 'Cash received',
+        'bank_transfer'    => 'Bank transfer received',
+        'advance_payment'  => 'Advance against future shipment',
+        'container_payment'=> 'Payment for specific container',
+        'commission_refund'=> 'Commission refund',
+        'fx_adjustment'    => 'FX adjustment',
+        'correction'       => 'Balance correction',
+        'other'            => 'Other',
+    ];
+
+    public $client_withdraw_purposes = [
+        'cash_paid'           => 'Cash paid to client',
+        'bank_transfer'       => 'Bank transfer to client',
+        'goods_release'       => 'Withdrawal at delivery',
+        'expense_allocation'  => 'Allocated expense',
+        'commission'          => 'Commission charge',
+        'fx_adjustment'       => 'FX adjustment',
+        'correction'          => 'Balance correction',
+        'other'               => 'Other',
+    ];
+
+    public $client_transfer_purposes = [
+        'currency_exchange' => 'Currency exchange',
+        'fx_adjustment'     => 'FX adjustment',
+        'correction'        => 'Balance correction',
+        'other'             => 'Other',
+    ];
+
+    public $client_client_transfer_purposes = [
+        'pay_other_client_debt' => "Payment of another client's debt",
+        'family_account_move'   => 'Move between linked accounts',
+        'correction'            => 'Balance correction',
+        'other'                 => 'Other',
+    ];
+
+    /**
+     * Resolve a purpose code into a translatable human label. Falls back to
+     * the raw code (so dropped/renamed entries still render something) and
+     * to '-' for an empty input.
+     */
+    public function purposeLabel($code){
+        if (empty($code)) {
+            return '-';
+        }
+        $all = array_merge(
+            $this->client_deposit_purposes,
+            $this->client_withdraw_purposes,
+            $this->client_transfer_purposes,
+            $this->client_client_transfer_purposes,
+            ['commission' => 'Commission charge']
+        );
+        $label = $all[$code] ?? $code;
+        $lang = new langController();
+        return $lang->write($label);
+    }
+
     
 
     public $default_branches = [

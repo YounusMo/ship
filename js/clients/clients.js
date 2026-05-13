@@ -622,6 +622,7 @@ function deposit(){
     const value = $('#deposit .inp[data-name="value"]').val();
     const branch = $('#deposit .inp[data-name="branch"]').val();
     const notes = $('#deposit .inp[data-name="notes"]').val();
+    const purpose = $('#deposit .inp[data-name="purpose"]').val();
     const transactionNumber = $('#deposit .inp[data-name="transaction_number"]').val();
     const commission = $('#deposit .inp[data-name="commission"]').val();
 
@@ -631,12 +632,13 @@ function deposit(){
     formData.append('value', value);
     formData.append('branch', branch);
     formData.append('notes', notes);
+    formData.append('purpose', purpose);
     formData.append('commission', commission);
     formData.append('transaction_number', transactionNumber);
     formData.append('status', 'pending');
-    
-    if(!currency || !value || !branch){
-        showErr(langContent['Insert required data']) 
+
+    if(!currency || !value || !branch || !purpose){
+        showErr(langContent['Insert required data'])
         return;
     }
     showLoader()
@@ -676,6 +678,7 @@ function transfer_client(){
     const value = $('#transfer_clients .inp[data-name="value"]').val();
     const to_client = $('#transfer_clients .inp[data-name="to_client"]').val();
     const notes = $('#transfer_clients .inp[data-name="notes"]').val();
+    const purpose = $('#transfer_clients .inp[data-name="purpose"]').val();
     const transactionNumber = $('#transfer_clients .inp[data-name="transaction_number"]').val();
 
 
@@ -685,11 +688,12 @@ function transfer_client(){
     formData.append('value', value);
     formData.append('to_client', to_client);
     formData.append('notes', notes);
-    
+    formData.append('purpose', purpose);
+
     formData.append('transaction_number', transactionNumber);
-    
-    if(!currency || !value || !to_client){
-        showErr(langContent['Insert required data']) 
+
+    if(!currency || !value || !to_client || !purpose){
+        showErr(langContent['Insert required data'])
         return;
     }
     showLoader()
@@ -776,6 +780,7 @@ function transfer(){
     const result = $('#transfer .inp[data-name="result"]').val();
     const exchange_rate = $('#transfer .inp[data-name="exchange_rate"]').val();
     const notes = $('#transfer .notes').val();
+    const purpose = $('#transfer .inp[data-name="purpose"]').val();
     const transactionNumber = $('#transfer .inp[data-name="transaction_number"]').val();
 
     formData.append('_token', token);
@@ -784,12 +789,13 @@ function transfer(){
     formData.append('to', to);
     formData.append('value', value);
     formData.append('result', result);
-    formData.append('notes', notes); 
-    formData.append('exchange_rate', exchange_rate); 
+    formData.append('notes', notes);
+    formData.append('purpose', purpose);
+    formData.append('exchange_rate', exchange_rate);
     formData.append('transaction_number', transactionNumber);;
-    
-    if(!from || !to || !value || !exchange_rate || !result){
-        showErr(langContent['Insert required data']) 
+
+    if(!from || !to || !value || !exchange_rate || !result || !purpose){
+        showErr(langContent['Insert required data'])
         return;
     }
     showLoader()
@@ -830,6 +836,7 @@ function withdraw(){
     const value = $('#withdraw .inp[data-name="value"]').val();
     const branch = $('#withdraw .inp[data-name="branch"]').val();
     const notes = $('#withdraw .inp[data-name="notes"]').val();
+    const purpose = $('#withdraw .inp[data-name="purpose"]').val();
     const commission = $('#withdraw .inp[data-name="commission"]').val();
     const old_balance = $('#withdraw .inp[data-name="old_balance"]').val();
     const transactionNumber = $('#withdraw .inp[data-name="transaction_number"]').val();
@@ -840,13 +847,14 @@ function withdraw(){
     formData.append('value', value);
     formData.append('branch', branch);
     formData.append('notes', notes);
+    formData.append('purpose', purpose);
     formData.append('old_balance', old_balance);
     formData.append('commission',commission);
     formData.append('transaction_number', transactionNumber);
     formData.append('status', 'pending');
-    
-    if(!currency || !value || !old_balance){
-        showErr(langContent['Insert required data']) 
+
+    if(!currency || !value || !old_balance || !purpose){
+        showErr(langContent['Insert required data'])
         return;
     }
 

@@ -99,6 +99,22 @@ abstract class Controller
     }
 
     /**
+     * Validate a client-supplied `purpose` code against the allow-list for
+     * its transaction type. Unknown codes (including empty / spoofed values)
+     * collapse to null so we never persist garbage in the column.
+     *
+     * @param  mixed              $value             — usually $request->purpose
+     * @param  array<string,string> $allowedCodeLabel — e.g. dataController::$client_deposit_purposes
+     */
+    protected function normalizePurpose($value, array $allowedCodeLabel): ?string
+    {
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+        return array_key_exists($value, $allowedCodeLabel) ? $value : null;
+    }
+
+    /**
      * Append a row to audit_log. Failure of the audit insert is logged but
      * NEVER propagated — we will not let a logging hiccup break a payroll
      * deposit.

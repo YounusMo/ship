@@ -350,6 +350,8 @@ class clientsController extends Controller
                             'to_client'   => $to_client,
                         ]);
 
+                        $purpose = $this->normalizePurpose($request->purpose, $dataController->client_client_transfer_purposes);
+
                         DB::table('clients_transactions')->insert([
                             'transaction_number' => $transaction_number,
                             'value'         => $value,
@@ -361,6 +363,7 @@ class clientsController extends Controller
                             'type'          => 'withdraw',
                             'plus_minus'    => 'minus',
                             'notes'         => $notes,
+                            'purpose'       => $purpose,
                             'client_id'     => $id,
                             'created_by'    => auth()->user()->id,
                             'created_date'  => date('Y-m-d'),
@@ -378,6 +381,7 @@ class clientsController extends Controller
                             'type'          => 'deposit',
                             'plus_minus'    => 'plus',
                             'notes'         => $notes,
+                            'purpose'       => $purpose,
                             'client_id'     => $to_client,
                             'created_by'    => auth()->user()->id,
                             'created_date'  => date('Y-m-d'),
@@ -399,6 +403,7 @@ class clientsController extends Controller
                                 'to_client'          => $to_client,
                                 'value'              => $value,
                                 'currency'           => $currency,
+                                'purpose'            => $purpose,
                                 'transaction_number' => $transaction_number,
                             ],
                             'Transfer between clients'
@@ -637,6 +642,8 @@ class clientsController extends Controller
                             $exchange_rate = $rate;
                         }
 
+                        $purpose = $this->normalizePurpose($request->purpose, $dataController->client_deposit_purposes);
+
                         DB::table('clients_transactions')->insert([
                             'transaction_number' => $transaction_number,
                             'value'        => $value,
@@ -652,6 +659,7 @@ class clientsController extends Controller
                             'usd_value'    => $usd_value,
                             'remaining_balance' => $remaining_balance + $value,
                             'notes'        => $notes,
+                            'purpose'      => $purpose,
                             'client_id'    => $id,
                             'created_by'   => auth()->user()->id,
                             'created_date' => date('Y-m-d'),
@@ -691,6 +699,7 @@ class clientsController extends Controller
                                 'branch'             => $branch,
                                 'status'             => $status,
                                 'type'               => $type,
+                                'purpose'            => $purpose,
                                 'transaction_number' => $transaction_number,
                             ],
                             'Client deposit'
@@ -779,6 +788,8 @@ class clientsController extends Controller
                         }
 
 
+                        $purpose = $this->normalizePurpose($request->purpose, $dataController->client_withdraw_purposes);
+
                         DB::table('clients_transactions')->insert([
                             'transaction_number' => $transaction_number,
                             'value'        => $value,
@@ -793,6 +804,7 @@ class clientsController extends Controller
                             'calc'         => $request->old_balance === "true" ? 'false':null,
                             'branch'       => $branch,
                             'notes'        => $notes,
+                            'purpose'      => $purpose,
                             'exchange_rate'=> $exchange_rate,
                             'usd_value'    => $usd_value,
                             'client_id'    => $id,
@@ -837,6 +849,7 @@ class clientsController extends Controller
                                 'branch'             => $branch,
                                 'status'             => $status,
                                 'type'               => $type,
+                                'purpose'            => $purpose,
                                 'transaction_number' => $transaction_number,
                             ],
                             'Client withdraw'
@@ -937,6 +950,7 @@ class clientsController extends Controller
                             'plus_minus'   => 'minus',
                             'branch'       => 15,
                             'notes'        => $notes,
+                            'purpose'      => 'commission',
                             'exchange_rate'=> $exchange_rate,
                             'usd_value'    => $usd_value,
                             'client_id'    => $id,
@@ -1045,6 +1059,8 @@ class clientsController extends Controller
                             'to'   => $remaining_balance_to + $result,
                         ]);
 
+                        $purpose = $this->normalizePurpose($request->purpose, $dataController->client_transfer_purposes);
+
                         DB::table('clients_transactions')->insert([
                             'transaction_number' => $transaction_number,
                             'value'         => $value,
@@ -1057,6 +1073,7 @@ class clientsController extends Controller
                             'data'          => $data,
                             'type'          => 'transfer',
                             'notes'         => $notes,
+                            'purpose'       => $purpose,
                             'client_id'     => $id,
                             'created_by'    => auth()->user()->id,
                             'created_date'  => date('Y-m-d'),
@@ -1079,6 +1096,7 @@ class clientsController extends Controller
                                 'value'              => $value,
                                 'result'             => $result,
                                 'exchange_rate'      => $exchange_rate,
+                                'purpose'            => $purpose,
                                 'transaction_number' => $transaction_number,
                             ],
                             'Client currency transfer (pending approval)'

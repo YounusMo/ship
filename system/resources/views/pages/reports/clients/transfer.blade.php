@@ -26,6 +26,7 @@
             <th>{{$lang->write('From currency')}}</th>
             <th>{{$lang->write('To currency')}}</th>
             <th>{{$lang->write('Exchange rate')}}</th>
+            <th>{{$lang->write('Purpose')}}</th>
             <th>{{$lang->write('Notes')}}</th>
             <th>{{$lang->write('Remaining balance')}}</th>
             <th>{{$lang->write('Created at')}}</th>
@@ -46,6 +47,11 @@
                 <td>{{$dataController->numberFormat($item->value)}} {{$cur}}</td>
                 <td>{{$dataController->numberFormat($item->transfer_value)}} {{$cur2}}</td>
                 <td>{{$dataController->numberFormat($item->exchange_rate)}}</td>
+                <td>
+                    @if (!empty($item->purpose))
+                        <span class="badge bg-secondary">{{ $dataController->purposeLabel($item->purpose) }}</span>
+                    @endif
+                </td>
                 <td><span title="{{$item->notes}}">{{strlen($item->notes) > 20 ? substr($item->notes, 0, 20).'...' : $item->notes}}</span></td>
                 <td>
                     {{$dataController->numberFormat($data->from)}} {{$cur}} / {{$dataController->numberFormat($data->to)}} {{$cur2}} 

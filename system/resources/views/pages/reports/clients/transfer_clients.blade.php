@@ -27,6 +27,7 @@
             <th>{{$lang->write('Amount')}}</th>
             <th>{{$lang->write('From client')}}</th>
             <th>{{$lang->write('To client')}}</th>
+            <th>{{$lang->write('Purpose')}}</th>
             <th>{{$lang->write('Notes')}}</th>
             <th>{{$lang->write('Remaining balance')}}</th>
             <th>{{$lang->write('Created at')}}</th>
@@ -55,6 +56,11 @@
                 <td class="{{$item->type === 'deposit' ? 'text-success' : 'text-danger'}}">{{$dataController->numberFormat($item->value)}} {{$cur}}</td>
                 <td>{{$from_client->name ?? '-'}}</td>
                 <td>{{$to_client->name ?? '-'}}</td>
+                <td>
+                    @if (!empty($item->purpose))
+                        <span class="badge bg-secondary">{{ $dataController->purposeLabel($item->purpose) }}</span>
+                    @endif
+                </td>
                 <td><span title="{{$item->notes}}">{{strlen($item->notes) > 20 ? substr($item->notes, 0, 20).'...' : $item->notes}}</span></td>
                 <td>
                     {{$dataController->numberFormat($item->remaining_balance)}} {{$cur}}

@@ -125,7 +125,12 @@
                             @endif
                         </td>
                 
-                        <td style="{{$td_style}}">{{$item->notes}}</td>
+                        <td style="{{$td_style}}">
+                            @if (!empty($item->purpose))
+                                <strong>[{{ $dataController->purposeLabel($item->purpose) }}]</strong>
+                            @endif
+                            {{$item->notes}}
+                        </td>
                         <td style="{{$td_style}}">{{$item->created_date}}</td>
                     </tr>
                 @endif
@@ -157,6 +162,9 @@
                         <td style="{{$td_style}}">{{$dataController->numberFormat($item->remaining_balance)}} </td>
                  
                         <td style="{{$td_style}}">
+                            @if (!empty($item->purpose))
+                                <strong>[{{ $dataController->purposeLabel($item->purpose) }}]</strong>
+                            @endif
                             @if (isset($data->from_client) && isset($data->to_client))
                                 @if ($data->to_client == $item->client_id)
                                     <span>{{$lang->write('Transfer from client')}} {{ $dataController->get_client($data->from_client,'code') }}</span>

@@ -25,6 +25,7 @@
             <th>#</th>
             <th>{{$lang->write('Amount')}}</th>
             <th>{{$lang->write('Currency')}}</th>
+            <th>{{$lang->write('Purpose')}}</th>
             <th>{{$lang->write('Notes')}}</th>
             <th>{{$lang->write('Remaining balance')}}</th>
             <th>{{$lang->write('Created at')}}</th>
@@ -42,6 +43,11 @@
                 <td>{{$item->auto_id}}</td>
                 <td>{{$dataController->numberFormat($item->value)}} {{$cur}}</td>
                 <td>{{$dataController->get_cur($item->currency , 'text')}}</td>
+                <td>
+                    @if (!empty($item->purpose))
+                        <span class="badge bg-secondary">{{ $dataController->purposeLabel($item->purpose) }}</span>
+                    @endif
+                </td>
                 <td>
                     @if (isset($data->from_client) && isset($data->to_client))
                         @if ($data->to_client == $item->client_id)
