@@ -1,10 +1,9 @@
 @php
     use App\Http\Controllers\dataController;
     use App\Http\Controllers\langController;
-  
     use Illuminate\Support\Facades\Cache;
 
-    $lang           = new langController();
+    $lang = new langController();
     $dataController = new dataController();
 
     $currencies = $dataController->currencies;
@@ -14,34 +13,38 @@
 @endphp
 @extends('layout')
 @section('content')
-    <div class="treasury">
-        <div class="row d-flex align-items-center">
-            <div class="col-lg-4 col-12 mb-2">
-                <div class="d-flex align-items-center">
-                    <h4 class="h4">{{$lang->write('Profits')}}</h4>
-                </div>
-            </div>
-            <div class="col-lg-8 col-12 mb-2 text-end">
-                <div class="d-flex align-items-center justify-content-end">
-                    
-                    <div class="w-25 text-start branch mx-2">
-                        <label for="">{{$lang->write('From date')}} :</label>
-                        <input type="date" class="form-control from" value="{{date('Y-m-d')}}">
-                    </div>
-                    <div class="w-25 text-start branch mx-2">
-                        <label for="">{{$lang->write('To date')}} :</label>
-                        <input type="date" class="form-control to" value="{{date('Y-m-d')}}">
-                    </div>
-                    <div class="w-25 text-start pt-3 mx-2">
-                        <button class="btn btn-primary print">{{$lang->write('Print')}}</button>
-                        <button class="btn btn-secondary print_all">{{$lang->write('Print with details')}}</button>
-                    </div>
-                </div>
+<div class="treasury">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">{{ $lang->write('Profits') }}</h1>
+            <div class="page-subtitle">
+                {{ $lang->write('Revenue from shipping commission and FX over a date range') }}
             </div>
         </div>
-        
-        <div class="main-table mt-2" id="printable">
-            
+        <div class="page-actions">
+            <button class="btn btn-secondary print_all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                {{ $lang->write('Print with details') }}
+            </button>
+            <button class="btn btn-primary print">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                {{ $lang->write('Print') }}
+            </button>
         </div>
     </div>
+
+    <div class="toolbar" style="align-items:flex-end;">
+        <div style="flex:1 1 200px;min-width:160px;">
+            <label class="form-label">{{ $lang->write('From date') }}</label>
+            <input type="date" class="form-control from" value="{{ date('Y-m-d') }}">
+        </div>
+        <div style="flex:1 1 200px;min-width:160px;">
+            <label class="form-label">{{ $lang->write('To date') }}</label>
+            <input type="date" class="form-control to" value="{{ date('Y-m-d') }}">
+        </div>
+    </div>
+
+    <div class="main-table" id="printable"></div>
+</div>
 @endsection
