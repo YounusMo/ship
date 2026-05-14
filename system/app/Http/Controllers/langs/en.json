@@ -518,5 +518,6 @@
     "Multi-branch shipping & treasury operations": "Multi-branch shipping & treasury operations",
     "Staff accounts that can log into the back office": "Staff accounts that can log into the back office",
     "Transactions imported from the legacy ledger, excluded from balance recompute": "Transactions imported from the legacy ledger, excluded from balance recompute",
-    "Reconcile treasury entries against client-side transactions": "Reconcile treasury entries against client-side transactions"
+    "Reconcile treasury entries against client-side transactions": "Reconcile treasury entries against client-side transactions",
+    "Containers, received goods and outbound shipments": "Containers, received goods and outbound shipments"
 }
