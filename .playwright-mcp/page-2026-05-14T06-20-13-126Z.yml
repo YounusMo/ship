@@ -1,0 +1,196 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - img [ref=e3]
+    - text: Please wait
+  - img [ref=e6]
+  - img [ref=e9]
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - img "brand" [ref=e13]
+      - list [ref=e14]:
+        - listitem [ref=e15]:
+          - link "Clients" [ref=e16] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/clients/all
+            - img [ref=e17]
+            - text: Clients
+        - separator [ref=e19]
+        - generic [ref=e20]: Shipping
+        - listitem [ref=e21]:
+          - link "Air Freight" [ref=e22] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sky
+            - img [ref=e23]
+            - text: Air Freight
+        - listitem [ref=e25]:
+          - link "Sea Freight" [ref=e26] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sea
+            - img [ref=e27]
+            - text: Sea Freight
+        - separator [ref=e31]
+        - generic [ref=e32]: Company
+        - listitem [ref=e33]:
+          - link "Accounting" [ref=e34] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/company/accounting
+            - img [ref=e35]
+            - text: Accounting
+        - listitem [ref=e38]:
+          - link "Treasury" [ref=e39] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/treasury
+            - img [ref=e40]
+            - text: Treasury
+        - listitem [ref=e44]:
+          - link "Revenue" [ref=e45] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/profits
+            - img [ref=e46]
+            - text: Revenue
+        - listitem [ref=e50]:
+          - link "Matching" [ref=e51] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/matching
+            - img [ref=e52]
+            - text: Matching
+        - listitem [ref=e56]:
+          - link "Old Balance Archive" [ref=e57] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/old_balance_archive
+            - img [ref=e58]
+            - text: Old Balance Archive
+        - separator [ref=e60]
+        - generic [ref=e61]: Data
+        - listitem [ref=e62]:
+          - link "Branches" [ref=e63] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/branches/all
+            - img [ref=e64]
+            - text: Branches
+        - listitem [ref=e66]:
+          - link "Shipping Lines" [ref=e67] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/suppliers
+            - img [ref=e68]
+            - text: Shipping Lines
+        - listitem [ref=e72]:
+          - link "Customs clearance" [ref=e73] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/customs_brokers
+            - img [ref=e74]
+            - text: Customs clearance
+        - separator [ref=e76]
+        - generic [ref=e77]: System
+        - listitem [ref=e78]:
+          - link "Users" [ref=e79] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/users
+            - img [ref=e80]:
+              - text: "-->"
+              - text: "-->"
+            - text: Users
+        - listitem [ref=e82]:
+          - link "Audit log" [ref=e83] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/audit
+            - img [ref=e84]
+            - text: Audit log
+        - listitem [ref=e89]:
+          - link "Reconciliation" [ref=e90] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/reconciliation
+            - img [ref=e91]
+            - text: Reconciliation
+        - listitem [ref=e94]:
+          - link "Settings" [ref=e95] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/settings
+            - img [ref=e96]
+            - text: Settings
+    - generic [ref=e100]:
+      - generic [ref=e102]:
+        - generic [ref=e103]: Hello Admin
+        - generic [ref=e105]:
+          - generic [ref=e107] [cursor=pointer]:
+            - img [ref=e108]
+            - text: English
+          - link [ref=e124] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/logout
+            - img [ref=e125]
+      - generic [ref=e127]:
+        - generic [ref=e129]:
+          - heading "Audit log" [level=4] [ref=e130]
+          - text: Append-only record of who changed what. Read-only.
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - generic [ref=e133]: From date
+            - textbox [ref=e134]
+          - generic [ref=e135]:
+            - generic [ref=e136]: To date
+            - textbox [ref=e137]
+          - generic [ref=e138]:
+            - generic [ref=e139]: Action
+            - combobox [ref=e140]:
+              - option "All" [selected]
+          - generic [ref=e141]:
+            - generic [ref=e142]: Target table
+            - combobox [ref=e143]:
+              - option "All" [selected]
+          - generic [ref=e144]:
+            - generic [ref=e145]: Target id
+            - spinbutton [ref=e146]
+        - table [ref=e148]:
+          - rowgroup [ref=e149]:
+            - row [ref=e150]:
+              - columnheader [ref=e151]
+              - columnheader [ref=e153]
+              - columnheader [ref=e155]
+              - columnheader [ref=e157]
+              - columnheader [ref=e159]
+          - rowgroup [ref=e161]:
+            - row [ref=e162]:
+              - cell [ref=e163]
+              - cell [ref=e165]
+              - cell [ref=e167]
+              - cell [ref=e169]
+              - cell [ref=e171]
+            - row [ref=e173]:
+              - cell [ref=e174]
+              - cell [ref=e176]
+              - cell [ref=e178]
+              - cell [ref=e180]
+              - cell [ref=e182]
+            - row [ref=e184]:
+              - cell [ref=e185]
+              - cell [ref=e187]
+              - cell [ref=e189]
+              - cell [ref=e191]
+              - cell [ref=e193]
+            - row [ref=e195]:
+              - cell [ref=e196]
+              - cell [ref=e198]
+              - cell [ref=e200]
+              - cell [ref=e202]
+              - cell [ref=e204]
+            - row [ref=e206]:
+              - cell [ref=e207]
+              - cell [ref=e209]
+              - cell [ref=e211]
+              - cell [ref=e213]
+              - cell [ref=e215]
+            - row [ref=e217]:
+              - cell [ref=e218]
+              - cell [ref=e220]
+              - cell [ref=e222]
+              - cell [ref=e224]
+              - cell [ref=e226]
+            - row [ref=e228]:
+              - cell [ref=e229]
+              - cell [ref=e231]
+              - cell [ref=e233]
+              - cell [ref=e235]
+              - cell [ref=e237]
+            - row [ref=e239]:
+              - cell [ref=e240]
+              - cell [ref=e242]
+              - cell [ref=e244]
+              - cell [ref=e246]
+              - cell [ref=e248]
+            - row [ref=e250]:
+              - cell [ref=e251]
+              - cell [ref=e253]
+              - cell [ref=e255]
+              - cell [ref=e257]
+              - cell [ref=e259]
+            - row [ref=e261]:
+              - cell [ref=e262]
+              - cell [ref=e264]
+              - cell [ref=e266]
+              - cell [ref=e268]
+              - cell [ref=e270]
