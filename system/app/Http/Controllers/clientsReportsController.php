@@ -98,10 +98,15 @@ class clientsReportsController extends Controller
                 }else{
                     $value     = $request->value;
                     
+                    // remaining_balance and value are TEXT columns in MySQL — PHP 8
+                    // rejects string + string, so coerce both to float here.
+                    $remainingFloat = floatval($get->remaining_balance);
+                    $valueFloat     = floatval($value);
+
                     if($type === 'deposit'){
-                        
+
                         if($status === 'approved'){
-                            $treasuryController->insert($get->transaction_number,'deposit','plus',$get->auto_id,$get->data,$get->value,$get->currency,$get->commission,$get->branch,$get->notes,$get->client_id,$get->remaining_balance + $value);
+                            $treasuryController->insert($get->transaction_number,'deposit','plus',$get->auto_id,$get->data,$get->value,$get->currency,$get->commission,$get->branch,$get->notes,$get->client_id,$remainingFloat + $valueFloat);
 
                             if($get->commission > 0){
                                 $treasuryController->insert($get->transaction_number,'deposit_commission','plus',$get->auto_id,json_encode(['type'=>'commission']),$get->commission,$get->currency,0,$get->branch,$get->notes,$get->client_id,0);
@@ -110,9 +115,9 @@ class clientsReportsController extends Controller
                     }
 
                     if($type === 'withdraw'){
-                        
+
                         if($status === 'approved'){
-                            $treasuryController->insert($get->transaction_number,'withdraw','minus',$get->auto_id,$get->data,$value,$get->currency,$get->commission,$get->branch,$get->notes,$get->client_id,$get->remaining_balance - $value);
+                            $treasuryController->insert($get->transaction_number,'withdraw','minus',$get->auto_id,$get->data,$value,$get->currency,$get->commission,$get->branch,$get->notes,$get->client_id,$remainingFloat - $valueFloat);
 
                             if($get->commission > 0){
                                 $treasuryController->insert($get->transaction_number,'withdraw_commission','plus',$get->auto_id,json_encode(['type'=>'commission']),$get->commission,$get->currency,0,$get->branch,$get->notes,$get->client_id,0);
@@ -121,9 +126,9 @@ class clientsReportsController extends Controller
                     }
 
                     if($type === 'withdraw_commission'){
-                        
+
                         if($status === 'approved'){
-                            $treasuryController->insert($get->transaction_number,'withdraw_commission','plus',$get->auto_id,json_encode(['type'=>'commission']),$value,$get->currency,$get->commission,$get->branch,$get->notes,$get->client_id,$get->remaining_balance - $value);
+                            $treasuryController->insert($get->transaction_number,'withdraw_commission','plus',$get->auto_id,json_encode(['type'=>'commission']),$value,$get->currency,$get->commission,$get->branch,$get->notes,$get->client_id,$remainingFloat - $valueFloat);
 
                             // if($get->commission > 0){
                             //     $treasuryController->insert($get->transaction_number,'withdraw_commission','plus',$get->auto_id,json_encode(['type'=>'commission']),$get->commission,$get->currency,0,$get->branch,$get->notes,$get->client_id,0);
