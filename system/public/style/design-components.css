@@ -443,6 +443,55 @@
   color: var(--color-red-700);
 }
 
+/* ---------- modal-internal sidebar (used in clients/reports modal) ---------- */
+#reports .sidebar_ul,
+#all_reports .sidebar_ul,
+#pending .sidebar_ul {
+  border-inline-end: 1px solid var(--color-border);
+  padding-inline-end: var(--space-3);
+  padding-inline-start: 0;
+}
+#reports .sidebar_ul li,
+#all_reports .sidebar_ul li,
+#pending .sidebar_ul li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px !important;
+  border-radius: var(--radius-md) !important;
+  margin-bottom: 4px !important;
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+#reports .sidebar_ul li svg,
+#all_reports .sidebar_ul li svg,
+#pending .sidebar_ul li svg {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+#reports .sidebar_ul li:hover,
+#all_reports .sidebar_ul li:hover,
+#pending .sidebar_ul li:hover {
+  background: var(--color-surface-2) !important;
+}
+#reports .sidebar_ul .active,
+#all_reports .sidebar_ul .active,
+#pending .sidebar_ul .active {
+  background: var(--color-navy-100) !important;
+  color: var(--color-navy-800);
+  font-weight: 600;
+}
+#reports .sidebar_ul .active svg,
+#all_reports .sidebar_ul .active svg,
+#pending .sidebar_ul .active svg {
+  color: var(--color-navy-800);
+}
+.report_content {
+  padding-inline-start: var(--space-4);
+}
+
 /* ---------- audit log table polish ---------- */
 .audit-row pre {
   background: var(--color-surface-2);
