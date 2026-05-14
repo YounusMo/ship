@@ -635,7 +635,11 @@ function deposit(){
     formData.append('purpose', purpose);
     formData.append('commission', commission);
     formData.append('transaction_number', transactionNumber);
-    formData.append('status', 'pending');
+    // Direct admin deposit/withdraw — treat as approved so the treasury row
+    // and branch balance update immediately. The pending workflow still
+    // exists for the explicit approve flow (approveReject), if you want to
+    // bring it back later make this configurable per role.
+    formData.append('status', 'approved');
 
     if(!currency || !value || !branch || !purpose){
         showErr(langContent['Insert required data'])
@@ -851,7 +855,11 @@ function withdraw(){
     formData.append('old_balance', old_balance);
     formData.append('commission',commission);
     formData.append('transaction_number', transactionNumber);
-    formData.append('status', 'pending');
+    // Direct admin deposit/withdraw — treat as approved so the treasury row
+    // and branch balance update immediately. The pending workflow still
+    // exists for the explicit approve flow (approveReject), if you want to
+    // bring it back later make this configurable per role.
+    formData.append('status', 'approved');
 
     if(!currency || !value || !old_balance || !purpose){
         showErr(langContent['Insert required data'])
@@ -914,7 +922,11 @@ function withdraw_commission(){
     formData.append('notes', notes);
     formData.append('commission',commission);
     formData.append('transaction_number', transactionNumber);
-    formData.append('status', 'pending');
+    // Direct admin deposit/withdraw — treat as approved so the treasury row
+    // and branch balance update immediately. The pending workflow still
+    // exists for the explicit approve flow (approveReject), if you want to
+    // bring it back later make this configurable per role.
+    formData.append('status', 'approved');
     
     if(!currency){
         showErr(langContent['Insert required data']) 
