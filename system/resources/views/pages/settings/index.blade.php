@@ -132,97 +132,133 @@
 @extends('layout')
 @section('content')
 
-    <div class="card p-2">
-        <ul class="nav nav-tabs">
-            <li class="nav-item">
-                <a class="nav-link active" style="color:black" aria-current="page" href="general">{{$lang->write('General')}}</a>
-            </li>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">{{ $lang->write('Settings') }}</h1>
+        <div class="page-subtitle">{{ $lang->write('Company details, exchange rates and system info') }}</div>
+    </div>
+</div>
 
-            <li class="nav-item">
-                <a class="nav-link" style="color:black" href="exchange_rates">{{$lang->write('Exchange rates')}}</a>
-            </li>
+<div class="card">
+    <ul class="nav nav-tabs" style="border-bottom:1px solid var(--color-border);padding:0 var(--space-4);">
+        <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="general" style="color:var(--color-navy-800);font-weight:600;">{{ $lang->write('General') }}</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="exchange_rates" style="color:var(--color-text-muted);">{{ $lang->write('Exchange rates') }}</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="about" style="color:var(--color-text-muted);">{{ $lang->write('About system') }}</a>
+        </li>
+    </ul>
 
-            <li class="nav-item">
-                <a class="nav-link" style="color:black" href="about">{{$lang->write('About system')}}</a>
-            </li>
-        </ul>
+    <div class="card-body">
 
-        <div class="mt-3">
-
-            <div class="tab" data-tab='general'>
-                <form action="{{url('/settings/save')}}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="">{{$lang->write('Time zone')}} :</label>
-                        <select name="timezone" id="timezone" class="form-control" style="width: 400px">
-                            <?php foreach ($timezones as $key => $value) {?>
-                                <option <?php echo ( $settings['timezone'] === $key ) ?'selected' :''?> value="<?php echo $key?>"><?php echo $value?></option>
-                            <?php }?>
+        {{-- ====== General ====== --}}
+        <div class="tab" data-tab='general'>
+            <form action="{{ url('/settings/save') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="row g-3" style="max-width: 720px;">
+                    <div class="col-12">
+                        <label class="form-label">{{ $lang->write('Time zone') }}</label>
+                        <select name="timezone" id="timezone" class="form-select">
+                            @foreach ($timezones as $key => $value)
+                                <option {{ $settings['timezone'] === $key ? 'selected' : '' }} value="{{ $key }}">{{ $value }}</option>
+                            @endforeach
                         </select>
                     </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ $lang->write('Logo') }}</label>
+                        <input type="file" class="form-control" name="logo" accept=".jpg,.png">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ $lang->write('Company name') }}</label>
+                        <input type="text" class="form-control" value="{{ $settings['company_name'] }}" name="company_name">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ $lang->write('Email') }}</label>
+                        <input type="text" class="form-control" value="{{ $settings['email'] }}" name="email">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ $lang->write('Phone') }}</label>
+                        <input type="text" class="form-control" value="{{ $settings['phone'] }}" name="phone">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ $lang->write('Address') }}</label>
+                        <input type="text" class="form-control" value="{{ $settings['address'] }}" name="address">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button class="btn btn-primary submit">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-inline-end:6px;vertical-align:-2px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        {{ $lang->write('Save') }}
+                    </button>
+                </div>
+            </form>
+        </div>
 
-                    <div class="mb-3">
-                        <label for="">{{$lang->write('Logo')}} :</label>
-                        <input type="file" class="form-control"  style="width: 400px" value="{{$settings['logo']}}" name="logo" accept=".jpg,.png">
-                    </div>
-                    <div class="mb-3">
-                        <label for="">{{$lang->write('Company name')}} :</label>
-                        <input type="text" class="form-control"  style="width: 400px" value="{{$settings['company_name']}}" name="company_name">
-                    </div>
-                    <div class="mb-3">
-                        <label for="">{{$lang->write('Address')}} :</label>
-                        <input type="text" class="form-control"  style="width: 400px" value="{{$settings['address']}}" name="address">
-                    </div>
-                    <div class="mb-3">
-                        <label for="">{{$lang->write('Phone')}} :</label>
-                        <input type="text" class="form-control"  style="width: 400px" value="{{$settings['phone']}}" name="phone">
-                    </div>
-                    <div class="mb-3">
-                        <label for="">{{$lang->write('Email')}} :</label>
-                        <input type="text" class="form-control"  style="width: 400px" value="{{$settings['email']}}" name="email">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <button class="btn btn-primary submit">{{$lang->write('Save')}} </button>
-                    </div>
-                </form>
-            </div>
-
-
-            <div class="tab d-none" data-tab='exchange_rates'>
-                <form action="{{url('/settings/save2')}}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="mb-3">
-                        <label for="">{{$lang->write('Euro exchange rate')}} :</label>
-                        <input type="number" step="any"  style="width: 400px" name="currency_eur" class="form-control" value="{{$settings['currency_eur']}}">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="">{{$lang->write('Dinar exchange rate')}} :</label>
-                        <input type="number" step="any"  style="width: 400px" name="currency_den" class="form-control" value="{{$settings['currency_den']}}">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="">{{$lang->write('Yuan exchange rate')}} :</label>
-                        <input type="number" step="any"  style="width: 400px" name="currency_cny" class="form-control" value="{{$settings['currency_cny']}}">
-                    </div>
-                     <button class="btn btn-primary submit">{{$lang->write('Save')}} </button>
-                </form>
-            </div>
-            <div class="tab d-none" data-tab='about'>
-                <div class="row mt-5">
-                    <div class="col-lg-2 col-12 mb-3">
-                        <img class="brand-img d-block mx-auto mb-4" style="width:150px" src="{{asset('images/logo.png')}}?ver={{env('VERSION')}}" alt="brand" />
-                    </div>
-                    <div class="col-lg-10 col-12 mb-3 pt-3">
-                        <h2 class="h2">{{env('APP_NAME')}}</h2>
-                        <p>{{$lang->write('System version')}} : {{env('VERSION')}}</p>
-                        {{-- <p>{{$lang->write('Laravel version')}} : {{app()->version()}}</p>
-                        <p>{{$lang->write('PHP version')}} : {{PHP_VERSION}}</p> --}}
-                    </div>
+        {{-- ====== Exchange rates ====== --}}
+        <div class="tab d-none" data-tab='exchange_rates'>
+            <div class="kpi-grid mb-4" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+                <div class="kpi-tile">
+                    <div class="kpi-label">EUR / USD</div>
+                    <div class="kpi-value" style="font-size:var(--fs-2xl);">{{ $settings['currency_eur'] }}</div>
+                    <div class="kpi-sub"><span class="currency-badge eur">EUR</span></div>
+                </div>
+                <div class="kpi-tile">
+                    <div class="kpi-label">LYD / USD</div>
+                    <div class="kpi-value" style="font-size:var(--fs-2xl);">{{ $settings['currency_den'] }}</div>
+                    <div class="kpi-sub"><span class="currency-badge den">LYD</span></div>
+                </div>
+                <div class="kpi-tile">
+                    <div class="kpi-label">CNY / USD</div>
+                    <div class="kpi-value" style="font-size:var(--fs-2xl);">{{ $settings['currency_cny'] }}</div>
+                    <div class="kpi-sub"><span class="currency-badge cny">CNY</span></div>
                 </div>
             </div>
 
+            <form action="{{ url('/settings/save2') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="row g-3" style="max-width: 720px;">
+                    <div class="col-md-4">
+                        <label class="form-label">{{ $lang->write('Euro exchange rate') }}</label>
+                        <input type="number" step="any" name="currency_eur" class="form-control" value="{{ $settings['currency_eur'] }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ $lang->write('Dinar exchange rate') }}</label>
+                        <input type="number" step="any" name="currency_den" class="form-control" value="{{ $settings['currency_den'] }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">{{ $lang->write('Yuan exchange rate') }}</label>
+                        <input type="number" step="any" name="currency_cny" class="form-control" value="{{ $settings['currency_cny'] }}">
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">{{ $lang->write('All rates are expressed against 1 USD. Every change is recorded in the audit log.') }}</small>
+                <div class="mt-4">
+                    <button class="btn btn-primary submit">{{ $lang->write('Save') }}</button>
+                </div>
+            </form>
         </div>
+
+        {{-- ====== About ====== --}}
+        <div class="tab d-none" data-tab='about'>
+            <div class="d-flex align-items-start gap-4 mt-3">
+                <div style="width:72px;height:72px;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--color-navy-800),var(--color-navy-900));color:var(--color-gold-500);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:28px;flex-shrink:0;">M</div>
+                <div>
+                    <h2 class="h4 mb-1">{{ env('APP_NAME') }}</h2>
+                    <div class="text-muted mb-3">{{ $lang->write('Multi-branch shipping & treasury operations') }}</div>
+                    <div style="display:grid;grid-template-columns:auto auto;gap:8px 24px;font-size:var(--fs-sm);">
+                        <span class="text-muted">{{ $lang->write('System version') }}</span>
+                        <span class="text-strong">{{ env('VERSION') }}</span>
+                        <span class="text-muted">{{ $lang->write('Laravel version') }}</span>
+                        <span class="text-strong">{{ app()->version() }}</span>
+                        <span class="text-muted">{{ $lang->write('PHP version') }}</span>
+                        <span class="text-strong">{{ PHP_VERSION }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
+</div>
 @endsection

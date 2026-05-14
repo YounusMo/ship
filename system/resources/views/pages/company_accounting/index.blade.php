@@ -129,51 +129,53 @@
     @include('pages.company_accounting.container_sky_withdraw')
     @include('pages.company_accounting.commission_branch')
 
-    <div class="row d-flex align-items-center">
-        <div class="col-lg-4 col-12 mb-2">
-            <div class="d-flex align-items-center">
-                <h4 class="h4">{{$lang->write('Accounting')}}</h4>
-                <span class="table_counter">0</span>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                {{ $lang->write('Accounting') }}
+                <span class="table_counter text-muted" style="font-size:var(--fs-lg);font-weight:500;margin-inline-start:8px;">0</span>
+            </h1>
+            <div class="page-subtitle">
+                {{ $lang->write('Branch-level cash movements, transfers and expenses') }}
             </div>
         </div>
-        <div class="col-lg-8 col-12 mb-2 text-end">
-            <div class="d-flex align-items-center justify-content-end">
-                <div class="w-25 text-start branch">
-                    <label for="">{{$lang->write('Treasury')}} :</label>
-                    {!! $dataController->sys_selector('branch',$branches , $branch_id ,in_array(auth()->user()->type , ['branch_admin']) ? false: true , $branch_name) !!}
-                </div>
-                <div class="w-25 text-start mx-2">
-                    <label for="">{{$lang->write('Currency')}} :</label>
-                    <select class="form-select currency">
-                        <option value="">{{$lang->write('All')}}</option>
-                        @foreach ($currencies as $item)
-                            <option value="{{$item['code']}}">{{$item['text']}}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="w-25 text-start  mx-2">
-                    <label for="">{{$lang->write('Transaction')}} :</label>
-                    <select class="form-select type">
-                        <option value="deposit">{{$lang->write('Deposit for clients')}}</option>
-                        <option value="withdraw">{{$lang->write('Withdraw for clients')}}</option>
-                        <option value="transfer">{{$lang->write('Currency convert for clients')}}</option>
-                        <option value="branch_deposit">{{$lang->write('Deposit for branches')}}</option>
-                        <option value="branch_comission">{{$lang->write('Commission Treasury')}}</option>
-                        <option value="expenses_branch">{{$lang->write('Expenses')}}</option>
-                        <option value="transfer_branch">{{$lang->write('Currency convert')}}</option>
-                        <option value="container_sea_withdraw">{{$lang->write('Container withdrawal fees')}}</option>
-                        <option value="container_sky_withdraw">{{$lang->write('Trip withdrawal fees')}}</option>
-                    </select>
-                </div>
-                <div class="w-25 text-start branch mx-2">
-                    <label for="">{{$lang->write('From date')}} :</label>
-                    <input type="date" class="form-control from">
-                </div>
-                <div class="w-25 text-start branch mx-2">
-                    <label for="">{{$lang->write('To date')}} :</label>
-                    <input type="date" class="form-control to">
-                </div>
-            </div>
+    </div>
+
+    <div class="toolbar" style="align-items:flex-end;">
+        <div style="flex:1 1 180px;min-width:160px;">
+            <label class="form-label">{{ $lang->write('Treasury') }}</label>
+            {!! $dataController->sys_selector('branch', $branches, $branch_id, in_array(auth()->user()->type, ['branch_admin']) ? false : true, $branch_name) !!}
+        </div>
+        <div style="flex:1 1 140px;min-width:120px;">
+            <label class="form-label">{{ $lang->write('Currency') }}</label>
+            <select class="form-select currency">
+                <option value="">{{ $lang->write('All') }}</option>
+                @foreach ($currencies as $item)
+                    <option value="{{$item['code']}}">{{$item['text']}}</option>
+                @endforeach
+            </select>
+        </div>
+        <div style="flex:1 1 220px;min-width:180px;">
+            <label class="form-label">{{ $lang->write('Transaction') }}</label>
+            <select class="form-select type">
+                <option value="deposit">{{ $lang->write('Deposit for clients') }}</option>
+                <option value="withdraw">{{ $lang->write('Withdraw for clients') }}</option>
+                <option value="transfer">{{ $lang->write('Currency convert for clients') }}</option>
+                <option value="branch_deposit">{{ $lang->write('Deposit for branches') }}</option>
+                <option value="branch_comission">{{ $lang->write('Commission Treasury') }}</option>
+                <option value="expenses_branch">{{ $lang->write('Expenses') }}</option>
+                <option value="transfer_branch">{{ $lang->write('Currency convert') }}</option>
+                <option value="container_sea_withdraw">{{ $lang->write('Container withdrawal fees') }}</option>
+                <option value="container_sky_withdraw">{{ $lang->write('Trip withdrawal fees') }}</option>
+            </select>
+        </div>
+        <div style="flex:1 1 140px;min-width:130px;">
+            <label class="form-label">{{ $lang->write('From date') }}</label>
+            <input type="date" class="form-control from">
+        </div>
+        <div style="flex:1 1 140px;min-width:130px;">
+            <label class="form-label">{{ $lang->write('To date') }}</label>
+            <input type="date" class="form-control to">
         </div>
     </div>
 

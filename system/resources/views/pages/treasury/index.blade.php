@@ -45,77 +45,83 @@
 @endphp
 @extends('layout')
 @section('content')
-    <div class="treasury">
-        <div class="row d-flex align-items-center">
-            <div class="col-lg-4 col-12 mb-2">
-                <div class="d-flex align-items-center">
-                    <h4 class="h4">{{$lang->write('Treasury')}}</h4>
-                    <span class="table_counter">0</span>
-                </div>
-            </div>
-            <div class="col-lg-8 col-12 mb-2 text-end">
-                <div class="d-flex align-items-center justify-content-end">
-                    <div class="w-25 text-start branch">
-                        <label for="">{{$lang->write('Branch')}} :</label>
-                        {!! $dataController->sys_selector('branch',$branches , $branch_id ,in_array(auth()->user()->type , ['branch_admin']) ? false: true , $branch_name) !!}
-                    </div>
-                    <div class="w-25 text-start mx-2">
-                        <label for="">{{$lang->write('Currency')}} :</label>
-                        <select class="form-select currency">
-                            @foreach ($currencies as $item)
-                                <option value="{{$item['code']}}">{{$item['text']}}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="w-25 text-start branch mx-2">
-                        <label for="">{{$lang->write('From')}} :</label>
-                        <input type="date" class="form-control date" value="{{date('Y-m-d')}}">
-                    </div>
-                    <div class="w-25 text-start branch mx-2">
-                        <label for="">{{$lang->write('To')}} :</label>
-                        <input type="date" class="form-control date2" value="{{date('Y-m-d')}}">
-                    </div>
-                    <div class="text-start pt-3 mx-2">
-                        <button class="btn btn-primary print">{{$lang->write('Print')}}</button>
-                    </div>
-                </div>
+<div class="treasury">
+
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                {{ $lang->write('Treasury') }}
+                <span class="table_counter text-muted" style="font-size:var(--fs-lg);font-weight:500;margin-inline-start:8px;">0</span>
+            </h1>
+            <div class="page-subtitle">
+                {{ $lang->write('Cash movements per branch and currency') }}
             </div>
         </div>
-
-
-        <div id="printable" style="direction: {{auth()->user()->lang === 'ar' ? 'rtl' : 'ltr'}};">
-
-            <div class="d-none">
-                @if (env('SHOW_COMPANY_DATA_IN_CLIENT_ALL_REPORT'))
-                    <div style="display:flex;align-items-center;justify-content:space-between;margin-bottom:30px;text-align:{{auth()->user()->lang === 'ar' ? 'right' : 'left'}};direction:{{auth()->user()->lang === 'ar' ? 'rtl' : 'ltr'}}">
-                        
-                        <div style="padding-top:20px;">
-                            <div style="text-align: center">
-                                <img style="width:150px;" src="{{asset('images/mataz.png')}}?ver={{env('VERSION')}}" alt="brand" />        
-                                <div>{{$settings['address']}}</div>
-                            </div>
-                        </div>
-                        <img style="width:100px;margin:0 20px" src="{{asset('images/logo.png')}}?ver={{env('VERSION')}}" alt="brand" />
-                    </div>
-                @else
-                    <img style="width:150px;display:block;margin:auto" class="d-none" src="{{asset('images/logo.png')}}?ver={{env('VERSION')}}" alt="brand" />
-                @endif
-            </div>
-            
-            <div class="balances_">
-                <table>
-                    <td style="background: #3a93ac;a56666;color: white;padding:5px 10px;border-right:1px solid #ffffff40">{{$lang->write('Opening balance')}}</td>
-                    @foreach ($currencies as $item)
-                        <td style="background: #a56666;color: white;padding:5px 10px;border-right:1px solid #ffffff40">0.00 {{$item['symbol']}}</td>
-                    @endforeach
-                </table>
-            </div>
-            
-            
-            <div class="main-table mt-2">
-                
-            </div>
+        <div class="page-actions">
+            <button class="btn btn-primary print">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                {{ $lang->write('Print') }}
+            </button>
         </div>
-        
     </div>
+
+    {{-- Filters --}}
+    <div class="toolbar" style="align-items:flex-end;">
+        <div style="flex:1 1 220px;min-width:200px;">
+            <label class="form-label">{{ $lang->write('Branch') }}</label>
+            {!! $dataController->sys_selector('branch', $branches, $branch_id, in_array(auth()->user()->type, ['branch_admin']) ? false : true, $branch_name) !!}
+        </div>
+        <div style="flex:1 1 160px;min-width:160px;">
+            <label class="form-label">{{ $lang->write('Currency') }}</label>
+            <select class="form-select currency">
+                @foreach ($currencies as $item)
+                    <option value="{{$item['code']}}">{{$item['text']}}</option>
+                @endforeach
+            </select>
+        </div>
+        <div style="flex:1 1 160px;min-width:140px;">
+            <label class="form-label">{{ $lang->write('From') }}</label>
+            <input type="date" class="form-control date" value="{{ date('Y-m-d') }}">
+        </div>
+        <div style="flex:1 1 160px;min-width:140px;">
+            <label class="form-label">{{ $lang->write('To') }}</label>
+            <input type="date" class="form-control date2" value="{{ date('Y-m-d') }}">
+        </div>
+    </div>
+
+    <div id="printable" style="direction: {{ auth()->user()->lang === 'ar' ? 'rtl' : 'ltr' }};">
+
+        <div class="d-none">
+            @if (env('SHOW_COMPANY_DATA_IN_CLIENT_ALL_REPORT'))
+                <div style="display:flex;align-items-center;justify-content:space-between;margin-bottom:30px;text-align:{{ auth()->user()->lang === 'ar' ? 'right' : 'left' }};direction:{{ auth()->user()->lang === 'ar' ? 'rtl' : 'ltr' }}">
+                    <div style="padding-top:20px;">
+                        <div style="text-align: center">
+                            <img style="width:150px;" src="{{ asset('images/mataz.png') }}?ver={{ env('VERSION') }}" alt="brand" />
+                            <div>{{ $settings['address'] }}</div>
+                        </div>
+                    </div>
+                    <img style="width:100px;margin:0 20px" src="{{ asset('images/logo.png') }}?ver={{ env('VERSION') }}" alt="brand" />
+                </div>
+            @else
+                <img style="width:150px;display:block;margin:auto" class="d-none" src="{{ asset('images/logo.png') }}?ver={{ env('VERSION') }}" alt="brand" />
+            @endif
+        </div>
+
+        {{-- Opening balance strip — one tile per currency --}}
+        <div class="balances_ kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:var(--space-4);">
+            <div class="kpi-tile accent" style="padding:var(--space-4);">
+                <div class="kpi-label" style="margin-bottom:0;">{{ $lang->write('Opening balance') }}</div>
+            </div>
+            @foreach ($currencies as $item)
+                <div class="kpi-tile" style="padding:var(--space-4);">
+                    <div class="kpi-label">{{ strtoupper($item['code']) }}</div>
+                    <div class="kpi-value" style="font-size:var(--fs-xl);">0.00 <span class="text-muted" style="font-size:var(--fs-md);">{{ $item['symbol'] }}</span></div>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="main-table mt-2"></div>
+    </div>
+
+</div>
 @endsection

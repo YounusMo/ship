@@ -509,5 +509,11 @@
     "Treasury · Shipping": "Treasury · Shipping",
     "Insights": "Insights",
     "Welcome": "Welcome",
-    "Sign out": "Sign out"
+    "Sign out": "Sign out",
+    "Cash movements per branch and currency": "Cash movements per branch and currency",
+    "Operating branches and their cash treasuries": "Operating branches and their cash treasuries",
+    "Branch-level cash movements, transfers and expenses": "Branch-level cash movements, transfers and expenses",
+    "Company details, exchange rates and system info": "Company details, exchange rates and system info",
+    "All rates are expressed against 1 USD. Every change is recorded in the audit log.": "All rates are expressed against 1 USD. Every change is recorded in the audit log.",
+    "Multi-branch shipping & treasury operations": "Multi-branch shipping & treasury operations"
 }

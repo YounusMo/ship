@@ -1,0 +1,264 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - img [ref=e3]
+    - text: Please wait
+  - img [ref=e6]
+  - img [ref=e9]
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - link "M MATAZ TRADING COMPANY Treasury · Shipping" [ref=e13] [cursor=pointer]:
+        - /url: http://127.0.0.1:8002
+        - generic [ref=e14]: M
+        - generic [ref=e15]:
+          - generic [ref=e16]: MATAZ TRADING COMPANY
+          - generic [ref=e17]: Treasury · Shipping
+      - list [ref=e18]:
+        - listitem [ref=e19]:
+          - link "Clients" [ref=e20] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/clients/all
+            - img [ref=e21]
+            - text: Clients
+        - separator [ref=e23]
+        - generic [ref=e24]: Shipping
+        - listitem [ref=e25]:
+          - link "Air Freight" [ref=e26] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sky
+            - img [ref=e27]
+            - text: Air Freight
+        - listitem [ref=e29]:
+          - link "Sea Freight" [ref=e30] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sea
+            - img [ref=e31]
+            - text: Sea Freight
+        - separator [ref=e35]
+        - generic [ref=e36]: Company
+        - listitem [ref=e37]:
+          - link "Accounting" [ref=e38] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/company/accounting
+            - img [ref=e39]
+            - text: Accounting
+        - listitem [ref=e42]:
+          - link "Treasury" [ref=e43] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/treasury
+            - img [ref=e44]
+            - text: Treasury
+        - listitem [ref=e48]:
+          - link "Revenue" [ref=e49] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/profits
+            - img [ref=e50]
+            - text: Revenue
+        - listitem [ref=e54]:
+          - link "Matching" [ref=e55] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/matching
+            - img [ref=e56]
+            - text: Matching
+        - listitem [ref=e60]:
+          - link "Old Balance Archive" [ref=e61] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/old_balance_archive
+            - img [ref=e62]
+            - text: Old Balance Archive
+        - separator [ref=e64]
+        - generic [ref=e65]: Data
+        - listitem [ref=e66]:
+          - link "Branches" [ref=e67] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/branches/all
+            - img [ref=e68]
+            - text: Branches
+        - listitem [ref=e70]:
+          - link "Shipping Lines" [ref=e71] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/suppliers
+            - img [ref=e72]
+            - text: Shipping Lines
+        - listitem [ref=e76]:
+          - link "Customs clearance" [ref=e77] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/customs_brokers
+            - img [ref=e78]
+            - text: Customs clearance
+        - separator [ref=e80]
+        - generic [ref=e81]: Insights
+        - listitem [ref=e82]:
+          - link "Audit log" [ref=e83] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/audit
+            - img [ref=e84]
+            - text: Audit log
+        - listitem [ref=e89]:
+          - link "Reconciliation" [ref=e90] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/reconciliation
+            - img [ref=e91]
+            - text: Reconciliation
+        - separator [ref=e94]
+        - generic [ref=e95]: System
+        - listitem [ref=e96]:
+          - link "Users" [ref=e97] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/users
+            - img [ref=e98]
+            - text: Users
+        - listitem [ref=e100]:
+          - link "Settings" [ref=e101] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/settings
+            - img [ref=e102]
+            - text: Settings
+    - generic [ref=e106]:
+      - generic [ref=e108]:
+        - generic [ref=e109]:
+          - generic [ref=e110]: A
+          - generic [ref=e111]:
+            - generic [ref=e112]: Welcome
+            - generic [ref=e113]: Admin
+        - generic [ref=e114]:
+          - generic [ref=e116] [cursor=pointer]:
+            - img [ref=e117]
+            - generic [ref=e133]: English
+          - link "Sign out" [ref=e134] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/logout
+            - img [ref=e135]
+      - generic [ref=e137]:
+        - generic [ref=e139]:
+          - heading "Settings" [level=1] [ref=e140]
+          - generic [ref=e141]: Company details, exchange rates and system info
+        - generic [ref=e142]:
+          - list [ref=e143]:
+            - listitem [ref=e144]:
+              - link "General" [ref=e145] [cursor=pointer]:
+                - /url: general
+            - listitem [ref=e146]:
+              - link "Exchange rates" [ref=e147] [cursor=pointer]:
+                - /url: exchange_rates
+            - listitem [ref=e148]:
+              - link "About system" [ref=e149] [cursor=pointer]:
+                - /url: about
+          - generic [ref=e152]:
+            - generic [ref=e153]:
+              - generic [ref=e154]:
+                - generic [ref=e155]: Time zone
+                - combobox [ref=e156]:
+                  - option "(GMT-11:00) Midway Island"
+                  - option "(GMT-11:00) Samoa"
+                  - option "(GMT-10:00) Hawaii"
+                  - option "(GMT-09:00) Alaska"
+                  - option "(GMT-08:00) Pacific Time (US &amp; Canada)"
+                  - option "(GMT-08:00) Tijuana"
+                  - option "(GMT-07:00) Arizona"
+                  - option "(GMT-07:00) Mountain Time (US &amp; Canada)"
+                  - option "(GMT-07:00) Chihuahua"
+                  - option "(GMT-07:00) Mazatlan"
+                  - option "(GMT-06:00) Mexico City"
+                  - option "(GMT-06:00) Monterrey"
+                  - option "(GMT-06:00) Saskatchewan"
+                  - option "(GMT-06:00) Central Time (US &amp; Canada)"
+                  - option "(GMT-05:00) Eastern Time (US &amp; Canada)"
+                  - option "(GMT-05:00) Indiana (East)"
+                  - option "(GMT-05:00) Bogota"
+                  - option "(GMT-05:00) Lima"
+                  - option "(GMT-04:30) Caracas"
+                  - option "(GMT-04:00) Atlantic Time (Canada)"
+                  - option "(GMT-04:00) La Paz"
+                  - option "(GMT-04:00) Santiago"
+                  - option "(GMT-03:30) Newfoundland"
+                  - option "(GMT-03:00) Buenos Aires"
+                  - option "(GMT-03:00) Greenland"
+                  - option "(GMT-02:00) Stanley"
+                  - option "(GMT-01:00) Azores"
+                  - option "(GMT-01:00) Cape Verde Is."
+                  - option "(GMT) Casablanca"
+                  - option "(GMT) Dublin"
+                  - option "(GMT) Lisbon"
+                  - option "(GMT) London"
+                  - option "(GMT) Monrovia"
+                  - option "(GMT+01:00) Amsterdam"
+                  - option "(GMT+01:00) Belgrade"
+                  - option "(GMT+01:00) Berlin"
+                  - option "(GMT+01:00) Bratislava"
+                  - option "(GMT+01:00) Brussels"
+                  - option "(GMT+01:00) Budapest"
+                  - option "(GMT+01:00) Copenhagen"
+                  - option "(GMT+01:00) Ljubljana"
+                  - option "(GMT+01:00) Madrid"
+                  - option "(GMT+01:00) Paris"
+                  - option "(GMT+01:00) Prague"
+                  - option "(GMT+01:00) Rome"
+                  - option "(GMT+01:00) Sarajevo"
+                  - option "(GMT+01:00) Skopje"
+                  - option "(GMT+01:00) Stockholm"
+                  - option "(GMT+01:00) Vienna"
+                  - option "(GMT+01:00) Warsaw"
+                  - option "(GMT+01:00) Zagreb"
+                  - option "(GMT+02:00) Athens"
+                  - option "(GMT+02:00) Bucharest"
+                  - option "(GMT+02:00) Cairo"
+                  - option "(GMT+02:00) Harare"
+                  - option "(GMT+02:00) Helsinki"
+                  - option "(GMT+02:00) Istanbul"
+                  - option "(GMT+02:00) Jerusalem"
+                  - option "(GMT+02:00) Kyiv"
+                  - option "(GMT+02:00) Minsk"
+                  - option "(GMT+02:00) Riga"
+                  - option "(GMT+02:00) Sofia"
+                  - option "(GMT+02:00) Tallinn"
+                  - option "(GMT+02:00) Vilnius"
+                  - option "(GMT+03:00) Baghdad"
+                  - option "(GMT+03:00) Kuwait"
+                  - option "(GMT+03:00) Nairobi"
+                  - option "(GMT+03:00) Riyadh"
+                  - option "(GMT+03:00) Moscow"
+                  - option "(GMT+03:30) Tehran"
+                  - option "(GMT+04:00) Baku"
+                  - option "(GMT+04:00) Volgograd"
+                  - option "(GMT+04:00) Muscat"
+                  - option "(GMT+04:00) Tbilisi"
+                  - option "(GMT+04:00) Yerevan"
+                  - option "(GMT+04:30) Kabul"
+                  - option "(GMT+05:00) Karachi"
+                  - option "(GMT+05:00) Tashkent"
+                  - option "(GMT+05:30) Kolkata"
+                  - option "(GMT+05:45) Kathmandu"
+                  - option "(GMT+06:00) Ekaterinburg"
+                  - option "(GMT+06:00) Almaty"
+                  - option "(GMT+06:00) Dhaka"
+                  - option "(GMT+07:00) Novosibirsk"
+                  - option "(GMT+07:00) Bangkok"
+                  - option "(GMT+07:00) Jakarta"
+                  - option "(GMT+08:00) Krasnoyarsk"
+                  - option "(GMT+08:00) Chongqing"
+                  - option "(GMT+08:00) Hong Kong" [selected]
+                  - option "(GMT+08:00) Kuala Lumpur"
+                  - option "(GMT+08:00) Perth"
+                  - option "(GMT+08:00) Singapore"
+                  - option "(GMT+08:00) Taipei"
+                  - option "(GMT+08:00) Ulaan Bataar"
+                  - option "(GMT+08:00) Urumqi"
+                  - option "(GMT+09:00) Irkutsk"
+                  - option "(GMT+09:00) Seoul"
+                  - option "(GMT+09:00) Tokyo"
+                  - option "(GMT+09:30) Adelaide"
+                  - option "(GMT+09:30) Darwin"
+                  - option "(GMT+10:00) Yakutsk"
+                  - option "(GMT+10:00) Brisbane"
+                  - option "(GMT+10:00) Canberra"
+                  - option "(GMT+10:00) Guam"
+                  - option "(GMT+10:00) Hobart"
+                  - option "(GMT+10:00) Melbourne"
+                  - option "(GMT+10:00) Port Moresby"
+                  - option "(GMT+10:00) Sydney"
+                  - option "(GMT+11:00) Vladivostok"
+                  - option "(GMT+12:00) Magadan"
+                  - option "(GMT+12:00) Auckland"
+                  - option "(GMT+12:00) Fiji"
+              - generic [ref=e157]:
+                - generic [ref=e158]: Logo
+                - button "Choose File" [ref=e159] [cursor=pointer]
+              - generic [ref=e160]:
+                - generic [ref=e161]: Company name
+                - textbox [ref=e162]: MATAZ TRADING COMPANY
+              - generic [ref=e163]:
+                - generic [ref=e164]: Email
+                - textbox [ref=e165]: MOTAZALBASHARI@GMAIL.COM
+              - generic [ref=e166]:
+                - generic [ref=e167]: Phone
+                - textbox [ref=e168]: 0086-15013009970
+              - generic [ref=e169]:
+                - generic [ref=e170]: Address
+                - textbox [ref=e171]: Guangzhou, China
+            - button "Save" [ref=e173] [cursor=pointer]:
+              - img [ref=e174]
+              - text: Save
