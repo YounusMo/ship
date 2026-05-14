@@ -43,33 +43,19 @@
     break;
 }
 @endphp
-<div class="topbar ">
-    <div class="row">
-        <div class="col-lg-4">
-            {{$lang->write('Hello')}} {{auth()->user()->name}}
-            {{-- <div class="input-group">
-                <span class="input-group-text" id="basic-addon1" style="background: #f4f4f4;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 48 48">
-                        <g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2">
-                            <path d="M21 38c9.389 0 17-7.611 17-17S30.389 4 21 4S4 11.611 4 21s7.611 17 17 17Z" />
-                            <path stroke-linecap="round" d="M26.657 14.343A7.98 7.98 0 0 0 21 12a7.98 7.98 0 0 0-5.657 2.343m17.879 18.879l8.485 8.485" />
-                        </g>
-                    </svg>
-                </span>
-                <input type="text" class="form-control" placeholder="{{$lang->write('Search')}}" style="background: #f4f4f4;"  aria-describedby="basic-addon1">
-            </div> --}}
+<div class="topbar">
+    <div class="topbar-inner">
+        <div class="topbar-greeting">
+            <div class="user-avatar">{{ strtoupper(mb_substr(auth()->user()->name ?: 'A', 0, 1)) }}</div>
+            <div class="user-meta">
+                <div class="user-hello">{{$lang->write('Welcome')}}</div>
+                <div class="user-name">{{auth()->user()->name}}</div>
+            </div>
         </div>
-        <div class="col-lg-8 text-end">
 
-            <span class="topbar-menu">
-                
-                {{-- <a href="{{url('/admin/logout')}}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M5 18h14v-6.969C19 7.148 15.866 4 12 4s-7 3.148-7 7.031zm7-16c4.97 0 9 4.043 9 9.031V20H3v-8.969C3 6.043 7.03 2 12 2M9.5 21h5a2.5 2.5 0 0 1-5 0" />
-                    </svg>
-                </a> --}}
+        <div class="topbar-actions">
 
-                @if (in_array(auth()->user()->type, ['branch_admin']))
+            @if (in_array(auth()->user()->type, ['branch_admin']))
                     @php
                         $get_branch = DB::table('branches')->where('id',auth()->user()->branch)->first();
                     @endphp
@@ -91,9 +77,10 @@
                     @endphp
                 @endif
 
-                <div class="dropdown d-inline-block mx-5">
-                    <span class=" dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    {!! $flag !!} <span style="font-size: 14px">{!! $lng !!}</span>
+                <div class="dropdown topbar-lang">
+                    <span class="dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {!! $flag !!}
+                        <span style="font-size:14px;font-weight:500;color:var(--color-text);">{!! $lng !!}</span>
                     </span>
                     <ul class="dropdown-menu px-0">
                         <li class="{{auth()->user()->lang === 'zh' ? 'd-none' : ''}}">
@@ -145,13 +132,11 @@
                     </ul>
                 </div>
                 
-                <a href="{{url('/logout')}}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
+                <a href="{{url('/logout')}}" class="topbar-logout" title="{{ $lang->write('Sign out') }}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24">
                         <path fill="currentColor" d="m17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4z" />
                     </svg>
                 </a>
-                
-            </span>
 
         </div>
     </div>

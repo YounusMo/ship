@@ -345,6 +345,104 @@
   margin-bottom: var(--space-6);
 }
 
+/* ---------- top navbar ---------- */
+.topbar {
+  background: var(--color-surface-0);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-xs);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 10px var(--space-5);
+  min-height: 56px;
+}
+.topbar-greeting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-navy-800), var(--color-navy-900));
+  color: var(--color-gold-500);
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.user-meta { line-height: 1.15; }
+.user-hello {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.topbar-lang .dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.topbar-lang .dropdown-toggle:hover {
+  background: var(--color-surface-2);
+}
+.topbar-lang .dropdown-toggle::after { display: none; }
+.topbar-lang .dropdown-menu {
+  border-radius: var(--radius-md);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-md);
+  min-width: 160px;
+  padding: 6px;
+}
+.topbar-lang .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+.topbar-lang .dropdown-item:hover {
+  background: var(--color-surface-2);
+}
+.topbar-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.topbar-logout:hover {
+  background: var(--color-red-100);
+  color: var(--color-red-700);
+}
+
 /* ---------- audit log table polish ---------- */
 .audit-row pre {
   background: var(--color-surface-2);
