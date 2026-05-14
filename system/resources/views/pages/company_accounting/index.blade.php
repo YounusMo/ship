@@ -142,7 +142,7 @@
     </div>
 
     <div class="toolbar" style="align-items:flex-end;">
-        <div style="flex:1 1 180px;min-width:160px;">
+        <div class="branch" style="flex:1 1 180px;min-width:160px;">
             <label class="form-label">{{ $lang->write('Treasury') }}</label>
             {!! $dataController->sys_selector('branch', $branches, $branch_id, in_array(auth()->user()->type, ['branch_admin']) ? false : true, $branch_name) !!}
         </div>

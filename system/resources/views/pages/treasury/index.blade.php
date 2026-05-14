@@ -67,7 +67,7 @@
 
     {{-- Filters --}}
     <div class="toolbar" style="align-items:flex-end;">
-        <div style="flex:1 1 220px;min-width:200px;">
+        <div class="branch" style="flex:1 1 220px;min-width:200px;">
             <label class="form-label">{{ $lang->write('Branch') }}</label>
             {!! $dataController->sys_selector('branch', $branches, $branch_id, in_array(auth()->user()->type, ['branch_admin']) ? false : true, $branch_name) !!}
         </div>
