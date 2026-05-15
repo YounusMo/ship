@@ -1,0 +1,247 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - img [ref=e3]
+    - text: Please wait
+  - img [ref=e6]
+  - img [ref=e9]
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - link "M MATAZ TRADING COMPANY Treasury · Shipping" [ref=e13] [cursor=pointer]:
+        - /url: http://127.0.0.1:8002
+        - generic [ref=e14]: M
+        - generic [ref=e15]:
+          - generic [ref=e16]: MATAZ TRADING COMPANY
+          - generic [ref=e17]: Treasury · Shipping
+      - list [ref=e18]:
+        - listitem [ref=e19]:
+          - link "Clients" [ref=e20] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/clients/all
+            - img [ref=e21]
+            - text: Clients
+        - separator [ref=e23]
+        - generic [ref=e24]: Shipping
+        - listitem [ref=e25]:
+          - link "Air Freight" [ref=e26] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sky
+            - img [ref=e27]
+            - text: Air Freight
+        - listitem [ref=e29]:
+          - link "Sea Freight" [ref=e30] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sea
+            - img [ref=e31]
+            - text: Sea Freight
+        - separator [ref=e35]
+        - generic [ref=e36]: Company
+        - listitem [ref=e37]:
+          - link "Accounting" [ref=e38] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/company/accounting
+            - img [ref=e39]
+            - text: Accounting
+        - listitem [ref=e42]:
+          - link "Treasury" [ref=e43] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/treasury
+            - img [ref=e44]
+            - text: Treasury
+        - listitem [ref=e48]:
+          - link "Revenue" [ref=e49] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/profits
+            - img [ref=e50]
+            - text: Revenue
+        - listitem [ref=e54]:
+          - link "Matching" [ref=e55] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/matching
+            - img [ref=e56]
+            - text: Matching
+        - listitem [ref=e60]:
+          - link "Old Balance Archive" [ref=e61] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/old_balance_archive
+            - img [ref=e62]
+            - text: Old Balance Archive
+        - separator [ref=e64]
+        - generic [ref=e65]: Data
+        - listitem [ref=e66]:
+          - link "Branches" [ref=e67] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/branches/all
+            - img [ref=e68]
+            - text: Branches
+        - listitem [ref=e70]:
+          - link "Shipping Lines" [ref=e71] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/suppliers
+            - img [ref=e72]
+            - text: Shipping Lines
+        - listitem [ref=e76]:
+          - link "Customs clearance" [ref=e77] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/customs_brokers
+            - img [ref=e78]
+            - text: Customs clearance
+        - separator [ref=e80]
+        - generic [ref=e81]: Insights
+        - listitem [ref=e82]:
+          - link "Audit log" [ref=e83] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/audit
+            - img [ref=e84]
+            - text: Audit log
+        - listitem [ref=e89]:
+          - link "Reconciliation" [ref=e90] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/reconciliation
+            - img [ref=e91]
+            - text: Reconciliation
+        - separator [ref=e94]
+        - generic [ref=e95]: Accounting
+        - listitem [ref=e96]:
+          - link "Trial Balance (derived)" [ref=e97] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/trial-balance
+            - img [ref=e98]
+            - text: Trial Balance (derived)
+        - listitem [ref=e100]:
+          - link "Trial Balance (journal)" [ref=e101] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/journal-trial-balance
+            - img [ref=e102]
+            - text: Trial Balance (journal)
+        - listitem [ref=e104]:
+          - link "Journal Entries" [ref=e105] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/journal-entries
+            - img [ref=e106]
+            - text: Journal Entries
+        - listitem [ref=e109]:
+          - link "Chart of Accounts" [ref=e110] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/chart
+            - img [ref=e111]
+            - text: Chart of Accounts
+        - listitem [ref=e113]:
+          - link "Profit & Loss (PDF)" [ref=e114] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/profit-loss
+            - img [ref=e115]
+            - text: Profit & Loss (PDF)
+        - listitem [ref=e118]:
+          - link "Balance Sheet (PDF)" [ref=e119] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/balance-sheet
+            - img [ref=e120]
+            - text: Balance Sheet (PDF)
+        - listitem [ref=e122]:
+          - link "Cash Flow (PDF)" [ref=e123] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/cash-flow
+            - img [ref=e124]
+            - text: Cash Flow (PDF)
+        - listitem [ref=e126]:
+          - link "Daily Journal" [ref=e127] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/journal
+            - img [ref=e128]
+            - text: Daily Journal
+        - listitem [ref=e130]:
+          - link "Client Aging" [ref=e131] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/ar-aging
+            - img [ref=e132]
+            - text: Client Aging
+        - listitem [ref=e135]:
+          - link "Supplier Aging" [ref=e136] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/supplier-aging
+            - img [ref=e137]
+            - text: Supplier Aging
+        - listitem [ref=e140]:
+          - link "Broker Aging" [ref=e141] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/broker-aging
+            - img [ref=e142]
+            - text: Broker Aging
+        - listitem [ref=e145]:
+          - link "Accounting Periods" [ref=e146] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/periods
+            - img [ref=e147]
+            - text: Accounting Periods
+        - listitem [ref=e150]:
+          - link "Cash Count" [ref=e151] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/cash-counts
+            - img [ref=e152]
+            - text: Cash Count
+        - listitem [ref=e155]:
+          - link "FX Rate History" [ref=e156] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/fx-history
+            - img [ref=e157]
+            - text: FX Rate History
+        - listitem [ref=e159]:
+          - link "Prepayments" [ref=e160] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/prepayments
+            - img [ref=e161]
+            - text: Prepayments
+        - listitem [ref=e163]:
+          - link "Owners" [ref=e164] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/owners
+            - img [ref=e165]
+            - text: Owners
+        - separator [ref=e170]
+        - generic [ref=e171]: System
+        - listitem [ref=e172]:
+          - link "Users" [ref=e173] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/users
+            - img [ref=e174]
+            - text: Users
+        - listitem [ref=e176]:
+          - link "Settings" [ref=e177] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/settings
+            - img [ref=e178]
+            - text: Settings
+    - generic [ref=e182]:
+      - generic [ref=e184]:
+        - generic [ref=e185]:
+          - generic [ref=e186]: A
+          - generic [ref=e187]:
+            - generic [ref=e188]: Welcome
+            - generic [ref=e189]: Admin
+        - generic [ref=e190]:
+          - generic [ref=e192] [cursor=pointer]:
+            - img [ref=e193]
+            - generic [ref=e209]: English
+          - link "Sign out" [ref=e210] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/logout
+            - img [ref=e211]
+      - generic [ref=e213]:
+        - generic [ref=e214]:
+          - generic [ref=e215]:
+            - heading "Journal Entries" [level=4] [ref=e216]
+            - text: Every cash-affecting mutation appends a balanced DR/CR entry here. Reversed entries are kept (append-only) but excluded from the trial balance.
+          - generic [ref=e218]:
+            - generic [ref=e219]:
+              - generic [ref=e220]: From
+              - textbox [ref=e221]: 2026-05-01
+            - generic [ref=e222]:
+              - generic [ref=e223]: To
+              - textbox [ref=e224]: 2026-05-31
+            - button "Refresh" [ref=e225] [cursor=pointer]
+        - table [ref=e227]:
+          - rowgroup [ref=e228]:
+            - row "# Date Kind Description Status Lines By Action" [ref=e229]:
+              - columnheader "#" [ref=e230]
+              - columnheader "Date" [ref=e231]
+              - columnheader "Kind" [ref=e232]
+              - columnheader "Description" [ref=e233]
+              - columnheader "Status" [ref=e234]
+              - columnheader "Lines" [ref=e235]
+              - columnheader "By" [ref=e236]
+              - columnheader "Action" [ref=e237]
+          - rowgroup [ref=e238]:
+            - row "2 2026-05-15 client_withdraw Client withdraw 15 USD Open 2 Admin Lines Reverse" [ref=e239]:
+              - cell "2" [ref=e240]
+              - cell "2026-05-15" [ref=e241]
+              - cell "client_withdraw" [ref=e242]:
+                - generic [ref=e243]: client_withdraw
+              - cell "Client withdraw 15 USD" [ref=e244]
+              - cell "Open" [ref=e245]:
+                - generic [ref=e246]: Open
+              - cell "2" [ref=e247]
+              - cell "Admin" [ref=e248]
+              - cell "Lines Reverse" [ref=e249]:
+                - button "Lines" [ref=e250] [cursor=pointer]
+                - button "Reverse" [ref=e251] [cursor=pointer]
+            - row "1 2026-05-15 client_deposit Client deposit 40 USD Open 2 Admin Lines Reverse" [ref=e252]:
+              - cell "1" [ref=e253]
+              - cell "2026-05-15" [ref=e254]
+              - cell "client_deposit" [ref=e255]:
+                - generic [ref=e256]: client_deposit
+              - cell "Client deposit 40 USD" [ref=e257]
+              - cell "Open" [ref=e258]:
+                - generic [ref=e259]: Open
+              - cell "2" [ref=e260]
+              - cell "Admin" [ref=e261]
+              - cell "Lines Reverse" [ref=e262]:
+                - button "Lines" [ref=e263] [cursor=pointer]
+                - button "Reverse" [ref=e264] [cursor=pointer]

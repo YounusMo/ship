@@ -440,6 +440,34 @@ class clientsController extends Controller
                             'notes'              => $notes,
                         ]);
 
+                        // Double-entry journal: client-to-client transfer
+                        //   Dr 2000 Client deposits (from-client)  ↓
+                        //   Cr 2000 Client deposits (to-client)    ↓
+                        // Both lines hit the same account code but with
+                        // different counterparty_id tags. Net effect on cash
+                        // is zero (no money leaves the company) — only the
+                        // liability shifts from one client to another.
+                        try {
+                            (new \App\Http\Controllers\journalController())->record([
+                                'entry_date'         => date('Y-m-d'),
+                                'kind'               => 'client_to_client_transfer',
+                                'description'        => 'Transfer ' . $value . ' ' . strtoupper($currency) . ' between clients',
+                                'source_table'       => 'clients_transactions',
+                                'source_id'          => $from_row_id,
+                                'transaction_number' => $transaction_number,
+                                'lines'              => [
+                                    ['account_code' => '2000', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
+                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $id,
+                                     'description' => 'Decrease from-client deposit'],
+                                    ['account_code' => '2000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
+                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $to_client,
+                                     'description' => 'Increase to-client deposit'],
+                                ],
+                            ]);
+                        } catch (\Throwable $ex) {
+                            Log::warning('journal post failed (c2c transfer): ' . $ex->getMessage());
+                        }
+
                         $err = false;
                     }else{
                         $err = true;
@@ -755,6 +783,34 @@ class clientsController extends Controller
                             'notes'              => $notes,
                         ]);
 
+                        // Double-entry journal: client deposit
+                        //   Dr 1000 Cash on hand      (asset ↑)
+                        //   Cr 2000 Client deposits   (liability ↑)
+                        // We only post when status='approved' so a future
+                        // pending-deposit flow doesn't pollute the trial
+                        // balance with un-effective rows.
+                        if ($status === 'approved') {
+                            try {
+                                (new \App\Http\Controllers\journalController())->record([
+                                    'entry_date'         => date('Y-m-d'),
+                                    'kind'               => 'client_deposit',
+                                    'description'        => 'Client deposit ' . $value . ' ' . strtoupper($currency),
+                                    'source_table'       => 'clients_transactions',
+                                    'source_id'          => $deposit_row_id,
+                                    'transaction_number' => $transaction_number,
+                                    'branch_id'          => (int) $branch,
+                                    'lines'              => [
+                                        ['account_code' => '1000', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
+                                         'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
+                                        ['account_code' => '2000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
+                                         'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
+                                    ],
+                                ]);
+                            } catch (\Throwable $ex) {
+                                Log::warning('journal post failed (client deposit): ' . $ex->getMessage());
+                            }
+                        }
+
                         // Auto-register a prepayment row when the operator
                         // tagged this deposit as a prepayment. Doing it inside
                         // the same transaction means the prepayments report is
@@ -945,11 +1001,36 @@ class clientsController extends Controller
                             'notes'              => $notes,
                         ]);
 
+                        // Double-entry journal: client withdraw
+                        //   Dr 2000 Client deposits   (liability ↓)
+                        //   Cr 1000 Cash on hand      (asset ↓)
+                        if ($status === 'approved') {
+                            try {
+                                (new \App\Http\Controllers\journalController())->record([
+                                    'entry_date'         => date('Y-m-d'),
+                                    'kind'               => 'client_withdraw',
+                                    'description'        => 'Client withdraw ' . $value . ' ' . strtoupper($currency),
+                                    'source_table'       => 'clients_transactions',
+                                    'source_id'          => $withdraw_row_id,
+                                    'transaction_number' => $transaction_number,
+                                    'branch_id'          => (int) $branch,
+                                    'lines'              => [
+                                        ['account_code' => '2000', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
+                                         'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
+                                        ['account_code' => '1000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
+                                         'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
+                                    ],
+                                ]);
+                            } catch (\Throwable $ex) {
+                                Log::warning('journal post failed (client withdraw): ' . $ex->getMessage());
+                            }
+                        }
+
                         $err = false;
                     // }else{
                     //     $err = true;
                     // }
-                    
+
                 }else{
                     $err = true;
                 }
@@ -1098,6 +1179,31 @@ class clientsController extends Controller
                             'purpose'            => 'commission',
                             'notes'              => $notes,
                         ]);
+
+                        // Double-entry journal: commission charge
+                        //   Dr 2000 Client deposits   (liability ↓)
+                        //   Cr 4000 Commission revenue
+                        if ($status === 'approved') {
+                            try {
+                                (new \App\Http\Controllers\journalController())->record([
+                                    'entry_date'         => date('Y-m-d'),
+                                    'kind'               => 'commission',
+                                    'description'        => 'Client commission ' . $value . ' ' . strtoupper($currency),
+                                    'source_table'       => 'clients_transactions',
+                                    'source_id'          => $commission_row_id,
+                                    'transaction_number' => $transaction_number,
+                                    'branch_id'          => (int) ($branch ?: 15),
+                                    'lines'              => [
+                                        ['account_code' => '2000', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
+                                         'counterparty_type' => 'client', 'counterparty_id' => (int) $id],
+                                        ['account_code' => '4000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
+                                         'counterparty_type' => 'client', 'counterparty_id' => (int) $id],
+                                    ],
+                                ]);
+                            } catch (\Throwable $ex) {
+                                Log::warning('journal post failed (commission): ' . $ex->getMessage());
+                            }
+                        }
 
                         $err = false;
                     // }else{

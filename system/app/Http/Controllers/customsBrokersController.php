@@ -321,6 +321,29 @@ class customsBrokersController extends Controller
                     'Customs broker deposit'
                 );
 
+                // Double-entry journal: broker deposit (we pay them).
+                //   Dr 1300 Prepaid to customs brokers   (asset ↑)
+                //   Cr 1000 Cash on hand                 (asset ↓)
+                try {
+                    (new \App\Http\Controllers\journalController())->record([
+                        'entry_date'         => date('Y-m-d'),
+                        'kind'               => 'broker_deposit',
+                        'description'        => 'Paid broker ' . $value . ' ' . strtoupper($currency),
+                        'source_table'       => 'customs_brokers_transactions',
+                        'source_id'          => $auto_id,
+                        'transaction_number' => $transaction_number,
+                        'branch_id'          => is_numeric($branch) ? (int) $branch : null,
+                        'lines'              => [
+                            ['account_code' => '1300', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
+                             'counterparty_type' => 'customs_broker', 'counterparty_id' => (int) $broker_id],
+                            ['account_code' => '1000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
+                             'counterparty_type' => 'customs_broker', 'counterparty_id' => (int) $broker_id],
+                        ],
+                    ]);
+                } catch (\Throwable $ex) {
+                    Log::warning('journal post failed (broker deposit): ' . $ex->getMessage());
+                }
+
             });
 
             return $response;

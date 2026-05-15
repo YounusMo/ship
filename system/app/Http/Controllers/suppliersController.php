@@ -309,6 +309,29 @@ class suppliersController extends Controller
                 'Supplier deposit'
             );
 
+            // Double-entry journal: supplier deposit (we pay them).
+            //   Dr 1200 Prepaid to suppliers (asset ↑)
+            //   Cr 1000 Cash on hand         (asset ↓)
+            try {
+                (new \App\Http\Controllers\journalController())->record([
+                    'entry_date'         => date('Y-m-d'),
+                    'kind'               => 'supplier_deposit',
+                    'description'        => 'Paid supplier ' . $value . ' ' . strtoupper($currency),
+                    'source_table'       => 'suppliers_transactions',
+                    'source_id'          => $auto_id,
+                    'transaction_number' => $transaction_number,
+                    'branch_id'          => is_numeric($branch) ? (int) $branch : null,
+                    'lines'              => [
+                        ['account_code' => '1200', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
+                         'counterparty_type' => 'supplier', 'counterparty_id' => (int) $supplier_id],
+                        ['account_code' => '1000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
+                         'counterparty_type' => 'supplier', 'counterparty_id' => (int) $supplier_id],
+                    ],
+                ]);
+            } catch (\Throwable $ex) {
+                Log::warning('journal post failed (supplier deposit): ' . $ex->getMessage());
+            }
+
             $err  = false;
 
             if($err){

@@ -419,6 +419,28 @@ class branchesController extends Controller
                             'Branch deposit'
                         );
 
+                        // Double-entry journal: branch deposit (cash injection
+                        // from owner is the typical case → equity contribution).
+                        //   Dr 1000 Cash on hand     (asset ↑)
+                        //   Cr 3000 Owner's equity   (equity ↑)
+                        try {
+                            (new \App\Http\Controllers\journalController())->record([
+                                'entry_date'         => date('Y-m-d'),
+                                'kind'               => 'branch_deposit',
+                                'description'        => 'Treasury deposit ' . $value . ' ' . strtoupper($currency) . ($purpose ? ' (' . $purpose . ')' : ''),
+                                'source_table'       => 'branches_transactions',
+                                'source_id'          => $auto_id,
+                                'transaction_number' => $transaction_number,
+                                'branch_id'          => (int) $branch,
+                                'lines'              => [
+                                    ['account_code' => '1000', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency, 'branch_id' => (int) $branch],
+                                    ['account_code' => '3000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency, 'branch_id' => (int) $branch],
+                                ],
+                            ]);
+                        } catch (\Throwable $ex) {
+                            \Illuminate\Support\Facades\Log::warning('journal post failed (branch deposit): ' . $ex->getMessage());
+                        }
+
                         $err = false;
                     }else{
                         $err = true;
@@ -649,6 +671,33 @@ class branchesController extends Controller
                             ],
                             'Branch expense'
                         );
+
+                        // Double-entry journal: branch expense.
+                        // Owner-tagged purposes hit a different debit account:
+                        //   owner_drawing  → Dr 3100 Owner's drawings (equity ↓)
+                        //   owner_salary   → Dr 5100 Owner's salary   (expense)
+                        // Plain operating expenses → Dr 5000.
+                        $debitCode = '5000';
+                        if ($purpose === 'owner_drawing')        $debitCode = '3100';
+                        else if ($purpose === 'owner_salary')    $debitCode = '5100';
+                        try {
+                            (new \App\Http\Controllers\journalController())->record([
+                                'entry_date'         => date('Y-m-d'),
+                                'kind'               => $purpose === 'owner_drawing' ? 'owner_drawing'
+                                                       : ($purpose === 'owner_salary' ? 'owner_salary' : 'expense'),
+                                'description'        => 'Expense ' . $value . ' ' . strtoupper($currency) . ($purpose ? ' (' . $purpose . ')' : ''),
+                                'source_table'       => 'branches_transactions',
+                                'source_id'          => $auto_id,
+                                'transaction_number' => $transaction_number,
+                                'branch_id'          => (int) $branch,
+                                'lines'              => [
+                                    ['account_code' => $debitCode, 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency, 'branch_id' => (int) $branch],
+                                    ['account_code' => '1000',     'dr' => 0, 'cr' => (float) $value, 'currency' => $currency, 'branch_id' => (int) $branch],
+                                ],
+                            ]);
+                        } catch (\Throwable $ex) {
+                            \Illuminate\Support\Facades\Log::warning('journal post failed (branch expense): ' . $ex->getMessage());
+                        }
 
                         $err = false;
                     }else{

@@ -1119,6 +1119,35 @@ class accountingController extends Controller
             'branch_transaction_id' => $branchTxnId,
         ], 'Posted cash-count variance adjustment');
 
+        // Double-entry journal: cash count adjustment.
+        // Over   → Dr 1000 Cash on hand    | Cr 4000 Commission revenue (misc gain)
+        // Short  → Dr 5000 Operating exp   | Cr 1000 Cash on hand        (misc loss)
+        try {
+            if ($isOver) {
+                $lines = [
+                    ['account_code' => '1000', 'dr' => $value, 'cr' => 0,     'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count overage'],
+                    ['account_code' => '4000', 'dr' => 0,      'cr' => $value, 'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count overage (misc gain)'],
+                ];
+            } else {
+                $lines = [
+                    ['account_code' => '5000', 'dr' => $value, 'cr' => 0,     'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count shortage'],
+                    ['account_code' => '1000', 'dr' => 0,      'cr' => $value, 'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count shortage'],
+                ];
+            }
+            (new \App\Http\Controllers\journalController())->record([
+                'entry_date'         => date('Y-m-d'),
+                'kind'               => $isOver ? 'cash_count_over' : 'cash_count_short',
+                'description'        => 'Cash count variance ' . ($isOver ? '+' : '−') . $value . ' ' . strtoupper($cc->currency),
+                'source_table'       => 'cash_counts',
+                'source_id'          => $id,
+                'transaction_number' => $txnNumber,
+                'branch_id'          => $cc->branch_id,
+                'lines'              => $lines,
+            ]);
+        } catch (\Throwable $ex) {
+            \Illuminate\Support\Facades\Log::warning('journal post failed (cash count): ' . $ex->getMessage());
+        }
+
         return response()->json(['type' => 'success', 'branch_transaction_id' => $branchTxnId]);
     }
 

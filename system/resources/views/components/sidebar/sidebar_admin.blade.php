@@ -180,7 +180,19 @@
         <li class="{{$page === 'trial_balance' ? 'active' : ''}}">
             <a href="{{url('/accounting/trial-balance')}}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-                {{$lang->write('Trial Balance')}}
+                {{$lang->write('Trial Balance (derived)')}}
+            </a>
+        </li>
+        <li class="{{$page === 'journal_trial_balance' ? 'active' : ''}}">
+            <a href="{{url('/accounting/journal-trial-balance')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l4 4-4 4M12 14l4 4-4 4M5 6h11M5 18h11"/></svg>
+                {{$lang->write('Trial Balance (journal)')}}
+            </a>
+        </li>
+        <li class="{{$page === 'journal_entries' ? 'active' : ''}}">
+            <a href="{{url('/accounting/journal-entries')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+                {{$lang->write('Journal Entries')}}
             </a>
         </li>
         <li class="{{$page === 'chart' ? 'active' : ''}}">

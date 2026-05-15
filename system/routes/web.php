@@ -23,6 +23,7 @@ use App\Http\Controllers\auditController;
 use App\Http\Controllers\reconciliationController;
 use App\Http\Controllers\receiptsController;
 use App\Http\Controllers\accountingController;
+use App\Http\Controllers\journalController;
 
 Route::get('/logout', [usersController::class,'logout']);
 
@@ -484,6 +485,11 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
         Route::post('/owners/{id}',               [accountingController::class, 'ownersUpdate'])->where('id', '[0-9]+');
         Route::delete('/owners/{id}',             [accountingController::class, 'ownersDelete'])->where('id', '[0-9]+');
         Route::get('/owners-ledger',              [accountingController::class, 'ownersLedger']);
+
+        Route::get('/journal-entries',            [journalController::class, 'entriesIndex']);
+        Route::get('/journal-entries/{id}',       [journalController::class, 'entryShow'])->where('id', '[0-9]+');
+        Route::post('/journal-entries/{id}/reverse', [journalController::class, 'entryReverse'])->where('id', '[0-9]+');
+        Route::get('/journal-trial-balance',      [journalController::class, 'trialBalanceView']);
     });
 
     Route::get('/', function () {

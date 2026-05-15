@@ -154,6 +154,34 @@ class clientsReportsController extends Controller
                             'purpose'            => $get->purpose,
                             'notes'              => $get->notes,
                         ]);
+
+                        // Double-entry journal: currency transfer (4 lines, two currencies)
+                        //   USD leg:  Dr 2000 Client deposits (from-ccy)    Cr 1000 Cash on hand (from-ccy)
+                        //   LYD leg:  Dr 1000 Cash on hand (to-ccy)         Cr 2000 Client deposits (to-ccy)
+                        // Per-currency DR=CR is preserved.
+                        try {
+                            (new \App\Http\Controllers\journalController())->record([
+                                'entry_date'         => date('Y-m-d'),
+                                'kind'               => 'client_currency_transfer',
+                                'description'        => 'Currency transfer ' . $get->value . ' ' . strtoupper($get->currency) . ' → ' . $get->transfer_value . ' ' . strtoupper($get->to_currency),
+                                'source_table'       => 'clients_transactions',
+                                'source_id'          => $get->id,
+                                'transaction_number' => $get->transaction_number,
+                                'branch_id'          => (int) $get->branch,
+                                'lines'              => [
+                                    ['account_code' => '2000', 'dr' => (float) $get->value,          'cr' => 0,                          'currency' => $get->currency,
+                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $get->client_id, 'description' => 'Reduce from-currency claim'],
+                                    ['account_code' => '1000', 'dr' => 0,                            'cr' => (float) $get->value,        'currency' => $get->currency,
+                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $get->client_id, 'description' => 'Pay out from-currency cash'],
+                                    ['account_code' => '1000', 'dr' => (float) $get->transfer_value, 'cr' => 0,                          'currency' => $get->to_currency,
+                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $get->client_id, 'description' => 'Take in to-currency cash'],
+                                    ['account_code' => '2000', 'dr' => 0,                            'cr' => (float) $get->transfer_value, 'currency' => $get->to_currency,
+                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $get->client_id, 'description' => 'Increase to-currency claim'],
+                                ],
+                            ]);
+                        } catch (\Throwable $ex) {
+                            \Illuminate\Support\Facades\Log::warning('journal post failed (currency transfer): ' . $ex->getMessage());
+                        }
                     }
                 }else{
                     $value     = $request->value;

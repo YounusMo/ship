@@ -693,5 +693,17 @@
     "Normal balance": "Normal balance",
     "Closed": "Closed",
     "Reopen": "Reopen",
-    "Posted": "Posted"
+    "Posted": "Posted",
+    "Trial Balance (journal-based)": "Trial Balance (journal-based)",
+    "Derived from journal_lines — totals balance by construction. The earlier \"Trial Balance\" derives from entity tables; this one is the authoritative DR\/CR view.": "Derived from journal_lines — totals balance by construction. The earlier \"Trial Balance\" derives from entity tables; this one is the authoritative DR\/CR view.",
+    "Per-currency DR = CR — books are balanced.": "Per-currency DR = CR — books are balanced.",
+    "Trial Balance (derived)": "Trial Balance (derived)",
+    "Trial Balance (journal)": "Trial Balance (journal)",
+    "Journal Entries": "Journal Entries",
+    "Every cash-affecting mutation appends a balanced DR\/CR entry here. Reversed entries are kept (append-only) but excluded from the trial balance.": "Every cash-affecting mutation appends a balanced DR\/CR entry here. Reversed entries are kept (append-only) but excluded from the trial balance.",
+    "Kind": "Kind",
+    "Description": "Description",
+    "Lines": "Lines",
+    "Reverse": "Reverse",
+    "Reason for reversal?": "Reason for reversal?"
 }
