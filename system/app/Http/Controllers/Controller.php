@@ -74,6 +74,25 @@ abstract class Controller
      *   list-scoping in clientsController::load, line 44).
      * - anything else (or no client found) gets a 403.
      */
+    /**
+     * Pull a counterparty id from the request, preferring the explicit name
+     * (`client_id`/`supplier_id`/`broker_id`) and falling back to the legacy
+     * `id` for backwards compatibility. Returns int or null.
+     *
+     * The motivation: most modules expose `id` as the primary-key parameter,
+     * but `id` is also a column-name in URLs and breadcrumbs. A typo in JS
+     * (or an operator typing the user-facing `code` into a URL) used to
+     * create orphan rows. The existence checks added during the smoke test
+     * catch that at the auth layer; this helper makes the param explicit so
+     * future routes don't have to repeat the dance.
+     */
+    protected function counterpartyId(\Illuminate\Http\Request $request, string $explicit): ?int
+    {
+        $v = $request->input($explicit);
+        if ($v === null || $v === '') $v = $request->input('id');
+        return is_numeric($v) ? (int) $v : null;
+    }
+
     protected function assertCanAccessClient($clientId): void
     {
         $user = auth()->user();
@@ -176,43 +195,109 @@ abstract class Controller
      *   notes              — string (nullable)
      */
     /**
-     * Reject the request if the given transaction date falls in a closed
-     * accounting period. Admins can override with X-Override-Closed-Period: yes
-     * (front-end will gate this behind a confirmation prompt).
+     * Reject the request if any of the given transaction dates falls in a
+     * closed accounting period. Pass either a single date or several — the
+     * guard fires on the FIRST closed period it finds.
+     *
+     * Always check today's date AND the explicit transaction date when
+     * provided, so a future feature that accepts a back-dated `created_date`
+     * from the client can't slip through the lock by using yesterday.
+     *
+     * Admins can override with `X-Override-Closed-Period: yes` (the front-end
+     * gates this behind a confirmation dialog).
      */
-    protected function assertPeriodOpen(?string $date): void
+    protected function assertPeriodOpen(string ...$dates): void
     {
-        if (empty($date)) {
-            return;
-        }
         if (!\Illuminate\Support\Facades\Schema::hasTable('accounting_periods')) {
             return;
         }
-        $ts = strtotime($date);
-        if ($ts === false) return;
-        $year  = (int) date('Y', $ts);
-        $month = (int) date('m', $ts);
-        $period = \Illuminate\Support\Facades\DB::table('accounting_periods')
-            ->where('period_year', $year)->where('period_month', $month)->first();
-        if (!$period || $period->status !== 'closed') {
-            return;
+        // Always include today so we don't accidentally allow a write into a
+        // period the caller forgot to pass.
+        $candidates = array_merge([date('Y-m-d')], $dates);
+        // De-dupe by (year, month).
+        $seen = [];
+        foreach ($candidates as $d) {
+            if (empty($d)) continue;
+            $ts = strtotime($d);
+            if ($ts === false) continue;
+            $year  = (int) date('Y', $ts);
+            $month = (int) date('m', $ts);
+            $key   = $year . '-' . $month;
+            if (isset($seen[$key])) continue;
+            $seen[$key] = true;
+
+            $period = \Illuminate\Support\Facades\DB::table('accounting_periods')
+                ->where('period_year', $year)->where('period_month', $month)->first();
+            if (!$period || $period->status !== 'closed') {
+                continue;
+            }
+            $label = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT);
+            if (auth()->user()?->type === 'admin' && request()->header('X-Override-Closed-Period') === 'yes') {
+                \Illuminate\Support\Facades\Log::warning('Admin override of closed period', [
+                    'user'   => auth()->user()->id,
+                    'period' => $label,
+                    'route'  => request()->path(),
+                ]);
+                continue;
+            }
+            abort(response()->json([
+                'type'    => 'period_closed',
+                'message' => 'Accounting period ' . $label . ' is closed.',
+            ], 423));
         }
-        if (auth()->user()?->type === 'admin' && request()->header('X-Override-Closed-Period') === 'yes') {
-            \Illuminate\Support\Facades\Log::warning('Admin override of closed period', [
-                'user'   => auth()->user()->id,
-                'period' => $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT),
-                'route'  => request()->path(),
-            ]);
-            return;
-        }
-        abort(response()->json([
-            'type'    => 'period_closed',
-            'message' => 'Accounting period ' . $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . ' is closed.',
-        ], 423));
+    }
+
+    /**
+     * Catch-block helper. Logs the exception with a short correlation ID and
+     * returns a 500 response that carries the same ID. The user sees an
+     * opaque error code; the developer can grep the same code out of
+     * laravel.log to find the stack trace. Far better than the previous
+     * `{type:'error'}` 500 with no breadcrumb.
+     */
+    protected function reportException(\Throwable $th, string $context = ''): \Illuminate\Http\JsonResponse
+    {
+        $rid = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+        \Illuminate\Support\Facades\Log::error('[req:' . $rid . '] ' . ($context ? $context . ': ' : '') . $th->getMessage(), [
+            'request_id' => $rid,
+            'context'    => $context,
+            'route'      => request()->path(),
+            'user_id'    => auth()->user()?->id,
+            'exception'  => $th,
+        ]);
+        return response()->json([
+            'type'       => 'error',
+            'request_id' => $rid,
+            'message'    => 'Unexpected error. Quote ID ' . $rid . ' to support.',
+        ], 500);
+    }
+
+    /**
+     * Map the system's plus_minus column value to a signed integer. Every
+     * transaction table stores the WORD form ('plus' / 'minus'); some legacy
+     * code uses the sign characters ('+' / '-'). This helper accepts both so
+     * future call sites can't trip the bug the trial balance hit during the
+     * smoke test.
+     *
+     * Returns +1 for plus, -1 for minus, 0 for anything unrecognized
+     * (caller should treat 0 as "skip").
+     */
+    protected function signOf($plusMinus): int
+    {
+        $v = is_string($plusMinus) ? strtolower(trim($plusMinus)) : $plusMinus;
+        if ($v === 'plus' || $v === '+' || $v === 1)   return 1;
+        if ($v === 'minus' || $v === '-' || $v === -1) return -1;
+        return 0;
     }
 
     protected function issueReceipt(array $payload): ?int
     {
+        // Skip pending source rows. Issuing a sequential receipt for a
+        // transaction that may still be rejected leaves orphan receipts
+        // pointing at deleted rows. The approval path should call
+        // issueReceipt explicitly when status flips to 'approved'.
+        if (isset($payload['status']) && $payload['status'] === 'pending') {
+            return null;
+        }
         try {
             $db = \Illuminate\Support\Facades\DB::connection();
 

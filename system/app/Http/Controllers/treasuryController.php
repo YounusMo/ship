@@ -99,6 +99,75 @@ class treasuryController extends Controller
         // \Log::info('Hello from Laravel 12!');
     }
 
+    /**
+     * Future-proof helper. Writes a cash movement to BOTH treasury_transactions
+     * and branches_transactions inside one DB transaction, and bumps the
+     * branch balance column. This is the only way to guarantee the dual-ledger
+     * invariant — every cash event lives in both ledgers, with matching
+     * transaction_number, so the daily journal, cash flow, trial balance,
+     * and branch.balance_* always agree.
+     *
+     * Callers should pass:
+     *   transaction_number, type, plus_minus ('plus'|'minus'), auto_id,
+     *   value, currency, branch, notes, purpose, data (json),
+     *   client_id (nullable), remaining_balance (nullable)
+     *
+     * Legacy callers that already write branches_transactions themselves
+     * (clientsController::deposit etc.) should keep using treasuryController
+     * ::insert until the journal layer migration replaces them in bulk.
+     */
+    public function recordCashMovement(array $p): int
+    {
+        $required = ['transaction_number', 'type', 'plus_minus', 'value', 'currency', 'branch'];
+        foreach ($required as $k) {
+            if (!isset($p[$k]) || $p[$k] === '' || $p[$k] === null) {
+                throw new \InvalidArgumentException("recordCashMovement: missing $k");
+            }
+        }
+        $plusMinus = $p['plus_minus'];
+        if (!in_array($plusMinus, ['plus', 'minus'], true)) {
+            throw new \InvalidArgumentException("recordCashMovement: plus_minus must be 'plus' or 'minus'");
+        }
+        $auto = $p['auto_id'] ?? (((int) DB::table('branches_transactions')->where('branch', $p['branch'])->max('auto_id')) + 1);
+
+        $brTxnId = null;
+        DB::transaction(function () use ($p, $plusMinus, $auto, &$brTxnId) {
+            $row = [
+                'transaction_number' => $p['transaction_number'],
+                'value'        => (float) $p['value'],
+                'currency'     => $p['currency'],
+                'auto_id'      => $auto,
+                'type'         => $p['type'],
+                'data'         => $p['data'] ?? null,
+                'plus_minus'   => $plusMinus,
+                'branch'       => $p['branch'],
+                'notes'        => $p['notes'] ?? null,
+                'purpose'      => $p['purpose'] ?? null,
+                'created_by'   => auth()->user()?->id,
+                'created_date' => date('Y-m-d'),
+                'created_time' => date('H:i:s'),
+            ];
+            $brTxnId = DB::table('branches_transactions')->insertGetId($row);
+
+            $tx = $row + [
+                'commission'   => $p['commission'] ?? 0,
+                'remaining_balance' => $p['remaining_balance'] ?? 0,
+                'client_id'    => $p['client_id'] ?? null,
+            ];
+            unset($tx['purpose']); // treasury_transactions has no purpose column
+            DB::table('treasury_transactions')->insert($tx);
+
+            $col = 'balance_' . $p['currency'];
+            if ($plusMinus === 'plus') {
+                DB::table('branches')->where('id', $p['branch'])->increment($col, (float) $p['value']);
+            } else {
+                DB::table('branches')->where('id', $p['branch'])->decrement($col, (float) $p['value']);
+            }
+        });
+
+        return $brTxnId;
+    }
+
     public function insert($transaction_number,$type,$plus_minus,$auto_id,$data,$value,$currency,$commission,$branch = null,$notes,$client_id = null,$remaining_balance = 0){
         try {
 

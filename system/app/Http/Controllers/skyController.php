@@ -1118,11 +1118,11 @@ class skyController extends Controller
                                     $total = $get->new_price;
                                 }else{
                                     if($get->unit === 'kg'){
-                                        $total = number_format(floatval($value->price) * floatval($value->kg),null,'.','');
+                                        $total = number_format(floatval($value->price) * floatval($value->kg), 2, '.', '');
                                     }
 
                                     if($get->unit === 'cbm'){
-                                        $total = number_format(floatval($value->price) * floatval($value->cbm),null,'.','');
+                                        $total = number_format(floatval($value->price) * floatval($value->cbm), 2, '.', '');
                                     }
 
                                     if(floatval($value->plus) > 0){

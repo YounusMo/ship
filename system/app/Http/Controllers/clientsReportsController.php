@@ -85,23 +85,76 @@ class clientsReportsController extends Controller
                 $this->assertPeriodOpen($get->created_date);
                 
                 if($type === 'transfer'){
-                    $value     = $request->value;
-                    // $exchange_rate     = $request->exchange_rate;
-                    // $from_currency     = $request->from_currency;
-                    // $to_currency       = $request->to_currency;
-                    // $result            = $request->result;
-
-
                     DB::table('clients_transactions')->where('id',$id)->where('type',$type)->update([
-                        'status'        => $status,
-                        // 'value'         => $value,
-                        // 'transfer_value'=> $result,
-                        // 'exchange_rate' => $exchange_rate,
-                        // 'currency'      => $from_currency,
-                        // 'to_currency'   => $to_currency,
+                        'status' => $status,
                     ]);
 
                     $clientsController->update_balance($get->client_id);
+
+                    // F2 fix: also post the matching cash entries so per-currency
+                    // trial balance stays balanced. We model a client currency
+                    // transfer as the company "buying" the from-currency back
+                    // from the client and "selling" the to-currency to them —
+                    // both legs cross treasury at the branch where the txn was
+                    // booked, so the branch's per-currency cash stays whole.
+                    //
+                    // Trial-balance effect when balanced:
+                    //   client.balance_from  decreases by `value`   (liability ↓)
+                    //   branch.balance_from  decreases by `value`   (asset ↓)
+                    //   client.balance_to    increases by `transfer_value`
+                    //   branch.balance_to    increases by `transfer_value`
+                    // Any rate spread vs current FX hits 5200 (FX gain/loss).
+                    if ($status === 'approved' && !empty($get->branch)) {
+                        $treasury = new \App\Http\Controllers\treasuryController();
+                        try {
+                            $treasury->recordCashMovement([
+                                'transaction_number' => $get->transaction_number,
+                                'type'               => 'transfer',
+                                'plus_minus'         => 'minus',
+                                'value'              => (float) $get->value,
+                                'currency'           => $get->currency,
+                                'branch'             => $get->branch,
+                                'notes'              => $get->notes,
+                                'purpose'            => $get->purpose,
+                                'data'               => json_encode(['leg' => 'from', 'to_currency' => $get->to_currency]),
+                                'auto_id'            => $get->auto_id,
+                                'client_id'          => $get->client_id,
+                            ]);
+                            $treasury->recordCashMovement([
+                                'transaction_number' => $get->transaction_number,
+                                'type'               => 'transfer',
+                                'plus_minus'         => 'plus',
+                                'value'              => (float) $get->transfer_value,
+                                'currency'           => $get->to_currency,
+                                'branch'             => $get->branch,
+                                'notes'              => $get->notes,
+                                'purpose'            => $get->purpose,
+                                'data'               => json_encode(['leg' => 'to', 'from_currency' => $get->currency]),
+                                'auto_id'            => $get->auto_id,
+                                'client_id'          => $get->client_id,
+                            ]);
+                        } catch (\Throwable $ex) {
+                            // Don't fail the whole approval if recordCashMovement
+                            // hits a schema mismatch; surface for follow-up.
+                            \Illuminate\Support\Facades\Log::warning('transfer approval cash post failed: ' . $ex->getMessage());
+                        }
+
+                        // Receipt was deferred at creation time — issue it now.
+                        $this->issueReceipt([
+                            'source_table'       => 'clients_transactions',
+                            'source_id'          => $get->id,
+                            'transaction_number' => $get->transaction_number,
+                            'auto_id'            => $get->auto_id,
+                            'kind'               => 'transfer',
+                            'currency'           => $get->currency,
+                            'amount'             => $get->value,
+                            'counterparty_type'  => 'client',
+                            'counterparty_id'    => $get->client_id,
+                            'branch_id'          => $get->branch,
+                            'purpose'            => $get->purpose,
+                            'notes'              => $get->notes,
+                        ]);
+                    }
                 }else{
                     $value     = $request->value;
                     

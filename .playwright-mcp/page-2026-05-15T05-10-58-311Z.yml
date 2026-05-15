@@ -1,0 +1,406 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - img [ref=e3]
+    - text: Please wait
+  - img [ref=e6]
+  - img [ref=e9]
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - link "M MATAZ TRADING COMPANY Treasury · Shipping" [ref=e13] [cursor=pointer]:
+        - /url: http://127.0.0.1:8002
+        - generic [ref=e14]: M
+        - generic [ref=e15]:
+          - generic [ref=e16]: MATAZ TRADING COMPANY
+          - generic [ref=e17]: Treasury · Shipping
+      - list [ref=e18]:
+        - listitem [ref=e19]:
+          - link "Clients" [ref=e20] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/clients/all
+            - img [ref=e21]
+            - text: Clients
+        - separator [ref=e23]
+        - generic [ref=e24]: Shipping
+        - listitem [ref=e25]:
+          - link "Air Freight" [ref=e26] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sky
+            - img [ref=e27]
+            - text: Air Freight
+        - listitem [ref=e29]:
+          - link "Sea Freight" [ref=e30] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sea
+            - img [ref=e31]
+            - text: Sea Freight
+        - separator [ref=e35]
+        - generic [ref=e36]: Company
+        - listitem [ref=e37]:
+          - link "Accounting" [ref=e38] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/company/accounting
+            - img [ref=e39]
+            - text: Accounting
+        - listitem [ref=e42]:
+          - link "Treasury" [ref=e43] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/treasury
+            - img [ref=e44]
+            - text: Treasury
+        - listitem [ref=e48]:
+          - link "Revenue" [ref=e49] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/profits
+            - img [ref=e50]
+            - text: Revenue
+        - listitem [ref=e54]:
+          - link "Matching" [ref=e55] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/matching
+            - img [ref=e56]
+            - text: Matching
+        - listitem [ref=e60]:
+          - link "Old Balance Archive" [ref=e61] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/old_balance_archive
+            - img [ref=e62]
+            - text: Old Balance Archive
+        - separator [ref=e64]
+        - generic [ref=e65]: Data
+        - listitem [ref=e66]:
+          - link "Branches" [ref=e67] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/branches/all
+            - img [ref=e68]
+            - text: Branches
+        - listitem [ref=e70]:
+          - link "Shipping Lines" [ref=e71] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/suppliers
+            - img [ref=e72]
+            - text: Shipping Lines
+        - listitem [ref=e76]:
+          - link "Customs clearance" [ref=e77] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/customs_brokers
+            - img [ref=e78]
+            - text: Customs clearance
+        - separator [ref=e80]
+        - generic [ref=e81]: Insights
+        - listitem [ref=e82]:
+          - link "Audit log" [ref=e83] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/audit
+            - img [ref=e84]
+            - text: Audit log
+        - listitem [ref=e89]:
+          - link "Reconciliation" [ref=e90] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/reconciliation
+            - img [ref=e91]
+            - text: Reconciliation
+        - separator [ref=e94]
+        - generic [ref=e95]: Accounting
+        - listitem [ref=e96]:
+          - link "Trial Balance" [ref=e97] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/trial-balance
+            - img [ref=e98]
+            - text: Trial Balance
+        - listitem [ref=e100]:
+          - link "Chart of Accounts" [ref=e101] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/chart
+            - img [ref=e102]
+            - text: Chart of Accounts
+        - listitem [ref=e104]:
+          - link "Profit & Loss (PDF)" [ref=e105] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/profit-loss
+            - img [ref=e106]
+            - text: Profit & Loss (PDF)
+        - listitem [ref=e109]:
+          - link "Balance Sheet (PDF)" [ref=e110] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/balance-sheet
+            - img [ref=e111]
+            - text: Balance Sheet (PDF)
+        - listitem [ref=e113]:
+          - link "Cash Flow (PDF)" [ref=e114] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/cash-flow
+            - img [ref=e115]
+            - text: Cash Flow (PDF)
+        - listitem [ref=e117]:
+          - link "Daily Journal" [ref=e118] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/journal
+            - img [ref=e119]
+            - text: Daily Journal
+        - listitem [ref=e121]:
+          - link "Client Aging" [ref=e122] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/ar-aging
+            - img [ref=e123]
+            - text: Client Aging
+        - listitem [ref=e126]:
+          - link "Supplier Aging" [ref=e127] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/supplier-aging
+            - img [ref=e128]
+            - text: Supplier Aging
+        - listitem [ref=e131]:
+          - link "Broker Aging" [ref=e132] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/broker-aging
+            - img [ref=e133]
+            - text: Broker Aging
+        - listitem [ref=e136]:
+          - link "Accounting Periods" [ref=e137] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/periods
+            - img [ref=e138]
+            - text: Accounting Periods
+        - listitem [ref=e141]:
+          - link "Cash Count" [ref=e142] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/cash-counts
+            - img [ref=e143]
+            - text: Cash Count
+        - listitem [ref=e146]:
+          - link "FX Rate History" [ref=e147] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/fx-history
+            - img [ref=e148]
+            - text: FX Rate History
+        - listitem [ref=e150]:
+          - link "Prepayments" [ref=e151] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/prepayments
+            - img [ref=e152]
+            - text: Prepayments
+        - listitem [ref=e154]:
+          - link "Owners" [ref=e155] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/owners
+            - img [ref=e156]
+            - text: Owners
+        - separator [ref=e161]
+        - generic [ref=e162]: System
+        - listitem [ref=e163]:
+          - link "Users" [ref=e164] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/users
+            - img [ref=e165]
+            - text: Users
+        - listitem [ref=e167]:
+          - link "Settings" [ref=e168] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/settings
+            - img [ref=e169]
+            - text: Settings
+    - generic [ref=e173]:
+      - generic [ref=e175]:
+        - generic [ref=e176]:
+          - generic [ref=e177]: A
+          - generic [ref=e178]:
+            - generic [ref=e179]: Welcome
+            - generic [ref=e180]: Admin
+        - generic [ref=e181]:
+          - generic [ref=e183] [cursor=pointer]:
+            - img [ref=e184]
+            - generic [ref=e200]: English
+          - link "Sign out" [ref=e201] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/logout
+            - img [ref=e202]
+      - generic [ref=e204]:
+        - generic [ref=e205]:
+          - generic [ref=e206]:
+            - heading "Daily Journal" [level=4] [ref=e207]
+            - text: Every client, treasury, supplier, and broker transaction on the selected date, in chronological order. Use it for end-of-day review.
+          - generic [ref=e209]:
+            - generic [ref=e210]:
+              - generic [ref=e211]: Date
+              - textbox [ref=e212]: 2026-05-15
+            - button "Refresh" [ref=e213] [cursor=pointer]
+        - generic [ref=e214]:
+          - generic [ref=e217]:
+            - generic [ref=e218]: USD treasury net change
+            - generic [ref=e219]: "+660"
+          - generic [ref=e222]:
+            - generic [ref=e223]: EUR treasury net change
+            - generic [ref=e224]: "0"
+          - generic [ref=e227]:
+            - generic [ref=e228]: LYD treasury net change
+            - generic [ref=e229]: "+50"
+          - generic [ref=e232]:
+            - generic [ref=e233]: CNY treasury net change
+            - generic [ref=e234]: "0"
+        - table [ref=e236]:
+          - rowgroup [ref=e237]:
+            - row "# Time Source Party Type Purpose Amount CCY Branch Notes By" [ref=e238]:
+              - columnheader "#" [ref=e239]
+              - columnheader "Time" [ref=e240]
+              - columnheader "Source" [ref=e241]
+              - columnheader "Party" [ref=e242]
+              - columnheader "Type" [ref=e243]
+              - columnheader "Purpose" [ref=e244]
+              - columnheader "Amount" [ref=e245]
+              - columnheader "CCY" [ref=e246]
+              - columnheader "Branch" [ref=e247]
+              - columnheader "Notes" [ref=e248]
+              - columnheader "By" [ref=e249]
+          - rowgroup [ref=e250]:
+            - row "1001 00:08 Client 12 — test Deposit Cash received +50 DEN الرئيسي Admin" [ref=e251]:
+              - cell "1001" [ref=e252]
+              - cell "00:08" [ref=e253]
+              - cell "Client" [ref=e254]:
+                - generic [ref=e255]: Client
+              - cell "12 — test" [ref=e256]
+              - cell "Deposit" [ref=e257]
+              - cell "Cash received" [ref=e258]:
+                - generic [ref=e259]: Cash received
+              - cell "+50" [ref=e260]
+              - cell "DEN" [ref=e261]
+              - cell "الرئيسي" [ref=e262]
+              - cell [ref=e263]
+              - cell "Admin" [ref=e264]
+            - row "1002 00:13 Client 12 — test Deposit Cash received +300 USD الرئيسي Admin" [ref=e265]:
+              - cell "1002" [ref=e266]
+              - cell "00:13" [ref=e267]
+              - cell "Client" [ref=e268]:
+                - generic [ref=e269]: Client
+              - cell "12 — test" [ref=e270]
+              - cell "Deposit" [ref=e271]
+              - cell "Cash received" [ref=e272]:
+                - generic [ref=e273]: Cash received
+              - cell "+300" [ref=e274]
+              - cell "USD" [ref=e275]
+              - cell "الرئيسي" [ref=e276]
+              - cell [ref=e277]
+              - cell "Admin" [ref=e278]
+            - row "1003 00:15 Client 12 — test Deposit Cash received +75 USD الرئيسي Admin" [ref=e279]:
+              - cell "1003" [ref=e280]
+              - cell "00:15" [ref=e281]
+              - cell "Client" [ref=e282]:
+                - generic [ref=e283]: Client
+              - cell "12 — test" [ref=e284]
+              - cell "Deposit" [ref=e285]
+              - cell "Cash received" [ref=e286]:
+                - generic [ref=e287]: Cash received
+              - cell "+75" [ref=e288]
+              - cell "USD" [ref=e289]
+              - cell "الرئيسي" [ref=e290]
+              - cell [ref=e291]
+              - cell "Admin" [ref=e292]
+            - row "1004 11:26 Client 12 — test Deposit Cash received +250 USD الرئيسي Admin" [ref=e293]:
+              - cell "1004" [ref=e294]
+              - cell "11:26" [ref=e295]
+              - cell "Client" [ref=e296]:
+                - generic [ref=e297]: Client
+              - cell "12 — test" [ref=e298]
+              - cell "Deposit" [ref=e299]
+              - cell "Cash received" [ref=e300]:
+                - generic [ref=e301]: Cash received
+              - cell "+250" [ref=e302]
+              - cell "USD" [ref=e303]
+              - cell "الرئيسي" [ref=e304]
+              - cell [ref=e305]
+              - cell "Admin" [ref=e306]
+            - row "1005 12:16 Client 12 — test Deposit Prepayment received +100 USD الرئيسي Admin" [ref=e307]:
+              - cell "1005" [ref=e308]
+              - cell "12:16" [ref=e309]
+              - cell "Client" [ref=e310]:
+                - generic [ref=e311]: Client
+              - cell "12 — test" [ref=e312]
+              - cell "Deposit" [ref=e313]
+              - cell "Prepayment received" [ref=e314]:
+                - generic [ref=e315]: Prepayment received
+              - cell "+100" [ref=e316]
+              - cell "USD" [ref=e317]
+              - cell "الرئيسي" [ref=e318]
+              - cell [ref=e319]
+              - cell "Admin" [ref=e320]
+            - 'row "1006 13:02 Client 12 — test Withdraw Payment of another client''s debt −25 USD # smoke c2c Admin" [ref=e321]':
+              - cell "1006" [ref=e322]
+              - cell "13:02" [ref=e323]
+              - cell "Client" [ref=e324]:
+                - generic [ref=e325]: Client
+              - cell "12 — test" [ref=e326]
+              - cell "Withdraw" [ref=e327]
+              - cell "Payment of another client's debt" [ref=e328]:
+                - generic [ref=e329]: Payment of another client's debt
+              - cell "−25" [ref=e330]
+              - cell "USD" [ref=e331]
+              - cell "#" [ref=e332]
+              - cell "smoke c2c" [ref=e333]
+              - cell "Admin" [ref=e334]
+            - 'row "1006 13:02 Client 101 — Smoketest Renamed Deposit Payment of another client''s debt +25 USD # smoke c2c Admin" [ref=e335]':
+              - cell "1006" [ref=e336]
+              - cell "13:02" [ref=e337]
+              - cell "Client" [ref=e338]:
+                - generic [ref=e339]: Client
+              - cell "101 — Smoketest Renamed" [ref=e340]
+              - cell "Deposit" [ref=e341]
+              - cell "Payment of another client's debt" [ref=e342]:
+                - generic [ref=e343]: Payment of another client's debt
+              - cell "+25" [ref=e344]
+              - cell "USD" [ref=e345]
+              - cell "#" [ref=e346]
+              - cell "smoke c2c" [ref=e347]
+              - cell "Admin" [ref=e348]
+            - 'row "4000 13:04 Branch Treasury #1 Deposit Cash injection from owner +500 USD الرئيسي smoke Admin" [ref=e349]':
+              - cell "4000" [ref=e350]
+              - cell "13:04" [ref=e351]
+              - cell "Branch" [ref=e352]:
+                - generic [ref=e353]: Branch
+              - 'cell "Treasury #1" [ref=e354]'
+              - cell "Deposit" [ref=e355]
+              - cell "Cash injection from owner" [ref=e356]:
+                - generic [ref=e357]: Cash injection from owner
+              - cell "+500" [ref=e358]
+              - cell "USD" [ref=e359]
+              - cell "الرئيسي" [ref=e360]
+              - cell "smoke" [ref=e361]
+              - cell "Admin" [ref=e362]
+            - 'row "4001 13:04 Branch Treasury #1 Expenses electricity_expenses −30 USD الرئيسي smoke Admin" [ref=e363]':
+              - cell "4001" [ref=e364]
+              - cell "13:04" [ref=e365]
+              - cell "Branch" [ref=e366]:
+                - generic [ref=e367]: Branch
+              - 'cell "Treasury #1" [ref=e368]'
+              - cell "Expenses" [ref=e369]
+              - cell "electricity_expenses" [ref=e370]:
+                - generic [ref=e371]: electricity_expenses
+              - cell "−30" [ref=e372]
+              - cell "USD" [ref=e373]
+              - cell "الرئيسي" [ref=e374]
+              - cell "smoke" [ref=e375]
+              - cell "Admin" [ref=e376]
+            - row "5000 13:05 Supplier Smoke Supplier Deposit Payment for goods +200 USD الرئيسي Admin" [ref=e377]:
+              - cell "5000" [ref=e378]
+              - cell "13:05" [ref=e379]
+              - cell "Supplier" [ref=e380]:
+                - generic [ref=e381]: Supplier
+              - cell "Smoke Supplier" [ref=e382]
+              - cell "Deposit" [ref=e383]
+              - cell "Payment for goods" [ref=e384]:
+                - generic [ref=e385]: Payment for goods
+              - cell "+200" [ref=e386]
+              - cell "USD" [ref=e387]
+              - cell "الرئيسي" [ref=e388]
+              - cell [ref=e389]
+              - cell "Admin" [ref=e390]
+            - row "5000 13:05 Broker Smoke Broker Deposit Customs clearance fee +100 USD الرئيسي Admin" [ref=e391]:
+              - cell "5000" [ref=e392]
+              - cell "13:05" [ref=e393]
+              - cell "Broker" [ref=e394]:
+                - generic [ref=e395]: Broker
+              - cell "Smoke Broker" [ref=e396]
+              - cell "Deposit" [ref=e397]
+              - cell "Customs clearance fee" [ref=e398]:
+                - generic [ref=e399]: Customs clearance fee
+              - cell "+100" [ref=e400]
+              - cell "USD" [ref=e401]
+              - cell "الرئيسي" [ref=e402]
+              - cell [ref=e403]
+              - cell "Admin" [ref=e404]
+            - 'row "4002 13:06 Branch Treasury #1 Deposit Cash count: overage adjustment +5 USD الرئيسي Cash count adjustment Admin" [ref=e405]':
+              - cell "4002" [ref=e406]
+              - cell "13:06" [ref=e407]
+              - cell "Branch" [ref=e408]:
+                - generic [ref=e409]: Branch
+              - 'cell "Treasury #1" [ref=e410]'
+              - cell "Deposit" [ref=e411]
+              - 'cell "Cash count: overage adjustment" [ref=e412]':
+                - generic [ref=e413]: "Cash count: overage adjustment"
+              - cell "+5" [ref=e414]
+              - cell "USD" [ref=e415]
+              - cell "الرئيسي" [ref=e416]
+              - cell "Cash count adjustment" [ref=e417]
+              - cell "Admin" [ref=e418]
+            - row "1007 13:08 Client 12 — test Deposit Cash received +10 USD الرئيسي Admin" [ref=e419]:
+              - cell "1007" [ref=e420]
+              - cell "13:08" [ref=e421]
+              - cell "Client" [ref=e422]:
+                - generic [ref=e423]: Client
+              - cell "12 — test" [ref=e424]
+              - cell "Deposit" [ref=e425]
+              - cell "Cash received" [ref=e426]:
+                - generic [ref=e427]: Cash received
+              - cell "+10" [ref=e428]
+              - cell "USD" [ref=e429]
+              - cell "الرئيسي" [ref=e430]
+              - cell [ref=e431]
+              - cell "Admin" [ref=e432]

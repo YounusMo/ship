@@ -1,0 +1,295 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - img [ref=e3]
+    - text: Please wait
+  - img [ref=e6]
+  - img [ref=e9]
+  - generic [ref=e11]:
+    - generic [ref=e12]:
+      - link "M MATAZ TRADING COMPANY Treasury · Shipping" [ref=e13] [cursor=pointer]:
+        - /url: http://127.0.0.1:8002
+        - generic [ref=e14]: M
+        - generic [ref=e15]:
+          - generic [ref=e16]: MATAZ TRADING COMPANY
+          - generic [ref=e17]: Treasury · Shipping
+      - list [ref=e18]:
+        - listitem [ref=e19]:
+          - link "Clients" [ref=e20] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/clients/all
+            - img [ref=e21]
+            - text: Clients
+        - separator [ref=e23]
+        - generic [ref=e24]: Shipping
+        - listitem [ref=e25]:
+          - link "Air Freight" [ref=e26] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sky
+            - img [ref=e27]
+            - text: Air Freight
+        - listitem [ref=e29]:
+          - link "Sea Freight" [ref=e30] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/shipping/sea
+            - img [ref=e31]
+            - text: Sea Freight
+        - separator [ref=e35]
+        - generic [ref=e36]: Company
+        - listitem [ref=e37]:
+          - link "Accounting" [ref=e38] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/company/accounting
+            - img [ref=e39]
+            - text: Accounting
+        - listitem [ref=e42]:
+          - link "Treasury" [ref=e43] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/treasury
+            - img [ref=e44]
+            - text: Treasury
+        - listitem [ref=e48]:
+          - link "Revenue" [ref=e49] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/profits
+            - img [ref=e50]
+            - text: Revenue
+        - listitem [ref=e54]:
+          - link "Matching" [ref=e55] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/matching
+            - img [ref=e56]
+            - text: Matching
+        - listitem [ref=e60]:
+          - link "Old Balance Archive" [ref=e61] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/old_balance_archive
+            - img [ref=e62]
+            - text: Old Balance Archive
+        - separator [ref=e64]
+        - generic [ref=e65]: Data
+        - listitem [ref=e66]:
+          - link "Branches" [ref=e67] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/branches/all
+            - img [ref=e68]
+            - text: Branches
+        - listitem [ref=e70]:
+          - link "Shipping Lines" [ref=e71] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/suppliers
+            - img [ref=e72]
+            - text: Shipping Lines
+        - listitem [ref=e76]:
+          - link "Customs clearance" [ref=e77] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/customs_brokers
+            - img [ref=e78]
+            - text: Customs clearance
+        - separator [ref=e80]
+        - generic [ref=e81]: Insights
+        - listitem [ref=e82]:
+          - link "Audit log" [ref=e83] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/audit
+            - img [ref=e84]
+            - text: Audit log
+        - listitem [ref=e89]:
+          - link "Reconciliation" [ref=e90] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/reconciliation
+            - img [ref=e91]
+            - text: Reconciliation
+        - separator [ref=e94]
+        - generic [ref=e95]: Accounting
+        - listitem [ref=e96]:
+          - link "Trial Balance" [ref=e97] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/trial-balance
+            - img [ref=e98]
+            - text: Trial Balance
+        - listitem [ref=e100]:
+          - link "Chart of Accounts" [ref=e101] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/chart
+            - img [ref=e102]
+            - text: Chart of Accounts
+        - listitem [ref=e104]:
+          - link "Profit & Loss (PDF)" [ref=e105] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/profit-loss
+            - img [ref=e106]
+            - text: Profit & Loss (PDF)
+        - listitem [ref=e109]:
+          - link "Balance Sheet (PDF)" [ref=e110] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/balance-sheet
+            - img [ref=e111]
+            - text: Balance Sheet (PDF)
+        - listitem [ref=e113]:
+          - link "Cash Flow (PDF)" [ref=e114] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/cash-flow
+            - img [ref=e115]
+            - text: Cash Flow (PDF)
+        - listitem [ref=e117]:
+          - link "Daily Journal" [ref=e118] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/journal
+            - img [ref=e119]
+            - text: Daily Journal
+        - listitem [ref=e121]:
+          - link "Client Aging" [ref=e122] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/ar-aging
+            - img [ref=e123]
+            - text: Client Aging
+        - listitem [ref=e126]:
+          - link "Supplier Aging" [ref=e127] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/supplier-aging
+            - img [ref=e128]
+            - text: Supplier Aging
+        - listitem [ref=e131]:
+          - link "Broker Aging" [ref=e132] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/broker-aging
+            - img [ref=e133]
+            - text: Broker Aging
+        - listitem [ref=e136]:
+          - link "Accounting Periods" [ref=e137] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/periods
+            - img [ref=e138]
+            - text: Accounting Periods
+        - listitem [ref=e141]:
+          - link "Cash Count" [ref=e142] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/cash-counts
+            - img [ref=e143]
+            - text: Cash Count
+        - listitem [ref=e146]:
+          - link "FX Rate History" [ref=e147] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/fx-history
+            - img [ref=e148]
+            - text: FX Rate History
+        - listitem [ref=e150]:
+          - link "Prepayments" [ref=e151] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/prepayments
+            - img [ref=e152]
+            - text: Prepayments
+        - listitem [ref=e154]:
+          - link "Owners" [ref=e155] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/accounting/owners
+            - img [ref=e156]
+            - text: Owners
+        - separator [ref=e161]
+        - generic [ref=e162]: System
+        - listitem [ref=e163]:
+          - link "Users" [ref=e164] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/users
+            - img [ref=e165]
+            - text: Users
+        - listitem [ref=e167]:
+          - link "Settings" [ref=e168] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/settings
+            - img [ref=e169]
+            - text: Settings
+    - generic [ref=e173]:
+      - generic [ref=e175]:
+        - generic [ref=e176]:
+          - generic [ref=e177]: A
+          - generic [ref=e178]:
+            - generic [ref=e179]: Welcome
+            - generic [ref=e180]: Admin
+        - generic [ref=e181]:
+          - generic [ref=e183] [cursor=pointer]:
+            - img [ref=e184]
+            - generic [ref=e200]: English
+          - link "Sign out" [ref=e201] [cursor=pointer]:
+            - /url: http://127.0.0.1:8002/logout
+            - img [ref=e202]
+      - generic [ref=e205]:
+        - generic [ref=e206]:
+          - generic [ref=e207]:
+            - heading "Treasury 0" [level=1] [ref=e208]
+            - generic [ref=e209]: Cash movements per branch and currency
+          - button "Print" [ref=e211] [cursor=pointer]:
+            - img [ref=e212]
+            - text: Print
+        - generic [ref=e216]:
+          - generic [ref=e217]:
+            - generic [ref=e218]: Branch
+            - button "All" [ref=e220] [cursor=pointer]
+          - generic [ref=e221]:
+            - generic [ref=e222]: Currency
+            - combobox [ref=e223]:
+              - option "USD" [selected]
+              - option "LYD"
+              - option "Euro"
+              - option "RMB"
+          - generic [ref=e224]:
+            - generic [ref=e225]: From
+            - textbox [ref=e226]: 2026-05-15
+          - generic [ref=e227]:
+            - generic [ref=e228]: To
+            - textbox [ref=e229]: 2026-05-15
+        - generic [ref=e230]:
+          - generic [ref=e231]:
+            - generic [ref=e233]: Opening balance
+            - generic [ref=e234]:
+              - generic [ref=e235]: USD
+              - generic [ref=e236]: 0.00 $
+            - generic [ref=e237]:
+              - generic [ref=e238]: DEN
+              - generic [ref=e239]: 0.00 د.ل
+            - generic [ref=e240]:
+              - generic [ref=e241]: EUR
+              - generic [ref=e242]: 0.00 €
+            - generic [ref=e243]:
+              - generic [ref=e244]: CNY
+              - generic [ref=e245]: 0.00 ¥
+          - table [ref=e247]:
+            - rowgroup [ref=e248]:
+              - row [ref=e249]:
+                - columnheader [ref=e250]
+                - columnheader [ref=e252]
+                - columnheader [ref=e254]
+                - columnheader [ref=e256]
+                - columnheader [ref=e258]
+            - rowgroup [ref=e260]:
+              - row [ref=e261]:
+                - cell [ref=e262]
+                - cell [ref=e264]
+                - cell [ref=e266]
+                - cell [ref=e268]
+                - cell [ref=e270]
+              - row [ref=e272]:
+                - cell [ref=e273]
+                - cell [ref=e275]
+                - cell [ref=e277]
+                - cell [ref=e279]
+                - cell [ref=e281]
+              - row [ref=e283]:
+                - cell [ref=e284]
+                - cell [ref=e286]
+                - cell [ref=e288]
+                - cell [ref=e290]
+                - cell [ref=e292]
+              - row [ref=e294]:
+                - cell [ref=e295]
+                - cell [ref=e297]
+                - cell [ref=e299]
+                - cell [ref=e301]
+                - cell [ref=e303]
+              - row [ref=e305]:
+                - cell [ref=e306]
+                - cell [ref=e308]
+                - cell [ref=e310]
+                - cell [ref=e312]
+                - cell [ref=e314]
+              - row [ref=e316]:
+                - cell [ref=e317]
+                - cell [ref=e319]
+                - cell [ref=e321]
+                - cell [ref=e323]
+                - cell [ref=e325]
+              - row [ref=e327]:
+                - cell [ref=e328]
+                - cell [ref=e330]
+                - cell [ref=e332]
+                - cell [ref=e334]
+                - cell [ref=e336]
+              - row [ref=e338]:
+                - cell [ref=e339]
+                - cell [ref=e341]
+                - cell [ref=e343]
+                - cell [ref=e345]
+                - cell [ref=e347]
+              - row [ref=e349]:
+                - cell [ref=e350]
+                - cell [ref=e352]
+                - cell [ref=e354]
+                - cell [ref=e356]
+                - cell [ref=e358]
+              - row [ref=e360]:
+                - cell [ref=e361]
+                - cell [ref=e363]
+                - cell [ref=e365]
+                - cell [ref=e367]
+                - cell [ref=e369]

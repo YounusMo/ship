@@ -305,7 +305,9 @@ class clientsController extends Controller
             }
         }   
 
-        return number_format($plus - $minus, null, '.', '');
+        // Return a numeric. Earlier this used number_format(..., null, '.', '')
+        // which both stripped decimals AND tripped a PHP 8 deprecation.
+        return (float) ($plus - $minus);
     }
 
     public function transfer_clients(Request $request){
@@ -531,11 +533,14 @@ class clientsController extends Controller
                 // ]);
             } 
             
+            // Persist raw floats. The columns are DECIMAL so the DB handles
+            // precision; pre-formatting with number_format(null, ...) was a
+            // PHP 8 deprecation and stripped the fractional part.
             DB::table('clients')->where('id',$client_id)->update([
-                'balance_usd' => number_format($usd, null, '.', ''),
-                'balance_eur' => number_format($eur, null, '.', ''),
-                'balance_cny' => number_format($cny, null, '.', ''),
-                'balance_den' => number_format($den, null, '.', ''),
+                'balance_usd' => (float) $usd,
+                'balance_eur' => (float) $eur,
+                'balance_cny' => (float) $cny,
+                'balance_den' => (float) $den,
             ]);
         }
         
@@ -1216,6 +1221,7 @@ class clientsController extends Controller
                             'counterparty_id'    => $id,
                             'purpose'            => $purpose,
                             'notes'              => $notes,
+                            'status'             => 'pending', // defer receipt until approval
                         ]);
 
                         $err = false;

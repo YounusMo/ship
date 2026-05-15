@@ -727,9 +727,11 @@ class dataController extends Controller
         return view('components.sys_selector',compact('name','data','value','all','display_txt'));
     }
 
-    public function numberFormat($number,$comma = true){
+    public function numberFormat($number, $comma = true){
+        // Two-decimal "money" formatting. The earlier `null` decimals argument
+        // tripped a PHP 8 deprecation and effectively dropped fractions.
         $number = floatval($number);
-        return number_format($number, null, '.', ','); // إزالة الفواصل إن وجدت
+        return number_format($number, 2, '.', $comma ? ',' : '');
     }
 
     public function transaction_number($action,$id){
