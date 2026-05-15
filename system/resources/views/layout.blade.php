@@ -110,6 +110,7 @@
             @if (in_array(auth()->user()->type,['branch_admin']))
                 @include('components.sidebar.sidebar_branch')
             @endif
+            <div class="sidebar-backdrop"></div>
         @endif
 
         @if (Auth::guard('client')->check())

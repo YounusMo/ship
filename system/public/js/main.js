@@ -14,9 +14,30 @@ function numberFormat(number) {
     });
 }
 //--------------------------------------------------------------
-$('.toggle_menu').on('click',function(){
-    $('.sidebar').toggleClass('closed')
-})
+// Mobile sidebar toggle. Below 1100px the sidebar is off-canvas; the
+// hamburger button slides it in and shows a dim backdrop. Above 1100px
+// the sidebar is always visible — toggling is a no-op (the .open class
+// is harmless because the desktop rule never translates the sidebar).
+$(document).on('click', '.toggle_menu, .sidebar-toggle', function(e){
+    e.preventDefault();
+    const $sb = $('.sidebar');
+    const isOpen = $sb.hasClass('open');
+    $sb.toggleClass('open', !isOpen);
+    $sb.removeClass('closed');
+    $('.sidebar-backdrop').toggleClass('visible', !isOpen);
+});
+
+// Tap backdrop or any sidebar link to close on mobile.
+$(document).on('click', '.sidebar-backdrop', function(){
+    $('.sidebar').removeClass('open');
+    $('.sidebar-backdrop').removeClass('visible');
+});
+$(document).on('click', '.sidebar ul li a', function(){
+    if (window.matchMedia('(max-width: 1100px)').matches) {
+        $('.sidebar').removeClass('open');
+        $('.sidebar-backdrop').removeClass('visible');
+    }
+});
 //--------------------------------------------------------------
 function get_cur(cur, what) {
     const currencies = [
