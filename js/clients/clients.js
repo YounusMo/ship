@@ -649,28 +649,36 @@ function deposit(){
 
     $('.deposit_btn').attr('disabled',true)
 
-    $.ajax({
-        url :'/clients/deposit',
-        type:'POST',
-        contentType: false,
-        processData: false,
-        async:true,
-        data:formData,
-        success:e=>{
-            hideLoader(langContent['Completed successfully'])
-            $('#deposit').modal('hide')
-            $('.deposit_btn').attr('disabled',false)
-            
-            reset_sys_selector();
-            load()
-        },
-        error:e=>{
-            console.log(e)
-            hideLoader()
-            showErr('Somthing went wrong')
-            $('.deposit_btn').attr('disabled',false)
-        }
-    })
+    const fireDeposit = (extraHeaders) => {
+        $.ajax({
+            url :'/clients/deposit',
+            type:'POST',
+            contentType: false,
+            processData: false,
+            async:true,
+            data:formData,
+            headers: extraHeaders || {},
+            success:e=>{
+                hideLoader(langContent['Completed successfully'])
+                $('#deposit').modal('hide')
+                $('.deposit_btn').attr('disabled',false)
+
+                reset_sys_selector();
+                load()
+            },
+            error:xhr=>{
+                if (handlePeriodClosed(xhr, fireDeposit)) {
+                    $('.deposit_btn').attr('disabled',false)
+                    return;
+                }
+                console.log(xhr)
+                hideLoader()
+                showErr('Somthing went wrong')
+                $('.deposit_btn').attr('disabled',false)
+            }
+        })
+    };
+    fireDeposit();
 }
 //---------------------------------------------------------------------------------------
 function transfer_client(){
@@ -878,28 +886,36 @@ function withdraw(){
 
     $('.withdraw_btn').attr('disabled',true)
 
-    $.ajax({
-        url :'/clients/withdraw',
-        type:'POST',
-        contentType: false,
-        processData: false,
-        async:true,
-        data:formData,
-        success:e=>{
-            hideLoader(langContent['Completed successfully'])
-            $('#withdraw').modal('hide')
-            $('.withdraw_btn').attr('disabled',false)
+    const fireWithdraw = (extraHeaders) => {
+        $.ajax({
+            url :'/clients/withdraw',
+            type:'POST',
+            contentType: false,
+            processData: false,
+            async:true,
+            data:formData,
+            headers: extraHeaders || {},
+            success:e=>{
+                hideLoader(langContent['Completed successfully'])
+                $('#withdraw').modal('hide')
+                $('.withdraw_btn').attr('disabled',false)
 
-            reset_sys_selector();
-            load()
-        },
-        error:e=>{
-            console.log(e)
-            hideLoader()
-            showErr('Somthing went wrong')
-            $('.withdraw_btn').attr('disabled',false)
-        }
-    })
+                reset_sys_selector();
+                load()
+            },
+            error:xhr=>{
+                if (handlePeriodClosed(xhr, fireWithdraw)) {
+                    $('.withdraw_btn').attr('disabled',false)
+                    return;
+                }
+                console.log(xhr)
+                hideLoader()
+                showErr('Somthing went wrong')
+                $('.withdraw_btn').attr('disabled',false)
+            }
+        })
+    };
+    fireWithdraw();
 }
 //---------------------------------------------------------------------------------------
 function withdraw_commission(){

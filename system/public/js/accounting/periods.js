@@ -1,0 +1,1 @@
+// periods page hooks (empty stub - layout requires this file)

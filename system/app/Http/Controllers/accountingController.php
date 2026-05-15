@@ -155,26 +155,31 @@ class accountingController extends Controller
         $out['ar_clients']      = $arClients;
 
         // ---- Balance sheet: suppliers ----
+        // Convention (verified against suppliersController::deposit): a supplier
+        // deposit is money flowing OUT of our treasury INTO the supplier's
+        // balance. So positive supplier balance = we prepaid them = ASSET
+        // (prepaid); negative balance = we owe them more than we've paid = AP.
         $apSuppliers = array_fill_keys($this->currencies, 0.0);
         $arSuppliers = array_fill_keys($this->currencies, 0.0);
         foreach ($this->currencies as $c) {
             $col = 'balance_' . $c;
-            $apSuppliers[$c] = (float) DB::table('suppliers')
+            $arSuppliers[$c] = (float) DB::table('suppliers')
                 ->where('deleted', 0)->where($col, '>', 0)->sum($col);
-            $arSuppliers[$c] = -1 * (float) DB::table('suppliers')
+            $apSuppliers[$c] = -1 * (float) DB::table('suppliers')
                 ->where('deleted', 0)->where($col, '<', 0)->sum($col);
         }
         $out['ap_suppliers'] = $apSuppliers;
         $out['ar_suppliers'] = $arSuppliers;
 
         // ---- Balance sheet: customs brokers ----
+        // Same convention as suppliers.
         $apBrokers = array_fill_keys($this->currencies, 0.0);
         $arBrokers = array_fill_keys($this->currencies, 0.0);
         foreach ($this->currencies as $c) {
             $col = 'balance_' . $c;
-            $apBrokers[$c] = (float) DB::table('customs_brokers')
+            $arBrokers[$c] = (float) DB::table('customs_brokers')
                 ->where('deleted', 0)->where($col, '>', 0)->sum($col);
-            $arBrokers[$c] = -1 * (float) DB::table('customs_brokers')
+            $apBrokers[$c] = -1 * (float) DB::table('customs_brokers')
                 ->where('deleted', 0)->where($col, '<', 0)->sum($col);
         }
         $out['ap_brokers'] = $apBrokers;
@@ -251,8 +256,154 @@ class accountingController extends Controller
     }
 
     /* ============================================================
-     *  AR Aging
-     *  GET /accounting/ar-aging?currency=usd
+     *  Profit & Loss statement (PDF)
+     *  GET /accounting/profit-loss?from=YYYY-MM-DD&to=YYYY-MM-DD
+     * ============================================================ */
+    public function pnlStatement(Request $request)
+    {
+        $this->requireAdmin();
+        $from = $request->get('from', date('Y-m-01'));
+        $to   = $request->get('to',   date('Y-m-t'));
+        $balances = $this->deriveAccountBalances($from, $to);
+
+        $revenue = [
+            ['key' => 'commission_revenue', 'label' => 'Commission revenue'],
+            ['key' => 'shipping_revenue',   'label' => 'Shipping revenue'],
+        ];
+        $expenses = [
+            ['key' => 'operating_expenses', 'label' => 'Operating expenses'],
+            ['key' => 'owner_salary',       'label' => 'Owner\'s salary'],
+        ];
+
+        $totals = ['revenue' => array_fill_keys($this->currencies, 0.0),
+                   'expense' => array_fill_keys($this->currencies, 0.0),
+                   'net'     => array_fill_keys($this->currencies, 0.0)];
+        foreach ($revenue as $r) {
+            foreach ($this->currencies as $c) {
+                $totals['revenue'][$c] += (float) ($balances[$r['key']][$c] ?? 0);
+            }
+        }
+        foreach ($expenses as $e) {
+            foreach ($this->currencies as $c) {
+                $totals['expense'][$c] += (float) ($balances[$e['key']][$c] ?? 0);
+            }
+        }
+        foreach ($this->currencies as $c) {
+            $totals['net'][$c] = $totals['revenue'][$c] - $totals['expense'][$c];
+        }
+
+        $settings = (new settingsController())->get();
+        $lang = new langController();
+        $data = new dataController();
+        $html = view('pages.accounting.pnl_pdf', compact(
+            'from', 'to', 'revenue', 'expenses', 'balances', 'totals',
+            'settings', 'lang', 'data'
+        ))->render();
+
+        $isRtl = (auth()->user()->lang ?? 'en') === 'ar';
+        $mpdf = new Mpdf([
+            'mode'           => 'utf-8',
+            'format'         => 'A4',
+            'default_font'   => 'dejavusans',
+            'directionality' => $isRtl ? 'rtl' : 'ltr',
+            'margin_top'     => 10, 'margin_bottom' => 10,
+            'margin_left'    => 14, 'margin_right' => 14,
+        ]);
+        $mpdf->WriteHTML($html);
+        $filename = 'pnl-' . $from . '-' . $to . '.pdf';
+        return response($mpdf->Output($filename, 'I'))
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+    }
+
+    /* ============================================================
+     *  Balance Sheet (PDF)
+     *  GET /accounting/balance-sheet?as_of=YYYY-MM-DD
+     * ============================================================ */
+    public function balanceSheet(Request $request)
+    {
+        $this->requireAdmin();
+        $asOf       = $request->get('as_of', date('Y-m-d'));
+        // P&L window = year-to-date through asOf, so retained earnings includes YTD net income.
+        $yearStart  = date('Y-01-01', strtotime($asOf));
+        $balances   = $this->deriveAccountBalances($yearStart, $asOf);
+
+        $assets = [
+            ['key' => 'cash_total',   'label' => 'Cash on hand'],
+            ['key' => 'ar_clients',   'label' => 'Accounts receivable — clients'],
+            ['key' => 'ar_suppliers', 'label' => 'Prepaid to suppliers'],
+            ['key' => 'ar_brokers',   'label' => 'Prepaid to customs brokers'],
+        ];
+        $liabilities = [
+            ['key' => 'client_deposits', 'label' => 'Client deposits (unearned)'],
+            ['key' => 'ap_suppliers',    'label' => 'Accounts payable — suppliers'],
+            ['key' => 'ap_brokers',      'label' => 'Accounts payable — customs brokers'],
+        ];
+        $equityFixed = [
+            ['key' => 'owner_drawings', 'label' => 'Owner\'s drawings', 'sign' => -1],
+        ];
+
+        $totals = array_fill_keys(['assets', 'liabilities', 'equity'], array_fill_keys($this->currencies, 0.0));
+        foreach ($assets as $a) {
+            foreach ($this->currencies as $c) $totals['assets'][$c] += (float) ($balances[$a['key']][$c] ?? 0);
+        }
+        foreach ($liabilities as $l) {
+            foreach ($this->currencies as $c) $totals['liabilities'][$c] += (float) ($balances[$l['key']][$c] ?? 0);
+        }
+        foreach ($equityFixed as $e) {
+            foreach ($this->currencies as $c) {
+                $totals['equity'][$c] += $e['sign'] * (float) ($balances[$e['key']][$c] ?? 0);
+            }
+        }
+        // Net income YTD
+        $netIncome = array_fill_keys($this->currencies, 0.0);
+        $revenueKeys = ['commission_revenue', 'shipping_revenue'];
+        $expenseKeys = ['operating_expenses', 'owner_salary'];
+        foreach ($this->currencies as $c) {
+            foreach ($revenueKeys as $k) $netIncome[$c] += (float) ($balances[$k][$c] ?? 0);
+            foreach ($expenseKeys as $k) $netIncome[$c] -= (float) ($balances[$k][$c] ?? 0);
+        }
+        // Owner's equity plug = Assets - Liabilities - (other equity + net income)
+        $ownersEquity = array_fill_keys($this->currencies, 0.0);
+        foreach ($this->currencies as $c) {
+            $ownersEquity[$c] = $totals['assets'][$c] - $totals['liabilities'][$c] - $totals['equity'][$c] - $netIncome[$c];
+            $totals['equity'][$c] += $ownersEquity[$c] + $netIncome[$c];
+        }
+
+        $settings = (new settingsController())->get();
+        $lang = new langController();
+        $data = new dataController();
+        $html = view('pages.accounting.balance_sheet_pdf', compact(
+            'asOf', 'assets', 'liabilities', 'equityFixed',
+            'balances', 'totals', 'netIncome', 'ownersEquity',
+            'settings', 'lang', 'data'
+        ))->render();
+
+        $isRtl = (auth()->user()->lang ?? 'en') === 'ar';
+        $mpdf = new Mpdf([
+            'mode'           => 'utf-8',
+            'format'         => 'A4',
+            'default_font'   => 'dejavusans',
+            'directionality' => $isRtl ? 'rtl' : 'ltr',
+            'margin_top'     => 10, 'margin_bottom' => 10,
+            'margin_left'    => 14, 'margin_right' => 14,
+        ]);
+        $mpdf->WriteHTML($html);
+        $filename = 'balance-sheet-' . $asOf . '.pdf';
+        return response($mpdf->Output($filename, 'I'))
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+    }
+
+    /* ============================================================
+     *  AR / AP Client Aging
+     *  GET /accounting/ar-aging
+     *
+     *  Two separate sections:
+     *    - Receivables (clients with NEGATIVE balance — they owe us)
+     *    - Client deposits we hold (positive balance — we owe them service)
+     *
+     *  Days bucket = days since the client's last transaction.
      * ============================================================ */
     public function arAging(Request $request)
     {
@@ -268,7 +419,6 @@ class accountingController extends Controller
             })
             ->get(['id', 'code', 'name', 'balance_usd', 'balance_eur', 'balance_den', 'balance_cny']);
 
-        // Determine "last activity" per client via clients_transactions
         $clientIds = $clients->pluck('id')->all();
         $lastActivity = [];
         if (!empty($clientIds)) {
@@ -282,10 +432,12 @@ class accountingController extends Controller
         }
 
         $buckets = ['current' => '0-30 days', 'b31_60' => '31-60', 'b61_90' => '61-90', 'b91_180' => '91-180', 'b180_plus' => '180+'];
-        $aging = [];
-        $bucketTotals = [];
+
+        $receivables = ['rows' => [], 'totals' => []];
+        $deposits    = ['rows' => [], 'totals' => []];
         foreach ($this->currencies as $c) {
-            $bucketTotals[$c] = array_fill_keys(array_keys($buckets), 0.0);
+            $receivables['totals'][$c] = array_fill_keys(array_keys($buckets), 0.0);
+            $deposits['totals'][$c]    = array_fill_keys(array_keys($buckets), 0.0);
         }
 
         foreach ($clients as $cl) {
@@ -295,32 +447,39 @@ class accountingController extends Controller
                 : ($days <= 60 ? 'b31_60'
                 : ($days <= 90 ? 'b61_90'
                 : ($days <= 180 ? 'b91_180' : 'b180_plus')));
-            $row = [
-                'id'         => $cl->id,
-                'code'       => $cl->code,
-                'name'       => $cl->name,
-                'last_date'  => $lastDate,
-                'days'       => $days,
-                'bucket'     => $bucket,
-                'balances'   => [],
-            ];
+
+            $negBalances = []; $posBalances = [];
+            $hasNeg = false; $hasPos = false;
             foreach ($this->currencies as $c) {
-                $val = (float) $cl->{'balance_' . $c};
-                $row['balances'][$c] = $val;
-                $bucketTotals[$c][$bucket] += $val;
+                $v = (float) $cl->{'balance_' . $c};
+                if ($v < 0) { $negBalances[$c] = -$v; $hasNeg = true; }
+                else        { $negBalances[$c] = 0.0; }
+                if ($v > 0) { $posBalances[$c] = $v;  $hasPos = true; }
+                else        { $posBalances[$c] = 0.0; }
             }
-            $aging[] = $row;
+            $base = [
+                'id'        => $cl->id, 'code' => $cl->code, 'name' => $cl->name,
+                'last_date' => $lastDate, 'days' => $days, 'bucket' => $bucket,
+            ];
+            if ($hasNeg) {
+                $receivables['rows'][] = $base + ['balances' => $negBalances];
+                foreach ($this->currencies as $c) $receivables['totals'][$c][$bucket] += $negBalances[$c];
+            }
+            if ($hasPos) {
+                $deposits['rows'][] = $base + ['balances' => $posBalances];
+                foreach ($this->currencies as $c) $deposits['totals'][$c][$bucket] += $posBalances[$c];
+            }
         }
 
-        // Sort: oldest first
-        usort($aging, fn($a, $b) => $b['days'] <=> $a['days']);
+        usort($receivables['rows'], fn($a, $b) => $b['days'] <=> $a['days']);
+        usort($deposits['rows'],    fn($a, $b) => $b['days'] <=> $a['days']);
 
         $dataController = new dataController();
         $lang = new langController();
         return view('pages.accounting.ar_aging', [
-            'aging'        => $aging,
+            'receivables'  => $receivables,
+            'deposits'     => $deposits,
             'buckets'      => $buckets,
-            'bucketTotals' => $bucketTotals,
             'currencies'   => $this->currencies,
             'data'         => $dataController,
             'lang'         => $lang,

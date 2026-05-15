@@ -189,6 +189,18 @@
                 {{$lang->write('Chart of Accounts')}}
             </a>
         </li>
+        <li>
+            <a href="{{url('/accounting/profit-loss')}}" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+                {{$lang->write('Profit & Loss (PDF)')}}
+            </a>
+        </li>
+        <li>
+            <a href="{{url('/accounting/balance-sheet')}}" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M5 5h14v14H5z"/></svg>
+                {{$lang->write('Balance Sheet (PDF)')}}
+            </a>
+        </li>
         <li class="{{$page === 'ar_aging' ? 'active' : ''}}">
             <a href="{{url('/accounting/ar-aging')}}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>

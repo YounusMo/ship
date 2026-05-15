@@ -750,6 +750,30 @@ class clientsController extends Controller
                             'notes'              => $notes,
                         ]);
 
+                        // Auto-register a prepayment row when the operator
+                        // tagged this deposit as a prepayment. Doing it inside
+                        // the same transaction means the prepayments report is
+                        // accurate the moment the deposit lands.
+                        if ($purpose === 'prepayment_received') {
+                            try {
+                                DB::table('prepayments')->insert([
+                                    'client_id'             => $id,
+                                    'source_transaction_id' => $deposit_row_id,
+                                    'currency'              => $currency,
+                                    'original_amount'       => (float) $value,
+                                    'applied_amount'        => 0,
+                                    'remaining_amount'      => (float) $value,
+                                    'status'                => 'open',
+                                    'received_date'         => date('Y-m-d'),
+                                    'created_by_user_id'    => auth()->user()->id,
+                                    'created_at'            => date('Y-m-d H:i:s'),
+                                    'updated_at'            => date('Y-m-d H:i:s'),
+                                ]);
+                            } catch (\Throwable $e) {
+                                Log::warning('prepayment auto-register failed: ' . $e->getMessage());
+                            }
+                        }
+
                         $err = false;
                     // }else{
                     //     $err = true;

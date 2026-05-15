@@ -247,6 +247,35 @@ function makeAlert(title,type){
     }
 }
 //-------------------------------------------------------
+/**
+ * Detect a 423 period_closed response and offer admins an audited override.
+ * Returns true if the response was handled (period_closed) so callers can stop.
+ *   xhr      — jqXHR from $.ajax error callback
+ *   retryFn  — fn(extraHeaders) that re-fires the request
+ */
+function handlePeriodClosed(xhr, retryFn) {
+    if (!xhr || xhr.status !== 423) return false;
+    let body = null;
+    try { body = xhr.responseJSON || JSON.parse(xhr.responseText); } catch (e) {}
+    if (!body || body.type !== 'period_closed') return false;
+
+    const userType = $('.user_type').val();
+    if (userType !== 'admin') {
+        hideLoader();
+        showErr(body.message || 'Accounting period is closed.');
+        return true;
+    }
+
+    hideLoader();
+    setTimeout(() => {
+        const ok = confirm((body.message || 'Period is closed.') + '\n\nOverride and post anyway? (admin only, logged)');
+        if (ok && typeof retryFn === 'function') {
+            retryFn({ 'X-Override-Closed-Period': 'yes' });
+        }
+    }, 100);
+    return true;
+}
+
 function showErr(txt,timer){
     setTimeout(() => {
         $('.loader_sys').removeClass('active_loader')

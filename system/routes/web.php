@@ -458,6 +458,8 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
     Route::prefix('accounting')->group(function(){
         Route::get('/chart',          [accountingController::class, 'chartIndex']);
         Route::get('/trial-balance',  [accountingController::class, 'trialBalance']);
+        Route::get('/profit-loss',    [accountingController::class, 'pnlStatement']);
+        Route::get('/balance-sheet',  [accountingController::class, 'balanceSheet']);
         Route::get('/ar-aging',       [accountingController::class, 'arAging']);
         Route::get('/fx-history',     [accountingController::class, 'fxHistory']);
 
