@@ -176,6 +176,57 @@
         </li>
 
         <hr>
+        <div class="list_title">{{$lang->write('Accounting')}}</div>
+        <li class="{{$page === 'trial_balance' ? 'active' : ''}}">
+            <a href="{{url('/accounting/trial-balance')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                {{$lang->write('Trial Balance')}}
+            </a>
+        </li>
+        <li class="{{$page === 'chart' ? 'active' : ''}}">
+            <a href="{{url('/accounting/chart')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v18M3 8h18M3 16h18"/></svg>
+                {{$lang->write('Chart of Accounts')}}
+            </a>
+        </li>
+        <li class="{{$page === 'ar_aging' ? 'active' : ''}}">
+            <a href="{{url('/accounting/ar-aging')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                {{$lang->write('AR Aging')}}
+            </a>
+        </li>
+        <li class="{{$page === 'periods' ? 'active' : ''}}">
+            <a href="{{url('/accounting/periods')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                {{$lang->write('Accounting Periods')}}
+            </a>
+        </li>
+        <li class="{{$page === 'cash_counts' ? 'active' : ''}}">
+            <a href="{{url('/accounting/cash-counts')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+                {{$lang->write('Cash Count')}}
+            </a>
+        </li>
+        <li class="{{$page === 'fx_history' ? 'active' : ''}}">
+            <a href="{{url('/accounting/fx-history')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6l4 4M3 6l4-4M21 18l-4-4M21 18l-4 4"/></svg>
+                {{$lang->write('FX Rate History')}}
+            </a>
+        </li>
+        <li class="{{$page === 'prepayments' ? 'active' : ''}}">
+            <a href="{{url('/accounting/prepayments')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+                {{$lang->write('Prepayments')}}
+            </a>
+        </li>
+        <li class="{{$page === 'owners' || $page === 'owners_ledger' ? 'active' : ''}}">
+            <a href="{{url('/accounting/owners')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                {{$lang->write('Owners')}}
+            </a>
+        </li>
+
+        <hr>
         @endif
 
         <div class="list_title">{{$lang->write('System')}}</div>

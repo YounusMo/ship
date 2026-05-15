@@ -58,21 +58,25 @@ class settingsController extends Controller
         ];
 
         $data = [
-            'timezone'      => $sett['timezone'],
-            'logo'          => $sett['logo'],
-            'company_name'  => $sett['company_name'],
-            'address'       => $sett['address'],
-            'phone'         => $sett['phone'],
-            'email'         => $sett['email'],
-            'currency_eur'  => floatval($request->currency_eur),
-            'currency_den'  => floatval($request->currency_den),
-            'currency_cny'  => floatval($request->currency_cny),
+            'timezone'            => $sett['timezone'],
+            'logo'                => $sett['logo'],
+            'company_name'        => $sett['company_name'],
+            'address'             => $sett['address'],
+            'phone'               => $sett['phone'],
+            'email'               => $sett['email'],
+            'commercial_registry' => $sett['commercial_registry'] ?? '',
+            'tax_id'              => $sett['tax_id'] ?? '',
+            'receipt_footer'      => $sett['receipt_footer'] ?? '',
+            'currency_eur'        => floatval($request->currency_eur),
+            'currency_den'        => floatval($request->currency_den),
+            'currency_cny'        => floatval($request->currency_cny),
         ];
 
         $data_json = json_encode($data,JSON_PRETTY_PRINT);
 
         file_put_contents($this->settings_file,$data_json);
 
+        $this->snapshotFxRates($before, $data, 'save2');
         $this->logAudit(
             'exchange_rate_change',
             'settings',
@@ -102,18 +106,19 @@ class settingsController extends Controller
         ];
 
         $data = [
-            'timezone'      => $sett['timezone'],
-            'logo'          => $sett['logo'],
-            'company_name'  => $sett['company_name'],
-            'address'       => $sett['address'],
-            'phone'         => $sett['phone'],
-            'email'         => $sett['email'],
-            'currency_eur'  => floatval($request->currency_eur),
-            'currency_den'  => floatval($request->currency_den),
-            'currency_cny'  => floatval($request->currency_cny),
+            'timezone'            => $sett['timezone'],
+            'logo'                => $sett['logo'],
+            'company_name'        => $sett['company_name'],
+            'address'             => $sett['address'],
+            'phone'               => $sett['phone'],
+            'email'               => $sett['email'],
+            'commercial_registry' => $sett['commercial_registry'] ?? '',
+            'tax_id'              => $sett['tax_id'] ?? '',
+            'receipt_footer'      => $sett['receipt_footer'] ?? '',
+            'currency_eur'        => floatval($request->currency_eur),
+            'currency_den'        => floatval($request->currency_den),
+            'currency_cny'        => floatval($request->currency_cny),
         ];
-
-        // DB::select('update users set printer="'.$request->printer.'" where id="'.auth()->user()->id.'"');
 
         $data_json = json_encode($data,JSON_PRETTY_PRINT);
 
@@ -123,6 +128,7 @@ class settingsController extends Controller
             'updated_exchange' => date('Y-m-d')
         ]);
 
+        $this->snapshotFxRates($before, $data, 'update_exchange');
         $this->logAudit(
             'exchange_rate_change',
             'settings',
@@ -137,6 +143,42 @@ class settingsController extends Controller
             ],
             'Exchange rates updated (update_exchange)'
         );
+    }
+
+    /**
+     * Append rows to fx_rate_history for every currency whose rate actually changed.
+     * Silent on failure: the rate write itself already happened and the audit_log
+     * captures the change, so a history-table error must not block the user.
+     */
+    private function snapshotFxRates(array $before, array $after, string $origin): void
+    {
+        if (!Schema::hasTable('fx_rate_history')) {
+            return;
+        }
+        $user = auth()->user();
+        $rows = [];
+        foreach (['eur', 'den', 'cny'] as $c) {
+            $b = $before['currency_' . $c] ?? null;
+            $a = $after['currency_' . $c]  ?? null;
+            if ($a === null) continue;
+            if ($b !== null && abs((float) $b - (float) $a) < 0.000001) continue;
+            $rows[] = [
+                'currency'         => $c,
+                'rate'             => (float) $a,
+                'previous_rate'    => $b !== null ? (float) $b : null,
+                'set_by_user_id'   => $user?->id,
+                'set_by_user_name' => $user?->name,
+                'effective_from'   => date('Y-m-d H:i:s'),
+                'notes'            => 'via ' . $origin,
+            ];
+        }
+        if (!empty($rows)) {
+            try {
+                DB::table('fx_rate_history')->insert($rows);
+            } catch (\Throwable $e) {
+                Log::warning('fx_rate_history snapshot failed: ' . $e->getMessage());
+            }
+        }
     }
 
     public function get(){

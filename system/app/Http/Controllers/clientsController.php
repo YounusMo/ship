@@ -313,6 +313,7 @@ class clientsController extends Controller
         if (!empty($request->to_client)) {
             $this->assertCanAccessClient($request->to_client);
         }
+        $this->assertPeriodOpen(date('Y-m-d'));
 
         try {
 
@@ -617,11 +618,12 @@ class clientsController extends Controller
 
     public function deposit(Request $request){
         $this->assertCanAccessClient($request->id);
+        $this->assertPeriodOpen(date('Y-m-d'));
 
         try {
 
             $response = null;
-            
+
             DB::transaction(function () use ($request, &$response) {
                 $treasuryController = new treasuryController();
 
@@ -776,6 +778,7 @@ class clientsController extends Controller
 
     public function withdraw(Request $request){
         $this->assertCanAccessClient($request->id);
+        $this->assertPeriodOpen(date('Y-m-d'));
 
         try {
 
@@ -941,6 +944,7 @@ class clientsController extends Controller
 
     public function withdraw_commission(Request $request){
         $this->assertCanAccessClient($request->id);
+        $this->assertPeriodOpen(date('Y-m-d'));
 
         try {
 
@@ -1094,6 +1098,7 @@ class clientsController extends Controller
 
     public function transfer(Request $request){
         $this->assertCanAccessClient($request->id);
+        $this->assertPeriodOpen(date('Y-m-d'));
 
         try {
 

@@ -340,10 +340,11 @@ class branchesController extends Controller
 
 
     public function deposit_branch(Request $request){
+        $this->assertPeriodOpen(date('Y-m-d'));
         try {
 
             $response = null;
-            
+
             DB::transaction(function () use ($request, &$response) {
                 $treasuryController = new treasuryController();
                 $dataController = new dataController();
@@ -446,6 +447,7 @@ class branchesController extends Controller
 
 
     public function deposit_commission(Request $request){
+        $this->assertPeriodOpen(date('Y-m-d'));
         try {
 
             $response = null;
@@ -552,6 +554,7 @@ class branchesController extends Controller
     }
 
     public function add_expenses(Request $request){
+        $this->assertPeriodOpen(date('Y-m-d'));
         try {
 
             $response = null;
@@ -607,6 +610,9 @@ class branchesController extends Controller
                             $exchange_rate = $rate;
                         }
 
+                        $ownerId = $request->owner_id ?? null;
+                        $ownerId = is_numeric($ownerId) ? (int) $ownerId : null;
+
                         DB::table('branches_transactions')->insert([
                             'transaction_number' => $transaction_number,
                             'value'        => $value,
@@ -619,6 +625,8 @@ class branchesController extends Controller
                             'exchange_rate'=> $exchange_rate,
                             'usd_value'    => $usd_value,
                             'notes'        => $notes,
+                            'purpose'      => $purpose,
+                            'owner_id'     => $ownerId,
                             'created_by'   => auth()->user()->id,
                             'created_date' => date('Y-m-d'),
                             'created_time' => date('H:i:s'),
@@ -670,6 +678,7 @@ class branchesController extends Controller
 
 
     public function fix_branch(Request $request){
+        $this->assertPeriodOpen(date('Y-m-d'));
         try {
 
             $response = null;
@@ -810,6 +819,7 @@ class branchesController extends Controller
     }
 
     public function transfer_branch(Request $request){
+        $this->assertPeriodOpen(date('Y-m-d'));
         try {
 
             $response = null;

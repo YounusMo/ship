@@ -22,6 +22,7 @@ use App\Http\Controllers\oldBalanceArchiveController;
 use App\Http\Controllers\auditController;
 use App\Http\Controllers\reconciliationController;
 use App\Http\Controllers\receiptsController;
+use App\Http\Controllers\accountingController;
 
 Route::get('/logout', [usersController::class,'logout']);
 
@@ -452,6 +453,31 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
             ->where('id', '[0-9]+');
         Route::post('/{id}/void',                     [receiptsController::class, 'void'])
             ->where('id', '[0-9]+');
+    });
+
+    Route::prefix('accounting')->group(function(){
+        Route::get('/chart',          [accountingController::class, 'chartIndex']);
+        Route::get('/trial-balance',  [accountingController::class, 'trialBalance']);
+        Route::get('/ar-aging',       [accountingController::class, 'arAging']);
+        Route::get('/fx-history',     [accountingController::class, 'fxHistory']);
+
+        Route::get('/periods',                    [accountingController::class, 'periodsIndex']);
+        Route::post('/periods/{id}/close',        [accountingController::class, 'periodClose'])->where('id', '[0-9]+');
+        Route::post('/periods/{id}/reopen',       [accountingController::class, 'periodReopen'])->where('id', '[0-9]+');
+
+        Route::get('/cash-counts',                [accountingController::class, 'cashCountIndex']);
+        Route::post('/cash-counts',               [accountingController::class, 'cashCountStore']);
+        Route::post('/cash-counts/{id}/adjust',   [accountingController::class, 'cashCountAdjust'])->where('id', '[0-9]+');
+
+        Route::get('/prepayments',                [accountingController::class, 'prepaymentsIndex']);
+        Route::post('/prepayments/register',      [accountingController::class, 'prepaymentRegister']);
+        Route::post('/prepayments/{id}/apply',    [accountingController::class, 'prepaymentApply'])->where('id', '[0-9]+');
+
+        Route::get('/owners',                     [accountingController::class, 'ownersIndex']);
+        Route::post('/owners',                    [accountingController::class, 'ownersStore']);
+        Route::post('/owners/{id}',               [accountingController::class, 'ownersUpdate'])->where('id', '[0-9]+');
+        Route::delete('/owners/{id}',             [accountingController::class, 'ownersDelete'])->where('id', '[0-9]+');
+        Route::get('/owners-ledger',              [accountingController::class, 'ownersLedger']);
     });
 
     Route::get('/', function () {

@@ -136,6 +136,42 @@ abstract class Controller
      *   purpose            — purpose code (nullable)
      *   notes              — string (nullable)
      */
+    /**
+     * Reject the request if the given transaction date falls in a closed
+     * accounting period. Admins can override with X-Override-Closed-Period: yes
+     * (front-end will gate this behind a confirmation prompt).
+     */
+    protected function assertPeriodOpen(?string $date): void
+    {
+        if (empty($date)) {
+            return;
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasTable('accounting_periods')) {
+            return;
+        }
+        $ts = strtotime($date);
+        if ($ts === false) return;
+        $year  = (int) date('Y', $ts);
+        $month = (int) date('m', $ts);
+        $period = \Illuminate\Support\Facades\DB::table('accounting_periods')
+            ->where('period_year', $year)->where('period_month', $month)->first();
+        if (!$period || $period->status !== 'closed') {
+            return;
+        }
+        if (auth()->user()?->type === 'admin' && request()->header('X-Override-Closed-Period') === 'yes') {
+            \Illuminate\Support\Facades\Log::warning('Admin override of closed period', [
+                'user'   => auth()->user()->id,
+                'period' => $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT),
+                'route'  => request()->path(),
+            ]);
+            return;
+        }
+        abort(response()->json([
+            'type'    => 'period_closed',
+            'message' => 'Accounting period ' . $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . ' is closed.',
+        ], 423));
+    }
+
     protected function issueReceipt(array $payload): ?int
     {
         try {

@@ -132,14 +132,15 @@ class dataController extends Controller
     // is forced to pick a reason from this list. Translations go through
     // langController::write() so AR / EN / ZH all show.
     public $client_deposit_purposes = [
-        'cash_received'    => 'Cash received',
-        'bank_transfer'    => 'Bank transfer received',
-        'advance_payment'  => 'Advance against future shipment',
-        'container_payment'=> 'Payment for specific container',
-        'commission_refund'=> 'Commission refund',
-        'fx_adjustment'    => 'FX adjustment',
-        'correction'       => 'Balance correction',
-        'other'            => 'Other',
+        'cash_received'       => 'Cash received',
+        'bank_transfer'       => 'Bank transfer received',
+        'advance_payment'     => 'Advance against future shipment',
+        'container_payment'   => 'Payment for specific container',
+        'commission_refund'   => 'Commission refund',
+        'prepayment_received' => 'Prepayment received',
+        'fx_adjustment'       => 'FX adjustment',
+        'correction'          => 'Balance correction',
+        'other'               => 'Other',
     ];
 
     public $client_withdraw_purposes = [
@@ -194,8 +195,32 @@ class dataController extends Controller
     public $branch_fix_purposes = [
         'move_cash_between_branches' => 'Move cash between branches',
         'settle_internal_debt'       => 'Settle internal debt',
+        'owner_drawing'              => 'Owner drawing',
+        'owner_salary'               => 'Owner salary',
+        'owner_loan_out'             => 'Loan to owner',
+        'owner_loan_repayment'       => 'Loan repayment from owner',
+        'owner_capital_in'           => 'Owner capital contribution',
         'correction'                 => 'Balance correction',
         'other'                      => 'Other',
+    ];
+
+    // Owner-specific purpose codes for treasury (branches_transactions) outflows.
+    // Drawings reduce equity; salary is an expense; loan is a balance-sheet liability/asset.
+    public $owner_purposes = [
+        'owner_drawing'        => 'Owner drawing',
+        'owner_salary'         => 'Owner salary',
+        'owner_loan_out'       => 'Loan to owner',
+        'owner_loan_repayment' => 'Loan repayment from owner',
+        'owner_capital_in'     => 'Owner capital contribution',
+    ];
+
+    public $client_deposit_prepayment_purposes = [
+        'prepayment_received' => 'Prepayment received',
+    ];
+
+    public $cash_count_purposes = [
+        'cash_count_short' => 'Cash count: shortage adjustment',
+        'cash_count_over'  => 'Cash count: overage adjustment',
     ];
 
     public $supplier_deposit_purposes = [
@@ -236,6 +261,9 @@ class dataController extends Controller
             $this->branch_fix_purposes,
             $this->supplier_deposit_purposes,
             $this->customs_broker_deposit_purposes,
+            $this->owner_purposes,
+            $this->client_deposit_prepayment_purposes,
+            $this->cash_count_purposes,
             ['commission' => 'Commission charge']
         );
         $label = $all[$code] ?? $code;

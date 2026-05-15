@@ -149,10 +149,11 @@ class suppliersController extends Controller
     }
 
     public function withdraw(Request $request){
+        $this->assertPeriodOpen(date('Y-m-d'));
         try {
 
             $response = null;
-            
+
             DB::transaction(function () use ($request, &$response) {
                 $dataController   = new dataController();
                 
@@ -213,9 +214,10 @@ class suppliersController extends Controller
     }
 
     public function deposit(Request $request){
+        $this->assertPeriodOpen(date('Y-m-d'));
         try {
 
-                
+
             $dataController   = new dataController();
             $treasuryController   = new treasuryController();
             $branchesController   = new branchesController();
