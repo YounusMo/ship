@@ -1,14 +1,14 @@
 {
     "timezone": "Asia\/Hong_Kong",
-    "logo": "",
+    "currency_eur": 1.7,
+    "currency_den": 8.2,
+    "currency_cny": 6.9,
+    "email": "MOTAZALBASHARI@GMAIL.COM",
     "company_name": "MATAZ TRADING COMPANY",
     "address": "Guangzhou, China",
     "phone": "0086-15013009970",
-    "email": "MOTAZALBASHARI@GMAIL.COM",
     "commercial_registry": "0123-456",
     "tax_id": "LY-987654",
     "receipt_footer": "Thank you. This receipt is valid for accounting and tax purposes.",
-    "currency_eur": 1.7,
-    "currency_den": 8.2,
-    "currency_cny": 6.9
+    "logo": ""
 }

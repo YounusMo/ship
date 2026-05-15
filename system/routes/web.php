@@ -490,6 +490,7 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
         Route::get('/journal-entries/{id}',       [journalController::class, 'entryShow'])->where('id', '[0-9]+');
         Route::post('/journal-entries/{id}/reverse', [journalController::class, 'entryReverse'])->where('id', '[0-9]+');
         Route::get('/journal-trial-balance',      [journalController::class, 'trialBalanceView']);
+        Route::get('/drift',                      [accountingController::class, 'driftReport']);
     });
 
     Route::get('/', function () {

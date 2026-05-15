@@ -794,6 +794,116 @@ class accountingController extends Controller
     }
 
     /* ============================================================
+     *  Drift detector — journal vs entity trial balance
+     *  GET /accounting/drift
+     *
+     *  For every chart_of_accounts row that has a derivation_key, fetch
+     *    journal_net  = SUM(dr) - SUM(cr) on that account_code from
+     *                   journal_lines (open entries only)
+     *    entity_net   = deriveAccountBalances()[derivation_key] adjusted
+     *                   for the account's normal balance side
+     *  and compare. Anything off by more than 0.0001 is flagged.
+     *
+     *  The expected steady state once every mutation posts a journal is
+     *  zero drift across the board. While the journal layer is still being
+     *  rolled out (and for historical transactions that pre-date it), drift
+     *  rows are the worklist — fix the wiring or backfill, then this page
+     *  goes green.
+     * ============================================================ */
+    public function driftReport(Request $request)
+    {
+        $this->requireAdmin();
+        $asOf = $request->get('as_of', date('Y-m-d'));
+
+        // Entity-derived per-account balances. We use a window from the
+        // beginning of the year through asOf so that P&L accounts get their
+        // YTD activity captured the same way the trial balance does.
+        $yearStart = date('Y-01-01', strtotime($asOf));
+        $entity    = $this->deriveAccountBalances($yearStart, $asOf);
+
+        // Journal-derived per-account balances. signed_net = DR - CR.
+        $journalRows = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
+            ->where('journal_entries.status', 'open')
+            ->where('journal_entries.entry_date', '<=', $asOf)
+            ->select(
+                'journal_lines.account_code',
+                'journal_lines.currency',
+                DB::raw('SUM(journal_lines.dr) as dr_total'),
+                DB::raw('SUM(journal_lines.cr) as cr_total')
+            )
+            ->groupBy('journal_lines.account_code', 'journal_lines.currency')
+            ->get();
+        $journalByCode = [];
+        foreach ($journalRows as $r) {
+            $journalByCode[$r->account_code][$r->currency] = (float) $r->dr_total - (float) $r->cr_total;
+        }
+
+        $accounts = DB::table('chart_of_accounts')
+            ->where('is_active', true)
+            ->orderBy('code')->get();
+
+        $rows = [];
+        $driftCount = 0;
+        $driftCurrencies = array_fill_keys($this->currencies, 0.0);
+        foreach ($accounts as $a) {
+            $entityByCcy = array_fill_keys($this->currencies, 0.0);
+            if (!empty($a->derivation_key) && isset($entity[$a->derivation_key])) {
+                // Entity values are stored as positive "natural-direction"
+                // amounts. Sign-flip if the account's normal balance is
+                // credit, so we end up with a signed (DR - CR) figure
+                // comparable to the journal column.
+                $sign = $a->normal_balance === 'debit' ? 1 : -1;
+                foreach ($this->currencies as $c) {
+                    $entityByCcy[$c] = $sign * (float) ($entity[$a->derivation_key][$c] ?? 0);
+                }
+            }
+            $journalByCcy = array_fill_keys($this->currencies, 0.0);
+            if (isset($journalByCode[$a->code])) {
+                foreach ($this->currencies as $c) {
+                    $journalByCcy[$c] = (float) ($journalByCode[$a->code][$c] ?? 0);
+                }
+            }
+            $driftByCcy = [];
+            $rowHasDrift = false;
+            foreach ($this->currencies as $c) {
+                $d = $journalByCcy[$c] - $entityByCcy[$c];
+                $driftByCcy[$c] = $d;
+                if (abs($d) > 0.0001) {
+                    $rowHasDrift = true;
+                    $driftCurrencies[$c] += $d;
+                }
+            }
+            if ($rowHasDrift) $driftCount++;
+            $rows[] = [
+                'code'         => $a->code,
+                'name'         => $a->name,
+                'type'         => $a->type,
+                'normal'       => $a->normal_balance,
+                'has_key'      => !empty($a->derivation_key),
+                'journal'      => $journalByCcy,
+                'entity'       => $entityByCcy,
+                'drift'        => $driftByCcy,
+                'has_drift'    => $rowHasDrift,
+            ];
+        }
+
+        $lang = new langController();
+        $data = new dataController();
+        return view('pages.accounting.drift', [
+            'rows'             => $rows,
+            'currencies'       => $this->currencies,
+            'driftCount'       => $driftCount,
+            'driftCurrencies'  => $driftCurrencies,
+            'asOf'             => $asOf,
+            'lang'             => $lang,
+            'data'             => $data,
+            'section'          => 'accounting',
+            'page'             => 'drift',
+        ]);
+    }
+
+    /* ============================================================
      *  AR / AP Client Aging
      *  GET /accounting/ar-aging
      *

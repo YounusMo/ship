@@ -195,6 +195,12 @@
                 {{$lang->write('Journal Entries')}}
             </a>
         </li>
+        <li class="{{$page === 'drift' ? 'active' : ''}}">
+            <a href="{{url('/accounting/drift')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+                {{$lang->write('Drift Detector')}}
+            </a>
+        </li>
         <li class="{{$page === 'chart' ? 'active' : ''}}">
             <a href="{{url('/accounting/chart')}}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v18M3 8h18M3 16h18"/></svg>
