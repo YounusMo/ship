@@ -460,7 +460,11 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
         Route::get('/trial-balance',  [accountingController::class, 'trialBalance']);
         Route::get('/profit-loss',    [accountingController::class, 'pnlStatement']);
         Route::get('/balance-sheet',  [accountingController::class, 'balanceSheet']);
+        Route::get('/cash-flow',      [accountingController::class, 'cashFlowStatement']);
+        Route::get('/journal',        [accountingController::class, 'dailyJournal']);
         Route::get('/ar-aging',       [accountingController::class, 'arAging']);
+        Route::get('/supplier-aging', [accountingController::class, 'supplierAging']);
+        Route::get('/broker-aging',   [accountingController::class, 'brokerAging']);
         Route::get('/fx-history',     [accountingController::class, 'fxHistory']);
 
         Route::get('/periods',                    [accountingController::class, 'periodsIndex']);

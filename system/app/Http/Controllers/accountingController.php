@@ -256,6 +256,401 @@ class accountingController extends Controller
     }
 
     /* ============================================================
+     *  Daily transactions journal (HTML)
+     *  GET /accounting/journal?date=YYYY-MM-DD
+     *  Merges clients_transactions + branches_transactions +
+     *  suppliers_transactions + customs_brokers_transactions for the
+     *  date, ordered chronologically. End-of-day review tool.
+     * ============================================================ */
+    public function dailyJournal(Request $request)
+    {
+        $this->requireAdmin();
+        $date = $request->get('date', date('Y-m-d'));
+
+        $rows = [];
+
+        $clients = DB::table('clients_transactions')
+            ->leftJoin('clients', 'clients.id', '=', 'clients_transactions.client_id')
+            ->where('clients_transactions.created_date', $date)
+            ->select('clients_transactions.*', 'clients.code as party_code', 'clients.name as party_name')
+            ->get();
+        foreach ($clients as $r) {
+            $rows[] = [
+                'time'     => $r->created_time,
+                'source'   => 'client',
+                'party'    => trim(($r->party_code ?? '') . ' — ' . ($r->party_name ?? '')),
+                'type'     => $r->type,
+                'value'    => (float) $r->value,
+                'currency' => $r->currency,
+                'sign'     => $r->plus_minus,
+                'branch'   => $r->branch,
+                'notes'    => $r->notes,
+                'purpose'  => $r->purpose,
+                'user_id'  => $r->created_by,
+                'auto_id'  => $r->auto_id,
+            ];
+        }
+
+        $branches = DB::table('branches_transactions')
+            ->where('created_date', $date)->get();
+        foreach ($branches as $r) {
+            $rows[] = [
+                'time'     => $r->created_time,
+                'source'   => 'branch',
+                'party'    => 'Treasury #' . $r->branch,
+                'type'     => $r->type,
+                'value'    => (float) $r->value,
+                'currency' => $r->currency,
+                'sign'     => $r->plus_minus,
+                'branch'   => $r->branch,
+                'notes'    => $r->notes,
+                'purpose'  => $r->purpose,
+                'user_id'  => $r->created_by,
+                'auto_id'  => $r->auto_id,
+            ];
+        }
+
+        $suppliers = DB::table('suppliers_transactions')
+            ->leftJoin('suppliers', 'suppliers.id', '=', 'suppliers_transactions.supplier_id')
+            ->where('suppliers_transactions.created_date', $date)
+            ->select('suppliers_transactions.*', 'suppliers.name as party_name')
+            ->get();
+        foreach ($suppliers as $r) {
+            $rows[] = [
+                'time'     => $r->created_time,
+                'source'   => 'supplier',
+                'party'    => $r->party_name ?? ('#' . $r->supplier_id),
+                'type'     => $r->type,
+                'value'    => (float) $r->value,
+                'currency' => $r->currency,
+                'sign'     => $r->plus_minus,
+                'branch'   => $r->branch,
+                'notes'    => $r->notes,
+                'purpose'  => $r->purpose,
+                'user_id'  => $r->created_by,
+                'auto_id'  => $r->auto_id,
+            ];
+        }
+
+        $brokers = DB::table('customs_brokers_transactions')
+            ->leftJoin('customs_brokers', 'customs_brokers.id', '=', 'customs_brokers_transactions.broker_id')
+            ->where('customs_brokers_transactions.created_date', $date)
+            ->select('customs_brokers_transactions.*', 'customs_brokers.name as party_name')
+            ->get();
+        foreach ($brokers as $r) {
+            $rows[] = [
+                'time'     => $r->created_time,
+                'source'   => 'broker',
+                'party'    => $r->party_name ?? ('#' . $r->broker_id),
+                'type'     => $r->type,
+                'value'    => (float) $r->value,
+                'currency' => $r->currency,
+                'sign'     => $r->plus_minus,
+                'branch'   => $r->branch,
+                'notes'    => $r->notes,
+                'purpose'  => $r->purpose,
+                'user_id'  => $r->created_by,
+                'auto_id'  => $r->auto_id,
+            ];
+        }
+
+        usort($rows, fn($a, $b) => strcmp($a['time'] ?? '', $b['time'] ?? ''));
+
+        // Resolve user names
+        $userIds = array_unique(array_filter(array_column($rows, 'user_id')));
+        $users = $userIds
+            ? DB::table('users')->whereIn('id', $userIds)->pluck('name', 'id')->all()
+            : [];
+
+        // Branch lookup
+        $branchIds = array_unique(array_filter(array_column($rows, 'branch')));
+        $branchNames = $branchIds
+            ? DB::table('branches')->whereIn('id', $branchIds)->pluck('name', 'id')->all()
+            : [];
+
+        // Per-currency cash net change from treasury_transactions (the
+        // canonical cash ledger; branches_transactions is only written for
+        // explicit branch-level actions like expenses or transfers).
+        $totals = ['usd' => 0.0, 'eur' => 0.0, 'den' => 0.0, 'cny' => 0.0];
+        $tr = DB::table('treasury_transactions')
+            ->where('created_date', $date)
+            ->select('currency', 'plus_minus', DB::raw('SUM(value) as total'))
+            ->groupBy('currency', 'plus_minus')->get();
+        foreach ($tr as $r) {
+            if (!isset($totals[$r->currency])) continue;
+            $sign = ($r->plus_minus === 'plus' || $r->plus_minus === '+') ? 1 : -1;
+            $totals[$r->currency] += $sign * (float) $r->total;
+        }
+
+        $lang = new langController();
+        $data = new dataController();
+        return view('pages.accounting.daily_journal', [
+            'rows'        => $rows,
+            'users'       => $users,
+            'branchNames' => $branchNames,
+            'totals'      => $totals,
+            'date'        => $date,
+            'lang'        => $lang,
+            'data'        => $data,
+            'section'     => 'accounting',
+            'page'        => 'journal',
+        ]);
+    }
+
+    /* ============================================================
+     *  Cash flow statement (PDF) — direct method.
+     *  GET /accounting/cash-flow?from=&to=
+     *
+     *  Sums treasury_transactions by category over the period,
+     *  shows beginning cash, inflow/outflow per category, ending cash.
+     *  Per-currency columns.
+     * ============================================================ */
+    public function cashFlowStatement(Request $request)
+    {
+        $this->requireAdmin();
+        $from = $request->get('from', date('Y-m-01'));
+        $to   = $request->get('to',   date('Y-m-t'));
+
+        // Ending cash = current sum of branches.balance_* (the live cash
+        // position). Beginning cash = ending minus net change posted in
+        // [from, to] on treasury_transactions, which is the canonical cash
+        // ledger (every deposit/withdraw/expense across all source modules
+        // writes here).
+        $endingCash = array_fill_keys($this->currencies, 0.0);
+        foreach ($this->currencies as $c) {
+            $endingCash[$c] = (float) DB::table('branches')
+                ->where('deleted', 0)->sum('balance_' . $c);
+        }
+
+        $deltaInPeriod = array_fill_keys($this->currencies, 0.0);
+        $rows = DB::table('treasury_transactions')
+            ->whereBetween('created_date', [$from, $to])
+            ->select('currency', 'plus_minus', DB::raw('SUM(value) as total'))
+            ->groupBy('currency', 'plus_minus')->get();
+        foreach ($rows as $r) {
+            if (!in_array($r->currency, $this->currencies, true)) continue;
+            $sign = ($r->plus_minus === 'plus' || $r->plus_minus === '+') ? 1 : -1;
+            $deltaInPeriod[$r->currency] += $sign * (float) $r->total;
+        }
+        $beginningCash = array_fill_keys($this->currencies, 0.0);
+        foreach ($this->currencies as $c) {
+            $beginningCash[$c] = $endingCash[$c] - $deltaInPeriod[$c];
+        }
+
+        // Categorize cash movements by type+purpose in branches_transactions.
+        // (treasury_transactions doesn't carry purpose, so we use the source
+        // ledger that does.)
+        $categories = [
+            'inflow_client'    => ['label' => 'Cash received from clients',           'sign' => '+', 'rules' => [['types' => ['deposit', 'exp_deposit'], 'source' => 'client']]],
+            'outflow_client'   => ['label' => 'Cash paid to clients',                 'sign' => '-', 'rules' => [['types' => ['withdraw', 'withdraw_commission', 'exp_withdraw'], 'source' => 'client']]],
+            'outflow_supplier' => ['label' => 'Cash paid to suppliers',               'sign' => '-', 'rules' => [['types' => ['supplier_deposit'], 'source' => 'supplier']]],
+            'outflow_broker'   => ['label' => 'Cash paid to customs brokers',         'sign' => '-', 'rules' => [['types' => ['customs_deposit', 'exp_custom_deposit'], 'source' => 'broker']]],
+            'outflow_opex'     => ['label' => 'Operating expenses paid',              'sign' => '-', 'rules' => [['types' => ['expenses_branch'], 'purposes_exclude' => ['owner_drawing','owner_salary','owner_loan_out','owner_loan_repayment','owner_capital_in']]]],
+            'outflow_owner_draw' => ['label' => 'Owner drawings',                     'sign' => '-', 'rules' => [['purposes' => ['owner_drawing']]]],
+            'outflow_owner_sal'  => ['label' => 'Owner salary paid',                  'sign' => '-', 'rules' => [['purposes' => ['owner_salary']]]],
+            'inflow_owner_cap'   => ['label' => 'Owner capital contributions',        'sign' => '+', 'rules' => [['purposes' => ['owner_capital_in']]]],
+            'other_inflow'     => ['label' => 'Other inflows',                        'sign' => '+', 'rules' => []],
+            'other_outflow'    => ['label' => 'Other outflows',                       'sign' => '-', 'rules' => []],
+        ];
+
+        // Walk treasury_transactions (cash ledger). It has type but not
+        // purpose — purpose lives on the source ledgers, so we look it up by
+        // joining on transaction_number. The join is best-effort; rows that
+        // don't match fall through to the "other" buckets.
+        $sums = array_fill_keys(array_keys($categories), array_fill_keys($this->currencies, 0.0));
+
+        $tx = DB::table('treasury_transactions')
+            ->whereBetween('created_date', [$from, $to])
+            ->get();
+
+        $txNumbers = $tx->pluck('transaction_number')->filter()->unique()->all();
+        $purposeByTxn = [];
+        if (!empty($txNumbers)) {
+            foreach (['clients_transactions', 'branches_transactions', 'suppliers_transactions', 'customs_brokers_transactions'] as $src) {
+                $rows = DB::table($src)
+                    ->whereIn('transaction_number', $txNumbers)
+                    ->select('transaction_number', 'purpose')
+                    ->get();
+                foreach ($rows as $r) {
+                    if (!empty($r->purpose) && !isset($purposeByTxn[$r->transaction_number])) {
+                        $purposeByTxn[$r->transaction_number] = $r->purpose;
+                    }
+                }
+            }
+        }
+
+        foreach ($tx as $r) {
+            if (!in_array($r->currency, $this->currencies, true)) continue;
+            $isInflow = ($r->plus_minus === 'plus' || $r->plus_minus === '+');
+            $val = (float) $r->value;
+            $purpose = $purposeByTxn[$r->transaction_number] ?? null;
+
+            $bucket = $this->classifyCashMovement($r->type, $purpose, $isInflow);
+            $sums[$bucket][$r->currency] += $val;
+        }
+
+        $netChange = array_fill_keys($this->currencies, 0.0);
+        foreach ($categories as $key => $cat) {
+            $sign = $cat['sign'] === '+' ? 1 : -1;
+            foreach ($this->currencies as $c) {
+                $netChange[$c] += $sign * (float) ($sums[$key][$c] ?? 0);
+            }
+        }
+
+        $settings = (new settingsController())->get();
+        $lang = new langController();
+        $data = new dataController();
+        $html = view('pages.accounting.cash_flow_pdf', compact(
+            'from', 'to', 'categories', 'sums',
+            'beginningCash', 'endingCash', 'netChange',
+            'settings', 'lang', 'data'
+        ))->render();
+
+        $isRtl = (auth()->user()->lang ?? 'en') === 'ar';
+        $mpdf = new Mpdf([
+            'mode'           => 'utf-8',
+            'format'         => 'A4',
+            'default_font'   => 'dejavusans',
+            'directionality' => $isRtl ? 'rtl' : 'ltr',
+            'margin_top'     => 10, 'margin_bottom' => 10,
+            'margin_left'    => 14, 'margin_right' => 14,
+        ]);
+        $mpdf->WriteHTML($html);
+        $filename = 'cash-flow-' . $from . '-' . $to . '.pdf';
+        return response($mpdf->Output($filename, 'I'))
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+    }
+
+    /**
+     * Map a (type, purpose, direction) tuple onto a cash-flow category key.
+     * Anything that doesn't match a specific rule falls into other_inflow /
+     * other_outflow so nothing silently disappears from the statement.
+     */
+    private function classifyCashMovement(string $type, ?string $purpose, bool $isInflow): string
+    {
+        $ownerPurposes = ['owner_drawing','owner_salary','owner_loan_out','owner_loan_repayment','owner_capital_in'];
+        if ($purpose === 'owner_drawing')        return 'outflow_owner_draw';
+        if ($purpose === 'owner_salary')         return 'outflow_owner_sal';
+        if ($purpose === 'owner_capital_in')     return 'inflow_owner_cap';
+        if ($purpose === 'owner_loan_out')       return 'outflow_owner_draw';
+        if ($purpose === 'owner_loan_repayment') return 'inflow_owner_cap';
+
+        if (in_array($type, ['supplier_deposit'], true))                                return 'outflow_supplier';
+        if (in_array($type, ['customs_deposit', 'exp_custom_deposit'], true))           return 'outflow_broker';
+        if (in_array($type, ['expenses_branch', 'exp_withdraw'], true) && !$isInflow)   return 'outflow_opex';
+
+        // Client-side movements show up in branches_transactions with type
+        // 'deposit'/'withdraw' (treasury counterpart of client mutations).
+        if (in_array($type, ['deposit', 'exp_deposit'], true) && $isInflow)             return 'inflow_client';
+        if (in_array($type, ['withdraw', 'withdraw_commission'], true) && !$isInflow)   return 'outflow_client';
+
+        return $isInflow ? 'other_inflow' : 'other_outflow';
+    }
+
+    /* ============================================================
+     *  Supplier aging
+     *  GET /accounting/supplier-aging
+     * ============================================================ */
+    public function supplierAging(Request $request)
+    {
+        $this->requireAdmin();
+        return $this->entityAging('suppliers_transactions', 'suppliers', 'supplier_id', 'supplier', $request);
+    }
+
+    public function brokerAging(Request $request)
+    {
+        $this->requireAdmin();
+        return $this->entityAging('customs_brokers_transactions', 'customs_brokers', 'broker_id', 'broker', $request);
+    }
+
+    /**
+     * Generic aging report builder for entity tables that follow the
+     * (positive balance = we prepaid them, negative balance = we owe them)
+     * convention. Used by supplierAging() and brokerAging().
+     */
+    private function entityAging(string $txTable, string $entityTable, string $fkColumn, string $entityKind, Request $request)
+    {
+        $today = date('Y-m-d');
+        $entities = DB::table($entityTable)
+            ->where('deleted', 0)
+            ->where(function ($q) {
+                $q->where('balance_usd', '!=', 0)
+                  ->orWhere('balance_eur', '!=', 0)
+                  ->orWhere('balance_den', '!=', 0)
+                  ->orWhere('balance_cny', '!=', 0);
+            })
+            ->get(['id', 'name', 'balance_usd', 'balance_eur', 'balance_den', 'balance_cny']);
+
+        $ids = $entities->pluck('id')->all();
+        $lastActivity = [];
+        if (!empty($ids)) {
+            $rows = DB::table($txTable)
+                ->whereIn($fkColumn, $ids)
+                ->select($fkColumn . ' as eid', DB::raw('MAX(created_date) as last_date'))
+                ->groupBy($fkColumn)->get();
+            foreach ($rows as $r) {
+                $lastActivity[$r->eid] = $r->last_date;
+            }
+        }
+
+        $buckets = ['current' => '0-30 days', 'b31_60' => '31-60', 'b61_90' => '61-90', 'b91_180' => '91-180', 'b180_plus' => '180+'];
+        $prepaid    = ['rows' => [], 'totals' => []];
+        $payable    = ['rows' => [], 'totals' => []];
+        foreach ($this->currencies as $c) {
+            $prepaid['totals'][$c] = array_fill_keys(array_keys($buckets), 0.0);
+            $payable['totals'][$c] = array_fill_keys(array_keys($buckets), 0.0);
+        }
+
+        foreach ($entities as $e) {
+            $lastDate = $lastActivity[$e->id] ?? null;
+            $days = $lastDate ? (int) round((strtotime($today) - strtotime($lastDate)) / 86400) : 9999;
+            $bucket = $days <= 30 ? 'current'
+                : ($days <= 60 ? 'b31_60'
+                : ($days <= 90 ? 'b61_90'
+                : ($days <= 180 ? 'b91_180' : 'b180_plus')));
+
+            $prepaidBal = []; $payableBal = [];
+            $hasPrepaid = false; $hasPayable = false;
+            foreach ($this->currencies as $c) {
+                $v = (float) $e->{'balance_' . $c};
+                // Convention: positive = we paid them = prepaid (asset).
+                //             negative = we owe them = AP (liability).
+                if ($v > 0) { $prepaidBal[$c] = $v;  $hasPrepaid = true; } else { $prepaidBal[$c] = 0.0; }
+                if ($v < 0) { $payableBal[$c] = -$v; $hasPayable = true; } else { $payableBal[$c] = 0.0; }
+            }
+            $base = [
+                'id'        => $e->id, 'name' => $e->name,
+                'last_date' => $lastDate, 'days' => $days, 'bucket' => $bucket,
+            ];
+            if ($hasPrepaid) {
+                $prepaid['rows'][] = $base + ['balances' => $prepaidBal];
+                foreach ($this->currencies as $c) $prepaid['totals'][$c][$bucket] += $prepaidBal[$c];
+            }
+            if ($hasPayable) {
+                $payable['rows'][] = $base + ['balances' => $payableBal];
+                foreach ($this->currencies as $c) $payable['totals'][$c][$bucket] += $payableBal[$c];
+            }
+        }
+        usort($prepaid['rows'], fn($a, $b) => $b['days'] <=> $a['days']);
+        usort($payable['rows'], fn($a, $b) => $b['days'] <=> $a['days']);
+
+        $lang = new langController();
+        $data = new dataController();
+        return view('pages.accounting.entity_aging', [
+            'entityKind' => $entityKind,
+            'prepaid'    => $prepaid,
+            'payable'    => $payable,
+            'buckets'    => $buckets,
+            'currencies' => $this->currencies,
+            'data'       => $data,
+            'lang'       => $lang,
+            'section'    => 'accounting',
+            'page'       => $entityKind . '_aging',
+        ]);
+    }
+
+    /* ============================================================
      *  Profit & Loss statement (PDF)
      *  GET /accounting/profit-loss?from=YYYY-MM-DD&to=YYYY-MM-DD
      * ============================================================ */

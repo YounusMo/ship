@@ -201,10 +201,34 @@
                 {{$lang->write('Balance Sheet (PDF)')}}
             </a>
         </li>
+        <li>
+            <a href="{{url('/accounting/cash-flow')}}" target="_blank">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c4-4 8-4 12 0s4 4 8 0"/></svg>
+                {{$lang->write('Cash Flow (PDF)')}}
+            </a>
+        </li>
+        <li class="{{$page === 'journal' ? 'active' : ''}}">
+            <a href="{{url('/accounting/journal')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4V4z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+                {{$lang->write('Daily Journal')}}
+            </a>
+        </li>
         <li class="{{$page === 'ar_aging' ? 'active' : ''}}">
             <a href="{{url('/accounting/ar-aging')}}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                {{$lang->write('AR Aging')}}
+                {{$lang->write('Client Aging')}}
+            </a>
+        </li>
+        <li class="{{$page === 'supplier_aging' ? 'active' : ''}}">
+            <a href="{{url('/accounting/supplier-aging')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                {{$lang->write('Supplier Aging')}}
+            </a>
+        </li>
+        <li class="{{$page === 'broker_aging' ? 'active' : ''}}">
+            <a href="{{url('/accounting/broker-aging')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18"/></svg>
+                {{$lang->write('Broker Aging')}}
             </a>
         </li>
         <li class="{{$page === 'periods' ? 'active' : ''}}">
