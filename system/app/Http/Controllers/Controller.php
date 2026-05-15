@@ -81,6 +81,19 @@ abstract class Controller
             abort(403, 'Unauthorized');
         }
 
+        // Always verify the client exists. Without this admins (and bugs in
+        // callers) can post mutations against orphaned ids, silently creating
+        // transaction rows with no matching counterparty — those show up as
+        // reconciliation drift later.
+        $client = \Illuminate\Support\Facades\DB::table('clients')
+            ->where('id', $clientId)
+            ->where('deleted', 0)
+            ->first(['branch']);
+
+        if (!$client) {
+            abort(404, 'Client not found');
+        }
+
         if ($user->type === 'admin') {
             return;
         }
@@ -89,12 +102,38 @@ abstract class Controller
             abort(403, 'Unauthorized');
         }
 
-        $client = \Illuminate\Support\Facades\DB::table('clients')
-            ->where('id', $clientId)
-            ->first(['branch']);
-
-        if (!$client || (int) $client->branch !== (int) $user->branch) {
+        if ((int) $client->branch !== (int) $user->branch) {
             abort(403, 'Unauthorized');
+        }
+    }
+
+    /**
+     * Verify the given supplier exists (and isn't soft-deleted). Same
+     * motivation as assertCanAccessClient — without this, an admin or buggy
+     * caller can post against a non-existent supplier_id and the system will
+     * happily create orphan rows.
+     */
+    protected function assertSupplierExists($supplierId): void
+    {
+        if (empty($supplierId) || !is_numeric($supplierId)) {
+            abort(422, 'supplier_id required');
+        }
+        $exists = \Illuminate\Support\Facades\DB::table('suppliers')
+            ->where('id', (int) $supplierId)->where('deleted', 0)->exists();
+        if (!$exists) {
+            abort(404, 'Supplier not found');
+        }
+    }
+
+    protected function assertBrokerExists($brokerId): void
+    {
+        if (empty($brokerId) || !is_numeric($brokerId)) {
+            abort(422, 'broker_id required');
+        }
+        $exists = \Illuminate\Support\Facades\DB::table('customs_brokers')
+            ->where('id', (int) $brokerId)->where('deleted', 0)->exists();
+        if (!$exists) {
+            abort(404, 'Customs broker not found');
         }
     }
 

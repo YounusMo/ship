@@ -684,5 +684,14 @@
     "Accounts payable — suppliers (we owe them)": "Accounts payable — suppliers (we owe them)",
     "Prepaid to customs brokers (we paid, awaiting service)": "Prepaid to customs brokers (we paid, awaiting service)",
     "Accounts payable — customs brokers (we owe them)": "Accounts payable — customs brokers (we owe them)",
-    "Broker": "Broker"
+    "Broker": "Broker",
+    "Receipt of Currency Transfer": "Receipt of Currency Transfer",
+    "This receipt was VOIDED on": "This receipt was VOIDED on",
+    "electricity_expenses": "electricity_expenses",
+    "Cash count: overage adjustment": "Cash count: overage adjustment",
+    "The standard accounts the trial balance derives from. System accounts cannot be removed.": "The standard accounts the trial balance derives from. System accounts cannot be removed.",
+    "Normal balance": "Normal balance",
+    "Closed": "Closed",
+    "Reopen": "Reopen",
+    "Posted": "Posted"
 }

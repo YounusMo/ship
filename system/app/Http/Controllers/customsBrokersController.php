@@ -148,6 +148,7 @@ class customsBrokersController extends Controller
     }
 
     public function withdraw(Request $request){
+        $this->assertBrokerExists($request->broker_id);
         $this->assertPeriodOpen(date('Y-m-d'));
         try {
 
@@ -219,6 +220,7 @@ class customsBrokersController extends Controller
     }
 
     public function deposit(Request $request){
+        $this->assertBrokerExists($request->broker_id);
         $this->assertPeriodOpen(date('Y-m-d'));
         try {
 

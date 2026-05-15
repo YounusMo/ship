@@ -201,9 +201,12 @@ class accountingController extends Controller
         $out['shipping_revenue']   = array_fill_keys($this->currencies, 0.0);
 
         // ---- P&L: operating expenses (branches expense outflows excluding owner_*) ----
+        // plus_minus is stored as the word 'minus' / 'plus' across every
+        // transaction table — using the sign characters would silently match
+        // nothing and inflate owner's equity by absorbing the missing expense.
         $opEx = array_fill_keys($this->currencies, 0.0);
         $rows = DB::table('branches_transactions')
-            ->where('plus_minus', '-')
+            ->where('plus_minus', 'minus')
             ->whereIn('type', ['expenses_branch', 'exp_withdraw'])
             ->whereBetween('created_date', [$from, $to])
             ->where(function ($q) {
@@ -222,7 +225,7 @@ class accountingController extends Controller
         // ---- Owner drawings (equity, debit) ----
         $drawings = array_fill_keys($this->currencies, 0.0);
         $rows = DB::table('branches_transactions')
-            ->where('plus_minus', '-')
+            ->where('plus_minus', 'minus')
             ->where('purpose', 'owner_drawing')
             ->whereBetween('created_date', [$from, $to])
             ->select('currency', DB::raw('SUM(value) as total'))
@@ -237,7 +240,7 @@ class accountingController extends Controller
         // ---- Owner salary (expense) ----
         $salary = array_fill_keys($this->currencies, 0.0);
         $rows = DB::table('branches_transactions')
-            ->where('plus_minus', '-')
+            ->where('plus_minus', 'minus')
             ->where('purpose', 'owner_salary')
             ->whereBetween('created_date', [$from, $to])
             ->select('currency', DB::raw('SUM(value) as total'))
@@ -1048,44 +1051,66 @@ class accountingController extends Controller
             return response()->json(['type' => 'no_variance'], 200);
         }
 
-        // Insert treasury transaction reflecting the variance.
-        $user = auth()->user();
-        $plusMinus = $cc->variance > 0 ? '+' : '-';
-        $purpose   = $cc->variance > 0 ? 'cash_count_over' : 'cash_count_short';
+        // Post the variance to BOTH the per-branch ledger and the canonical
+        // cash ledger so the daily journal, cash flow, trial balance, and
+        // branch.balance_* all agree. Wrap in a transaction so a half-state
+        // (one ledger updated, the other not) is impossible.
+        $user      = auth()->user();
+        $isOver    = $cc->variance > 0;
+        $plusMinus = $isOver ? 'plus' : 'minus';
+        $type      = $isOver ? 'deposit' : 'withdraw';
+        $purpose   = $isOver ? 'cash_count_over' : 'cash_count_short';
         $value     = abs((float) $cc->variance);
 
         $dataController = new dataController();
         $txnNumber = $dataController->transaction_number('cash_count_adj', $cc->id);
-        $autoId = ((int) DB::table('branches_transactions')->where('branch', $cc->branch_id)->max('auto_id')) + 1;
+        $autoId    = ((int) DB::table('branches_transactions')->where('branch', $cc->branch_id)->max('auto_id')) + 1;
 
-        $branchTxnId = DB::table('branches_transactions')->insertGetId([
-            'type'         => $cc->variance > 0 ? 'deposit' : 'withdraw',
-            'data'         => json_encode(['cash_count_id' => $cc->id]),
-            'created_date' => date('Y-m-d'),
-            'created_time' => date('H:i:s'),
-            'created_by'   => $user->id,
-            'value'        => $value,
-            'currency'     => $cc->currency,
-            'plus_minus'   => $plusMinus,
-            'branch'       => $cc->branch_id,
-            'notes'        => 'Cash count adjustment',
-            'purpose'      => $purpose,
-            'auto_id'      => $autoId,
-            'transaction_number' => $txnNumber,
-        ]);
+        $branchTxnId = null;
+        DB::transaction(function () use ($cc, $id, $type, $plusMinus, $value, $purpose, $autoId, $txnNumber, $user, &$branchTxnId) {
+            $branchTxnId = DB::table('branches_transactions')->insertGetId([
+                'type'         => $type,
+                'data'         => json_encode(['cash_count_id' => $cc->id]),
+                'created_date' => date('Y-m-d'),
+                'created_time' => date('H:i:s'),
+                'created_by'   => $user->id,
+                'value'        => $value,
+                'currency'     => $cc->currency,
+                'plus_minus'   => $plusMinus,
+                'branch'       => $cc->branch_id,
+                'notes'        => 'Cash count adjustment',
+                'purpose'      => $purpose,
+                'auto_id'      => $autoId,
+                'transaction_number' => $txnNumber,
+            ]);
 
-        // Update branch balance
-        $col = 'balance_' . $cc->currency;
-        if ($plusMinus === '+') {
-            DB::table('branches')->where('id', $cc->branch_id)->increment($col, $value);
-        } else {
-            DB::table('branches')->where('id', $cc->branch_id)->decrement($col, $value);
-        }
+            DB::table('treasury_transactions')->insert([
+                'type'               => $type,
+                'data'               => json_encode(['cash_count_id' => $cc->id]),
+                'created_date'       => date('Y-m-d'),
+                'created_time'       => date('H:i:s'),
+                'created_by'         => $user->id,
+                'value'              => $value,
+                'currency'           => $cc->currency,
+                'plus_minus'         => $plusMinus,
+                'branch'             => $cc->branch_id,
+                'notes'              => 'Cash count adjustment',
+                'auto_id'            => $autoId,
+                'transaction_number' => $txnNumber,
+            ]);
 
-        DB::table('cash_counts')->where('id', $id)->update([
-            'adjustment_posted'        => true,
-            'adjustment_transaction_id'=> $branchTxnId,
-        ]);
+            $col = 'balance_' . $cc->currency;
+            if ($plusMinus === 'plus') {
+                DB::table('branches')->where('id', $cc->branch_id)->increment($col, $value);
+            } else {
+                DB::table('branches')->where('id', $cc->branch_id)->decrement($col, $value);
+            }
+
+            DB::table('cash_counts')->where('id', $id)->update([
+                'adjustment_posted'        => true,
+                'adjustment_transaction_id'=> $branchTxnId,
+            ]);
+        });
 
         $this->logAudit('cash_count_adjust', 'cash_counts', $id, [
             'variance' => $cc->variance,
@@ -1136,7 +1161,7 @@ class accountingController extends Controller
             ->whereNull('prepayments.id')
             ->where('clients_transactions.purpose', 'prepayment_received')
             ->where('clients_transactions.type', 'deposit')
-            ->where('clients_transactions.plus_minus', '+')
+            ->where('clients_transactions.plus_minus', 'plus')
             ->select('clients_transactions.*', 'clients.name as client_name', 'clients.code as client_code')
             ->orderByDesc('clients_transactions.id')
             ->limit(200)
@@ -1159,7 +1184,7 @@ class accountingController extends Controller
     {
         $txnId = (int) $request->source_transaction_id;
         $txn = DB::table('clients_transactions')->where('id', $txnId)->first();
-        if (!$txn || $txn->type !== 'deposit' || $txn->plus_minus !== '+') {
+        if (!$txn || $txn->type !== 'deposit' || $txn->plus_minus !== 'plus') {
             return response()->json(['type' => 'invalid_source'], 422);
         }
         if (DB::table('prepayments')->where('source_transaction_id', $txnId)->exists()) {

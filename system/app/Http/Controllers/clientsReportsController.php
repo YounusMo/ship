@@ -60,22 +60,29 @@ class clientsReportsController extends Controller
         try {
 
             $response = null;
-            
+
             DB::transaction(function () use ($request, &$response) {
                 $clientsController = new clientsController();
                 $treasuryController = new treasuryController();
                 $branchesController = new branchesController();
 
-                
+
                 $id        = $request->id;
                 $status    = $request->status;
                 $type      = $request->type;
-                
+
                 $get = DB::table('clients_transactions')->where('id',$id)->where('type',$type)->first();
 
                 if(!$get){
+                    $response = response()->json(['type' => 'not_found'], 404);
                     return;
                 }
+
+                // Approving a pending row is a mutation just like creating a
+                // new one, so the same period-close lock applies. Without this
+                // an admin could defer approval until after month-end and
+                // bypass the lock entirely.
+                $this->assertPeriodOpen($get->created_date);
                 
                 if($type === 'transfer'){
                     $value     = $request->value;
@@ -167,6 +174,9 @@ class clientsReportsController extends Controller
                     $status === 'approved' ? 'Approved pending transaction' : 'Rejected pending transaction'
                 );
 
+                if ($response === null) {
+                    $response = response()->json(['type' => 'success'], 200);
+                }
             });
 
             return $response;
