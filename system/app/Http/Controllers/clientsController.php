@@ -352,7 +352,7 @@ class clientsController extends Controller
 
                         $purpose = $this->normalizePurpose($request->purpose, $dataController->client_client_transfer_purposes);
 
-                        DB::table('clients_transactions')->insert([
+                        $from_row_id = DB::table('clients_transactions')->insertGetId([
                             'transaction_number' => $transaction_number,
                             'value'         => $value,
                             'currency'      => $currency,
@@ -370,7 +370,7 @@ class clientsController extends Controller
                             'created_time'  => date('H:i:s'),
                         ]);
 
-                        DB::table('clients_transactions')->insert([
+                        $to_row_id = DB::table('clients_transactions')->insertGetId([
                             'transaction_number' => $transaction_number,
                             'value'         => $value,
                             'currency'      => $currency,
@@ -408,6 +408,34 @@ class clientsController extends Controller
                             ],
                             'Transfer between clients'
                         );
+
+                        // Two receipts — one for the from-side, one for the to-side.
+                        $this->issueReceipt([
+                            'source_table'       => 'clients_transactions',
+                            'source_id'          => $from_row_id,
+                            'transaction_number' => $transaction_number,
+                            'auto_id'            => $auto_id,
+                            'kind'               => 'transfer_out',
+                            'currency'           => $currency,
+                            'amount'             => $value,
+                            'counterparty_type'  => 'client',
+                            'counterparty_id'    => $id,
+                            'purpose'            => $purpose,
+                            'notes'              => $notes,
+                        ]);
+                        $this->issueReceipt([
+                            'source_table'       => 'clients_transactions',
+                            'source_id'          => $to_row_id,
+                            'transaction_number' => $transaction_number,
+                            'auto_id'            => $auto_id,
+                            'kind'               => 'transfer_in',
+                            'currency'           => $currency,
+                            'amount'             => $value,
+                            'counterparty_type'  => 'client',
+                            'counterparty_id'    => $to_client,
+                            'purpose'            => $purpose,
+                            'notes'              => $notes,
+                        ]);
 
                         $err = false;
                     }else{
@@ -644,7 +672,7 @@ class clientsController extends Controller
 
                         $purpose = $this->normalizePurpose($request->purpose, $dataController->client_deposit_purposes);
 
-                        DB::table('clients_transactions')->insert([
+                        $deposit_row_id = DB::table('clients_transactions')->insertGetId([
                             'transaction_number' => $transaction_number,
                             'value'        => $value,
                             'status'       => $status,
@@ -704,6 +732,21 @@ class clientsController extends Controller
                             ],
                             'Client deposit'
                         );
+
+                        $this->issueReceipt([
+                            'source_table'       => 'clients_transactions',
+                            'source_id'          => $deposit_row_id,
+                            'transaction_number' => $transaction_number,
+                            'auto_id'            => $auto_id,
+                            'kind'               => 'deposit',
+                            'currency'           => $currency,
+                            'amount'             => $value,
+                            'counterparty_type'  => 'client',
+                            'counterparty_id'    => $id,
+                            'branch_id'          => $branch,
+                            'purpose'            => $purpose,
+                            'notes'              => $notes,
+                        ]);
 
                         $err = false;
                     // }else{
@@ -790,7 +833,7 @@ class clientsController extends Controller
 
                         $purpose = $this->normalizePurpose($request->purpose, $dataController->client_withdraw_purposes);
 
-                        DB::table('clients_transactions')->insert([
+                        $withdraw_row_id = DB::table('clients_transactions')->insertGetId([
                             'transaction_number' => $transaction_number,
                             'value'        => $value,
                             'currency'     => $currency,
@@ -854,6 +897,21 @@ class clientsController extends Controller
                             ],
                             'Client withdraw'
                         );
+
+                        $this->issueReceipt([
+                            'source_table'       => 'clients_transactions',
+                            'source_id'          => $withdraw_row_id,
+                            'transaction_number' => $transaction_number,
+                            'auto_id'            => $auto_id,
+                            'kind'               => 'withdraw',
+                            'currency'           => $currency,
+                            'amount'             => $value,
+                            'counterparty_type'  => 'client',
+                            'counterparty_id'    => $id,
+                            'branch_id'          => $branch,
+                            'purpose'            => $purpose,
+                            'notes'              => $notes,
+                        ]);
 
                         $err = false;
                     // }else{
@@ -938,7 +996,7 @@ class clientsController extends Controller
                         }
 
 
-                        DB::table('clients_transactions')->insert([
+                        $commission_row_id = DB::table('clients_transactions')->insertGetId([
                             'transaction_number' => $transaction_number,
                             'value'        => $value,
                             'currency'     => $currency,
@@ -992,6 +1050,21 @@ class clientsController extends Controller
                             ],
                             'Withdraw commission'
                         );
+
+                        $this->issueReceipt([
+                            'source_table'       => 'clients_transactions',
+                            'source_id'          => $commission_row_id,
+                            'transaction_number' => $transaction_number,
+                            'auto_id'            => $auto_id,
+                            'kind'               => 'commission',
+                            'currency'           => $currency,
+                            'amount'             => $value,
+                            'counterparty_type'  => 'client',
+                            'counterparty_id'    => $id,
+                            'branch_id'          => 15,
+                            'purpose'            => 'commission',
+                            'notes'              => $notes,
+                        ]);
 
                         $err = false;
                     // }else{
@@ -1061,7 +1134,7 @@ class clientsController extends Controller
 
                         $purpose = $this->normalizePurpose($request->purpose, $dataController->client_transfer_purposes);
 
-                        DB::table('clients_transactions')->insert([
+                        $transfer_row_id = DB::table('clients_transactions')->insertGetId([
                             'transaction_number' => $transaction_number,
                             'value'         => $value,
                             'transfer_value'=> $result,
@@ -1101,6 +1174,20 @@ class clientsController extends Controller
                             ],
                             'Client currency transfer (pending approval)'
                         );
+
+                        $this->issueReceipt([
+                            'source_table'       => 'clients_transactions',
+                            'source_id'          => $transfer_row_id,
+                            'transaction_number' => $transaction_number,
+                            'auto_id'            => $auto_id,
+                            'kind'               => 'transfer',
+                            'currency'           => $from,
+                            'amount'             => $value,
+                            'counterparty_type'  => 'client',
+                            'counterparty_id'    => $id,
+                            'purpose'            => $purpose,
+                            'notes'              => $notes,
+                        ]);
 
                         $err = false;
                     }else{

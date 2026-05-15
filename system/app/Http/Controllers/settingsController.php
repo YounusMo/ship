@@ -18,26 +18,27 @@ class settingsController extends Controller
     public function save(Request $request){
         $config = file_get_contents($this->settings_file);
         $sett = json_decode($config,true);
-        
-        $data = [
-            'timezone'     => $request->timezone,
-            'currency_eur' => $sett['currency_eur'],
-            'currency_den' => $sett['currency_den'],
-            'currency_cny' => $sett['currency_cny'],
-            'email'        => $request->email,
-            'company_name' => $request->company_name,
-            'address'      => $request->address,
-            'phone'        => $request->phone,
-            'logo'         => '',
-        ];
 
-        
+        $data = [
+            'timezone'            => $request->timezone,
+            'currency_eur'        => $sett['currency_eur'],
+            'currency_den'        => $sett['currency_den'],
+            'currency_cny'        => $sett['currency_cny'],
+            'email'               => $request->email,
+            'company_name'        => $request->company_name,
+            'address'             => $request->address,
+            'phone'               => $request->phone,
+            'commercial_registry' => $request->commercial_registry ?? ($sett['commercial_registry'] ?? ''),
+            'tax_id'              => $request->tax_id              ?? ($sett['tax_id'] ?? ''),
+            'receipt_footer'      => $request->receipt_footer      ?? ($sett['receipt_footer'] ?? ''),
+            'logo'                => '',
+        ];
 
         $logo = $request->file('logo');
         if($logo){
             $logo->move(public_path('images'),'logo.png');
         }
-        
+
         $data = json_encode($data,JSON_PRETTY_PRINT);
 
         file_put_contents($this->settings_file,$data);

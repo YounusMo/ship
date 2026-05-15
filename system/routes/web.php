@@ -21,6 +21,7 @@ use App\Http\Controllers\matchingController;
 use App\Http\Controllers\oldBalanceArchiveController;
 use App\Http\Controllers\auditController;
 use App\Http\Controllers\reconciliationController;
+use App\Http\Controllers\receiptsController;
 
 Route::get('/logout', [usersController::class,'logout']);
 
@@ -153,6 +154,7 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
             Route::post('/transfer_clients',[clientsReportsController::class,'transfer_clients']);
             Route::post('/exp_report',[clientsReportsController::class,'exp']);
             Route::get('/deposit_print/{client_id}',[clientsReportsController::class,'deposit_print']);
+            Route::get('/statement/{client_id}',    [clientsReportsController::class,'statement']);
         });
     });
 
@@ -440,6 +442,16 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
         Route::get('/', [reconciliationController::class, 'index']);
         Route::post('/clients',  [reconciliationController::class, 'clients']);
         Route::post('/branches', [reconciliationController::class, 'branches']);
+    });
+
+    Route::prefix('receipts')->group(function(){
+        Route::get('/for/{source_table}/{source_id}', [receiptsController::class, 'forTransaction'])
+            ->where('source_table', '[a-z_]+')
+            ->where('source_id', '[0-9]+');
+        Route::get('/{id}',                           [receiptsController::class, 'show'])
+            ->where('id', '[0-9]+');
+        Route::post('/{id}/void',                     [receiptsController::class, 'void'])
+            ->where('id', '[0-9]+');
     });
 
     Route::get('/', function () {

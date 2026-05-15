@@ -261,6 +261,136 @@ class clientsReportsController extends Controller
             ->header('Content-Type', 'application/pdf');
     }
 
+    /**
+     * Client Statement of Account — printable PDF.
+     * Route: GET /clients/reports/statement/{client_id}?from=YYYY-MM-DD&to=YYYY-MM-DD
+     *
+     * Shows opening balance, every approved transaction in the period,
+     * running balance per currency, and closing balance. The single most
+     * important document a Libyan trading firm produces for its clients
+     * every month.
+     */
+    public function statement(Request $request, $client_id)
+    {
+        $this->assertCanAccessClient($client_id);
+
+        $client = DB::table('clients')->where('id', $client_id)->first();
+        if (!$client) {
+            abort(404);
+        }
+
+        $from = $request->from ?: date('Y-m-01');
+        $to   = $request->to   ?: date('Y-m-d');
+
+        // Opening balance per currency: sum of approved transactions BEFORE $from
+        $openingPerCcy = ['usd' => 0.0, 'eur' => 0.0, 'den' => 0.0, 'cny' => 0.0];
+        $priorRows = DB::table('clients_transactions')
+            ->where('status', 'approved')
+            ->where('client_id', $client_id)
+            ->where('created_date', '<', $from)
+            ->get();
+        foreach ($priorRows as $r) {
+            $cur = $r->currency;
+            if ($r->type === 'transfer') {
+                if (isset($openingPerCcy[$cur])) {
+                    $openingPerCcy[$cur] -= floatval($r->value);
+                }
+                if (isset($openingPerCcy[$r->to_currency])) {
+                    $openingPerCcy[$r->to_currency] += floatval($r->transfer_value);
+                }
+                continue;
+            }
+            if (!isset($openingPerCcy[$cur])) continue;
+            if ($r->plus_minus === 'plus') {
+                $openingPerCcy[$cur] += floatval($r->value);
+            } else {
+                $openingPerCcy[$cur] -= floatval($r->value);
+            }
+        }
+
+        // Period transactions: approved AND in range. Ordered chronologically.
+        $periodRows = DB::table('clients_transactions')
+            ->where('status', 'approved')
+            ->where('client_id', $client_id)
+            ->whereBetween('created_date', [$from, $to])
+            ->orderBy('created_date', 'asc')
+            ->orderBy('created_time', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        // Walk transactions, compute closing balance per currency.
+        $closingPerCcy = $openingPerCcy;
+        $runningPerCcy = $openingPerCcy;
+        $rows = [];
+        foreach ($periodRows as $r) {
+            $cur = $r->currency;
+            $debit = null;
+            $credit = null;
+
+            if ($r->type === 'transfer') {
+                // Two effects: minus on `currency`, plus on `to_currency`.
+                $runningPerCcy[$cur]              = ($runningPerCcy[$cur] ?? 0) - floatval($r->value);
+                $runningPerCcy[$r->to_currency]   = ($runningPerCcy[$r->to_currency] ?? 0) + floatval($r->transfer_value);
+                $debit = floatval($r->value);
+            } else {
+                if (!isset($runningPerCcy[$cur])) $runningPerCcy[$cur] = 0;
+                if ($r->plus_minus === 'plus') {
+                    $credit = floatval($r->value);
+                    $runningPerCcy[$cur] += $credit;
+                } else {
+                    $debit = floatval($r->value);
+                    $runningPerCcy[$cur] -= $debit;
+                }
+            }
+
+            $rows[] = [
+                'date'    => $r->created_date,
+                'time'    => $r->created_time,
+                'type'    => $r->type,
+                'currency'=> $cur,
+                'debit'   => $debit,
+                'credit'  => $credit,
+                'balance' => $runningPerCcy[$cur] ?? 0,
+                'notes'   => $r->notes,
+                'purpose' => $r->purpose ?? null,
+                'auto_id' => $r->auto_id,
+            ];
+
+            $closingPerCcy = $runningPerCcy;
+        }
+
+        $settings = (new \App\Http\Controllers\settingsController())->get();
+        $lang     = new \App\Http\Controllers\langController();
+        $data     = new dataController();
+        $branchName = $client->branch
+            ? $lang->branch($client->branch)
+            : '';
+
+        $isRtl = (auth()->user()->lang ?? 'en') === 'ar';
+
+        $html = view('pages.reports.clients.statement_pdf', compact(
+            'client', 'from', 'to', 'openingPerCcy', 'closingPerCcy',
+            'rows', 'settings', 'lang', 'data', 'branchName'
+        ))->render();
+
+        $mpdf = new Mpdf([
+            'mode'           => 'utf-8',
+            'format'         => 'A4',
+            'default_font'   => 'dejavusans',
+            'directionality' => $isRtl ? 'rtl' : 'ltr',
+            'margin_top'     => 12,
+            'margin_bottom'  => 14,
+            'margin_left'    => 12,
+            'margin_right'   => 12,
+        ]);
+        $mpdf->WriteHTML($html);
+
+        $filename = 'statement-' . ($client->code ?: $client->id) . '-' . $from . '_' . $to . '.pdf';
+        return response($mpdf->Output($filename, 'I'))
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="' . $filename . '"');
+    }
+
     public function withdraw(Request $request){
         $get = DB::table('clients_transactions');
         $currency = $request->currency;

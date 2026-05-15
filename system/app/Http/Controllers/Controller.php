@@ -115,6 +115,94 @@ abstract class Controller
     }
 
     /**
+     * Issue a strictly-sequential, never-reused receipt for a money-moving
+     * transaction. Returns the receipt id on success, null on failure.
+     *
+     * MUST be called inside the same DB::transaction as the underlying
+     * business operation — if the operation rolls back, the receipt rolls
+     * back with it (which is what you want — no orphan receipts).
+     *
+     * $payload:
+     *   source_table       — e.g. 'clients_transactions'
+     *   source_id          — row id in source table (use insertGetId)
+     *   transaction_number — original transaction_number string
+     *   auto_id            — original auto_id integer
+     *   kind               — 'deposit' / 'withdraw' / 'transfer' / 'commission' / 'supplier_deposit' / 'customs_deposit'
+     *   currency           — 'usd' / 'eur' / 'den' / 'cny'
+     *   amount             — float
+     *   counterparty_type  — 'client' / 'supplier' / 'customs_broker'
+     *   counterparty_id    — int
+     *   branch_id          — int (nullable)
+     *   purpose            — purpose code (nullable)
+     *   notes              — string (nullable)
+     */
+    protected function issueReceipt(array $payload): ?int
+    {
+        try {
+            $db = \Illuminate\Support\Facades\DB::connection();
+
+            // Resolve counterparty label/code so the receipt is a frozen
+            // snapshot even if the client/supplier is renamed or deleted later.
+            $label = null; $code = null;
+            if (!empty($payload['counterparty_type']) && !empty($payload['counterparty_id'])) {
+                $table = match ($payload['counterparty_type']) {
+                    'client'         => 'clients',
+                    'supplier'       => 'suppliers',
+                    'customs_broker' => 'customs_brokers',
+                    default          => null,
+                };
+                if ($table) {
+                    $cp = $db->table($table)->where('id', $payload['counterparty_id'])->first();
+                    if ($cp) {
+                        $label = $cp->name ?? null;
+                        $code  = $cp->code ?? null;
+                    }
+                }
+            }
+
+            $user = auth()->user();
+            $series = 'A';
+
+            // Lock the max number for this series to avoid two parallel
+            // requests grabbing the same number. MySQL's atomic select
+            // FOR UPDATE inside the surrounding DB::transaction is enough.
+            $maxRow = $db->table('receipts')
+                ->where('series_letter', $series)
+                ->lockForUpdate()
+                ->max('series_number');
+            $nextNumber = ((int) $maxRow) + 1;
+
+            return $db->table('receipts')->insertGetId([
+                'series_letter'        => $series,
+                'series_number'        => $nextNumber,
+                'source_table'         => $payload['source_table'],
+                'source_id'            => is_numeric($payload['source_id'] ?? null) ? (int) $payload['source_id'] : 0,
+                'transaction_number'   => $payload['transaction_number'] ?? null,
+                'auto_id'              => is_numeric($payload['auto_id'] ?? null) ? (int) $payload['auto_id'] : null,
+                'kind'                 => $payload['kind'],
+                'currency'             => $payload['currency'] ?? null,
+                'amount'               => isset($payload['amount']) ? floatval($payload['amount']) : null,
+                'counterparty_type'    => $payload['counterparty_type'] ?? null,
+                'counterparty_id'      => is_numeric($payload['counterparty_id'] ?? null) ? (int) $payload['counterparty_id'] : null,
+                'counterparty_label'   => $label,
+                'counterparty_code'    => $code,
+                'branch_id'            => is_numeric($payload['branch_id'] ?? null) ? (int) $payload['branch_id'] : null,
+                'purpose'              => $payload['purpose'] ?? null,
+                'notes'                => $payload['notes'] ?? null,
+                'issued_by_user_id'    => $user?->id,
+                'issued_by_user_name'  => $user?->name,
+                'issued_at'            => date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning(
+                'issueReceipt failed: ' . $e->getMessage(),
+                ['payload' => $payload]
+            );
+            return null;
+        }
+    }
+
+    /**
      * Append a row to audit_log. Failure of the audit insert is logged but
      * NEVER propagated — we will not let a logging hiccup break a payroll
      * deposit.

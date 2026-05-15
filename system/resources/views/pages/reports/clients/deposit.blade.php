@@ -68,8 +68,12 @@
                 <td>{{$item->created_date}} {{$item->created_time}}</td>
                 <td>{{$users[$item->created_by] ?? '-'}}</td>
                 <td>
-                    @if(auth()->user()->id == 2)
-                        <button class="btn  btn-sm btn-danger" onclick='del_transcation({{$item->id}},"deposit")'>{{$lang->write('Delete')}}</button>
+                    <a class="btn btn-sm btn-secondary" target="_blank" href="{{ url('/receipts/for/clients_transactions/'.$item->id) }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-inline-end:2px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                        {{ $lang->write('Receipt') }}
+                    </a>
+                    @if(auth()->user()->type === 'admin')
+                        <button class="btn btn-sm btn-danger" onclick='del_transcation({{$item->id}},"deposit")'>{{$lang->write('Delete')}}</button>
                     @endif
                 </td>
             </tr>

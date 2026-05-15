@@ -187,6 +187,22 @@
                         <label class="form-label">{{ $lang->write('Address') }}</label>
                         <input type="text" class="form-control" value="{{ $settings['address'] }}" name="address">
                     </div>
+
+                    <div class="col-12">
+                        <div class="divider-labeled">{{ $lang->write('Legal & receipt information') }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ $lang->write('Commercial registry no.') }}</label>
+                        <input type="text" class="form-control" value="{{ $settings['commercial_registry'] ?? '' }}" name="commercial_registry" placeholder="السجل التجاري">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ $lang->write('Tax ID') }}</label>
+                        <input type="text" class="form-control" value="{{ $settings['tax_id'] ?? '' }}" name="tax_id" placeholder="الرقم الضريبي">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ $lang->write('Receipt footer note') }}</label>
+                        <input type="text" class="form-control" value="{{ $settings['receipt_footer'] ?? '' }}" name="receipt_footer" placeholder="{{ $lang->write('Optional line at the bottom of every receipt — e.g. thank-you note or return policy') }}">
+                    </div>
                 </div>
                 <div class="mt-4">
                     <button class="btn btn-primary submit">
