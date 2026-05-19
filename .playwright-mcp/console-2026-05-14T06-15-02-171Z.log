@@ -1,5 +1,0 @@
-[     268ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8002/style/design-tokens.css?ver=2.656:0
-[     275ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8002/style/design-components.css?ver=2.656:0
-[     284ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8002/libraries/jquery/lazy.js:0
-[     291ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:8002/libraries/printjs/print.js?ver=2.656:0
-[    1361ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:8002/login:0

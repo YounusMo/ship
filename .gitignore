@@ -27,6 +27,9 @@ __MACOSX/
 *.swp
 Thumbs.db
 
+# Playwright MCP telemetry (per-run screenshots, snapshots, console logs)
+.playwright-mcp/
+
 # User-uploaded content directories — track structure not contents. The
 # patterns are anchored to system/public/ where the photos actually live;
 # the previous unanchored patterns matched nothing and let uploads leak
