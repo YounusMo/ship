@@ -203,6 +203,22 @@
                         <label class="form-label">{{ $lang->write('Receipt footer note') }}</label>
                         <input type="text" class="form-control" value="{{ $settings['receipt_footer'] ?? '' }}" name="receipt_footer" placeholder="{{ $lang->write('Optional line at the bottom of every receipt — e.g. thank-you note or return policy') }}">
                     </div>
+
+                    <div class="col-12">
+                        <div class="divider-labeled">{{ $lang->write('Tracking stickers') }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ $lang->write('Tracking code prefix') }}</label>
+                        <input type="text" class="form-control" value="{{ $settings['tracking_prefix'] ?? '' }}" name="tracking_prefix" maxlength="5" placeholder="{{ $lang->write('e.g. SHIP — 2-5 letters/digits, auto-derived from company name if blank') }}">
+                        <small class="text-muted">{{ $lang->write('Appears in front of every tracking code, e.g. PREFIX-AB12-CD34-EF56. Defaults to your company initials.') }}</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">{{ $lang->write('Print confirmation PIN') }}</label>
+                        <input type="password" class="form-control" name="print_pin" maxlength="8" autocomplete="new-password"
+                               placeholder="{{ !empty($settings['print_pin_hash']) ? $lang->write('•••• (set — leave blank to keep)') : $lang->write('4-8 digits — required to bulk-print stickers') }}">
+                        <small class="text-muted">{{ $lang->write('Operators must enter this PIN to print all stickers for a container at once. Leave blank to keep the current PIN.') }}</small>
+                        @error('print_pin')<div class="text-danger small">{{ $message }}</div>@enderror
+                    </div>
                 </div>
                 <div class="mt-4">
                     <button class="btn btn-primary submit">
@@ -259,7 +275,15 @@
         {{-- ====== About ====== --}}
         <div class="tab d-none" data-tab='about'>
             <div class="d-flex align-items-start gap-4 mt-3">
-                <div style="width:72px;height:72px;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--color-navy-800),var(--color-navy-900));color:var(--color-gold-500);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:28px;flex-shrink:0;">M</div>
+                @php
+                    $hasLogo = \App\Http\Controllers\settingsController::brandLogoPath();
+                    $initial = \App\Http\Controllers\settingsController::brandInitial($settings);
+                @endphp
+                @if ($hasLogo)
+                    <img src="{{ asset('images/logo.png') }}" alt="{{ $settings['company_name'] ?? '' }}" style="width:72px;height:72px;border-radius:var(--radius-lg);object-fit:contain;background:#fff;flex-shrink:0;">
+                @else
+                    <div style="width:72px;height:72px;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--color-navy-800),var(--color-navy-900));color:var(--color-gold-500);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:28px;flex-shrink:0;">{{ $initial }}</div>
+                @endif
                 <div>
                     <h2 class="h4 mb-1">{{ env('APP_NAME') }}</h2>
                     <div class="text-muted mb-3">{{ $lang->write('Multi-branch shipping & treasury operations') }}</div>

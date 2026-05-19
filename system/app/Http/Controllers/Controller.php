@@ -289,6 +289,54 @@ abstract class Controller
         return 0;
     }
 
+    /**
+     * A received shipment is considered "locked" once the client has
+     * received it — concretely: the row has been ejected into a container
+     * AND that outbound entry has had a payment recorded (the operator
+     * marks the handoff settled). Once locked, edits to the source
+     * store_<x> row are blocked so historical records stay intact.
+     *
+     * Mode is 'sea' or 'sky'. Returns true if the source row is locked.
+     */
+    protected function shipmentSourceIsLocked(string $mode, int $sourceId): bool
+    {
+        $out = $mode === 'sky' ? 'store_out_sky' : 'store_out_sea';
+        return \Illuminate\Support\Facades\DB::table($out)
+            ->where('in_id', (string) $sourceId)
+            ->where(function ($q) {
+                $q->where('canceled', '!=', 'true')->orWhereNull('canceled');
+            })
+            ->where(function ($q) {
+                $q->whereNotNull('payment')->where('payment', '!=', '');
+            })
+            ->exists();
+    }
+
+    /**
+     * Same check but vectorised — given an iterable of source IDs return
+     * a [id => true] map for the locked ones. Used by the received-table
+     * view so it can disable Edit per-row without N queries.
+     */
+    protected function lockedShipmentIds(string $mode, array $sourceIds): array
+    {
+        if (empty($sourceIds)) return [];
+        $out = $mode === 'sky' ? 'store_out_sky' : 'store_out_sea';
+        $rows = \Illuminate\Support\Facades\DB::table($out)
+            ->whereIn('in_id', array_map('strval', $sourceIds))
+            ->where(function ($q) {
+                $q->where('canceled', '!=', 'true')->orWhereNull('canceled');
+            })
+            ->where(function ($q) {
+                $q->whereNotNull('payment')->where('payment', '!=', '');
+            })
+            ->pluck('in_id')
+            ->unique()
+            ->values();
+        $map = [];
+        foreach ($rows as $id) $map[(int) $id] = true;
+        return $map;
+    }
+
     protected function issueReceipt(array $payload): ?int
     {
         // Skip pending source rows. Issuing a sequential receipt for a

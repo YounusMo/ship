@@ -79,9 +79,10 @@ class skyController extends Controller
                     ->get()
                     ->keyBy('id');
             });
-            
 
-            return view('pages.shipping.sky.received.table',compact('get','count','clients'));
+            $locked = $this->lockedShipmentIds('sky', $get->pluck('id')->all());
+
+            return view('pages.shipping.sky.received.table',compact('get','count','clients','locked'));
         } catch (\Throwable $th) {
             Log::error($th->getMessage(), [
                 'exception' => $th,
@@ -136,9 +137,19 @@ class skyController extends Controller
                 }
 
                 if($chk_client){
-                    
-                    DB::table('store_sky')->insert($data);
-                   
+
+                    $newId = DB::table('store_sky')->insertGetId($data);
+
+                    // Auto-generate per-piece tracking stickers (one row per
+                    // physical piece) so the warehouse can print stickers
+                    // immediately after receiving.
+                    (new shipmentStickersController())->ensurePieces(
+                        'store_sky',
+                        (int) $newId,
+                        max(1, (int) ($data['number'] ?? 1)),
+                        (int) $client_id ?: null
+                    );
+
                     $err = false;
                 }else{
                     $err = true;
@@ -168,6 +179,12 @@ class skyController extends Controller
             $get = DB::table('store_sky')->where('id',$request->id)->first();
 
             if($get){
+                if ($this->shipmentSourceIsLocked('sky', (int) $request->id)) {
+                    return response()->json([
+                        'type'    => 'locked',
+                        'message' => 'This shipment has been delivered and paid. Editing is no longer allowed.',
+                    ], 423);
+                }
                 return view('pages.shipping.sky.received.edit',compact('get'));
             }else{
                 return response()->json(['type' => 'error'],500);
@@ -183,6 +200,13 @@ class skyController extends Controller
 
     public function save_received(Request $request){
         try {
+            if ($this->shipmentSourceIsLocked('sky', (int) $request->id)) {
+                return response()->json([
+                    'type'    => 'locked',
+                    'message' => 'This shipment has been delivered and paid. Editing is no longer allowed.',
+                ], 423);
+            }
+
             $response = null;
 
             DB::transaction(function () use ($request, &$response) {
@@ -212,7 +236,9 @@ class skyController extends Controller
                                 unlink($path);
                             }
                         }
-                        $images = array_filter($images, fn($img) => $img !== $id);
+                        // $images stores basenames; filter by basename so the
+                        // entry is actually removed even if the frontend sent a path.
+                        $images = array_filter($images, fn($img) => $img !== $basename);
                     }
                 }
 
@@ -233,6 +259,18 @@ class skyController extends Controller
                 }
 
                 DB::table('store_sky')->where('id', $request->id)->update($data);
+
+                // Re-sync pieces if `number` was edited. ensurePieces() will
+                // add/cancel rows to match. Skip if `number` wasn't in the
+                // submitted payload (then count is unchanged).
+                if (array_key_exists('number', $data)) {
+                    (new shipmentStickersController())->ensurePieces(
+                        'store_sky',
+                        (int) $request->id,
+                        max(1, (int) $data['number']),
+                        (int) ($get->client_id ?? 0) ?: null
+                    );
+                }
 
                 $response = response()->json(['type' => 'success'], 200);
             });
@@ -298,14 +336,22 @@ class skyController extends Controller
 
     public function cancel(Request $request){
         try {
+            DB::transaction(function () use ($request) {
+                DB::table('store_sky')->where('id',$request->id)->update([
+                    'canceled'      => 'true',
+                    'canceled_by'   => auth()->user()->id,
+                    'canceled_date' => date('Y-m-d'),
+                    'canceled_time' => date('H:i:s'),
+                ]);
 
-            DB::table('store_sky')->where('id',$request->id)->update([
-                'canceled'      => 'true',
-                'canceled_by'   => auth()->user()->id,
-                'canceled_date' => date('Y-m-d'),
-                'canceled_time' => date('H:i:s'),
-            ]);
+                // Cancelling the source row invalidates every printed sticker
+                // for it — flip the pieces so /track/{code} reports cancelled.
+                // Same transaction: if pieces fail, the canceled flag rolls back
+                // rather than leaving the two out of sync.
+                (new shipmentStickersController())->cancelPiecesFor('store_sky', (int) $request->id);
+            });
 
+            return response()->json(['type' => 'success'], 200);
         } catch (\Throwable $th) {
             Log::error($th->getMessage(), [
                 'exception' => $th,

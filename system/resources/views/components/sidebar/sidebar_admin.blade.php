@@ -177,16 +177,10 @@
 
         <hr>
         <div class="list_title">{{$lang->write('Accounting')}}</div>
-        <li class="{{$page === 'trial_balance' ? 'active' : ''}}">
-            <a href="{{url('/accounting/trial-balance')}}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-                {{$lang->write('Trial Balance (derived)')}}
-            </a>
-        </li>
-        <li class="{{$page === 'journal_trial_balance' ? 'active' : ''}}">
+        <li class="{{$page === 'journal_trial_balance' || $page === 'trial_balance' ? 'active' : ''}}">
             <a href="{{url('/accounting/journal-trial-balance')}}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l4 4-4 4M12 14l4 4-4 4M5 6h11M5 18h11"/></svg>
-                {{$lang->write('Trial Balance (journal)')}}
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                {{$lang->write('Trial Balance')}}
             </a>
         </li>
         <li class="{{$page === 'journal_entries' ? 'active' : ''}}">

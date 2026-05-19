@@ -80,9 +80,12 @@ class seaController extends Controller
                     ->get()
                     ->keyBy('id');
             });
-            
 
-            return view('pages.shipping.sea.received.table',compact('get','count','clients'));
+            // Pre-compute which visible rows are locked so the table can
+            // disable Edit + show a small lock badge without N+1 queries.
+            $locked = $this->lockedShipmentIds('sea', $get->pluck('id')->all());
+
+            return view('pages.shipping.sea.received.table',compact('get','count','clients','locked'));
         } catch (\Throwable $th) {
             Log::error($th->getMessage(), [
                 'exception' => $th,
@@ -141,9 +144,19 @@ class seaController extends Controller
                 }
 
                 if($chk_client){
-                    
-                    DB::table('store_sea')->insert($data);
-                   
+
+                    $newId = DB::table('store_sea')->insertGetId($data);
+
+                    // Auto-generate per-piece tracking stickers (one row per
+                    // physical piece) so the warehouse can print stickers
+                    // immediately after receiving.
+                    (new shipmentStickersController())->ensurePieces(
+                        'store_sea',
+                        (int) $newId,
+                        max(1, (int) ($data['number'] ?? 1)),
+                        (int) $client_id ?: null
+                    );
+
                     $err = false;
                 }else{
                     $err = true;
@@ -173,6 +186,16 @@ class seaController extends Controller
             $get = DB::table('store_sea')->where('id',$request->id)->first();
 
             if($get){
+                if ($this->shipmentSourceIsLocked('sea', (int) $request->id)) {
+                    // Source row has been delivered + paid. Returning 423
+                    // (Locked) instead of rendering the edit form so the
+                    // operator sees a clear reason and doesn't waste effort
+                    // typing into a form that won't save anyway.
+                    return response()->json([
+                        'type'    => 'locked',
+                        'message' => 'This shipment has been delivered and paid. Editing is no longer allowed.',
+                    ], 423);
+                }
                 return view('pages.shipping.sea.received.edit',compact('get'));
             }else{
                 return response()->json(['type' => 'error'],500);
@@ -188,6 +211,15 @@ class seaController extends Controller
 
     public function save_received(Request $request){
         try {
+            // Hard stop: once the source row is delivered + paid, the
+            // shipment's historical detail must stay frozen.
+            if ($this->shipmentSourceIsLocked('sea', (int) $request->id)) {
+                return response()->json([
+                    'type'    => 'locked',
+                    'message' => 'This shipment has been delivered and paid. Editing is no longer allowed.',
+                ], 423);
+            }
+
             $response = null;
 
             DB::transaction(function () use ($request, &$response) {
@@ -217,7 +249,9 @@ class seaController extends Controller
                                 unlink($path);
                             }
                         }
-                        $images = array_filter($images, fn($img) => $img !== $id);
+                        // $images stores basenames; filter by basename so the
+                        // entry is actually removed even if the frontend sent a path.
+                        $images = array_filter($images, fn($img) => $img !== $basename);
                     }
                 }
 
@@ -240,6 +274,18 @@ class seaController extends Controller
                
 
                 DB::table('store_sea')->where('id', $request->id)->update($data);
+
+                // Re-sync pieces if `number` was edited. ensurePieces() will
+                // add/cancel rows to match. Skip if `number` wasn't in the
+                // submitted payload (then count is unchanged).
+                if (array_key_exists('number', $data)) {
+                    (new shipmentStickersController())->ensurePieces(
+                        'store_sea',
+                        (int) $request->id,
+                        max(1, (int) $data['number']),
+                        (int) ($get->client_id ?? 0) ?: null
+                    );
+                }
 
                 $response = response()->json(['type' => 'success'], 200);
             });
@@ -305,13 +351,22 @@ class seaController extends Controller
 
     public function cancel(Request $request){
         try {
-            DB::table('store_sea')->where('id',$request->id)->update([
-                'canceled'      => 'true',
-                'canceled_by'   => auth()->user()->id,
-                'canceled_date' => date('Y-m-d'),
-                'canceled_time' => date('H:i:s'),
-            ]);
+            DB::transaction(function () use ($request) {
+                DB::table('store_sea')->where('id',$request->id)->update([
+                    'canceled'      => 'true',
+                    'canceled_by'   => auth()->user()->id,
+                    'canceled_date' => date('Y-m-d'),
+                    'canceled_time' => date('H:i:s'),
+                ]);
 
+                // Cancelling the source row invalidates every printed sticker
+                // for it — flip the pieces so /track/{code} reports cancelled.
+                // Same transaction: if pieces fail, the canceled flag rolls back
+                // rather than leaving the two out of sync.
+                (new shipmentStickersController())->cancelPiecesFor('store_sea', (int) $request->id);
+            });
+
+            return response()->json(['type' => 'success'], 200);
         } catch (\Throwable $th) {
             Log::error($th->getMessage(), [
                 'exception' => $th,

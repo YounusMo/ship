@@ -165,12 +165,18 @@
             </div>
             <hr>
             <li>
-                <a href="{{url('/logout')}}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="m17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4z" />
-                    </svg>
-                    {{$lang->write('Logout')}}
-                </a>
+                {{-- POST + CSRF; button reset so the sibling sidebar items'
+                     <a> styling continues to apply via the surrounding li. --}}
+                <form action="{{url('/logout')}}" method="POST" style="margin:0;padding:0">
+                    @csrf
+                    <button type="submit"
+                            style="background:none;border:none;padding:0;cursor:pointer;color:inherit;font:inherit;text-align:inherit;width:100%;display:flex;align-items:center;gap:8px">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="m17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4z" />
+                        </svg>
+                        {{$lang->write('Logout')}}
+                    </button>
+                </form>
             </li>
         </div>
 

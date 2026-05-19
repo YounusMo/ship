@@ -48,7 +48,7 @@
 <div class="header">
     <div class="row">
         <div class="col" style="width: 60%;">
-            <span class="brand-mark">M</span>
+            @include('partials.brand_mark_pdf', ['settings' => $settings, 'brandColor' => $brandColor, 'accentColor' => $accentColor, 'size' => 30])
             <span class="brand">{{ $settings['company_name'] ?? '' }}</span>
             <div class="sub">{{ $settings['address'] ?? '' }} · {{ $settings['phone'] ?? '' }} · {{ $settings['email'] ?? '' }}</div>
         </div>
@@ -129,7 +129,7 @@
 
 <div class="footer">
     {{ $lang->write('Generated') }} {{ date('Y-m-d H:i') }} ·
-    {{ $lang->write('Direct method — figures derived from the cash ledger (branches_transactions). Per-currency view; no FX consolidation.') }}
+    {{ $lang->write('Direct method — figures sourced from journal_lines (cash account 1000). Per-currency view; no FX consolidation.') }}
 </div>
 
 </body>

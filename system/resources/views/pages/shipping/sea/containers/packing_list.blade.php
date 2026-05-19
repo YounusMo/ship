@@ -2,90 +2,83 @@
     use App\Http\Controllers\dataController;
     use App\Http\Controllers\langController;
     use App\Http\Controllers\settingsController;
-
-    $settingsController = new settingsController();
-    $settings = $settingsController->get();
-  
     use Illuminate\Support\Facades\Cache;
 
+    $settings       = (new settingsController())->get();
     $lang           = new langController();
     $dataController = new dataController();
 
-    $get   = DB::table('containers_sea')->where('id',$id)->first();
+    $get   = DB::table('containers_sea')->where('id', $id)->first();
+    $data_ = DB::table('store_out_sea')->where('container_id', $id)->get();
 
-    $data_ = DB::table('store_out_sea')->where('container_id',$id)->get();
-
-    $clients = Cache::remember('clients_compant_accounting', env("CACHE"), function () {
-        return DB::table('clients')
-            // ->where('deleted', 'false')
-            ->select('id', 'name', 'code')
-            ->get()
-            ->keyBy('id');
+    $clients = Cache::remember('clients_compant_accounting', env('CACHE'), function () {
+        return DB::table('clients')->select('id', 'name', 'code')->get()->keyBy('id');
     });
 
-    $th_style = "background-color: #ebebeb;color:#838383;border: 1px solid #ebebeb;white-space: nowrap;";
-    $td_style = "border: 1px solid #ebebeb;white-space: nowrap;";
-
+    $isRtl  = (auth()->user()->lang ?? 'en') === 'ar';
+    $cellTh = 'background: #fafbfc; color: #5b667a; font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; padding: 6px 8px; border: 1px solid #e2e6ee; text-align: '.($isRtl ? 'right' : 'left').';';
+    $cellTd = 'padding: 6px 8px; border: 1px solid #e2e6ee; font-size: 12px;';
 @endphp
 
-<div style="padding: 20px;direction:{{auth()->user()->lang === 'ar' ? 'rtl' : 'ltr'}};text-align:center">
+<input type="hidden" data-name="title" class="client_data" value="{{ $get->number }}-packing">
 
-    <div class="d-none">
-        @if (env('SHOW_COMPANY_DATA_IN_CLIENT_ALL_REPORT'))
-            <div style="display:flex;align-items-center;text-align:{{auth()->user()->lang === 'ar' ? 'right' : 'left'}};margin-bottom:30px;direction:{{auth()->user()->lang === 'ar' ? 'rtl' : 'ltr'}}">
-                
-                <img style="width:100px;margin:0 20px" src="{{asset('images/logo.png')}}?ver={{env('VERSION')}}" alt="brand" />
-                <div style="padding-top:20px;">
-                    <div style="{{strlen($settings['company_name']) == 0 ? 'display:none' : ''}}">{{$settings['company_name']}}</div>
-                    <div style="{{strlen($settings['email']) == 0 ? 'display:none' : ''}}">{{$lang->write('Email')}} : {{$settings['email']}}</div>
-                    <div style="{{strlen($settings['phone']) == 0 ? 'display:none' : ''}}">{{$lang->write('Phone')}} : {{$settings['phone']}}</div>
-                    <div style="{{strlen($settings['address']) == 0 ? 'display:none' : ''}}">{{$lang->write('Address')}} : {{$settings['address']}}</div>
-                </div>
-            </div>
-        @else
-            <img style="width:150px;display:block;margin:auto" class="d-none" src="{{asset('images/logo.png')}}?ver={{env('VERSION')}}" alt="brand" />
-        @endif
-    </div>
+<div style="padding: 18px; direction: {{ $isRtl ? 'rtl' : 'ltr' }}; color: #1a2233; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 12px;">
 
-    <table style="width: 100%;margin-top:20px" border="1px">
+    @include('partials.print_header', [
+        'settings' => $settings,
+        'lang'     => $lang,
+        'title'    => $lang->write('Packing list') . ' — ' . $get->name,
+        'subtitle' => '#' . $get->number,
+    ])
+
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
         <thead>
-            <th style="{{$th_style}}">{{$lang->write('Container name')}}</th>
-            <th style="{{$th_style}}">{{$lang->write('Container number')}}</th>
+            <tr>
+                <th style="{{ $cellTh }}">{{ $lang->write('Container name') }}</th>
+                <th style="{{ $cellTh }}">{{ $lang->write('Container number') }}</th>
+                <th style="{{ $cellTh }}">{{ $lang->write('Port of Arrival') }}</th>
+                <th style="{{ $cellTh }}">{{ $lang->write('Created at') }}</th>
+            </tr>
         </thead>
         <tbody>
             <tr>
-                <td style="{{$td_style}}">{{$get->name}}</td>
-                <td style="{{$td_style}}">{{$get->number}}</td>
+                <td style="{{ $cellTd }}">{{ $get->name }}</td>
+                <td style="{{ $cellTd }}">{{ $get->number }}</td>
+                <td style="{{ $cellTd }}">{{ $get->arrival }}</td>
+                <td style="{{ $cellTd }}">{{ $get->created_date }} {{ $get->created_time }}</td>
             </tr>
         </tbody>
     </table>
 
-    <table style="width: 100%" border="1px">
+    <table style="width: 100%; border-collapse: collapse;">
         <thead>
-            <thead>
             <tr>
-                <th style="{{$th_style}}">{{$lang->write('Client code')}}</th>
-                <th style="{{$th_style}}">{{$lang->write('Type')}}</th>
-                <th style="{{$th_style}}">{{$lang->write('Category')}}</th>
-                <th style="{{$th_style}}">{{$lang->write('Number')}}</th>
-                <th style="{{$th_style}}">{{$lang->write('Notes')}}</th>
+                <th style="{{ $cellTh }}">{{ $lang->write('Client code') }}</th>
+                <th style="{{ $cellTh }}">{{ $lang->write('Type') }}</th>
+                <th style="{{ $cellTh }}">{{ $lang->write('Category') }}</th>
+                <th style="{{ $cellTh }} text-align: right;">{{ $lang->write('Pieces') }}</th>
+                <th style="{{ $cellTh }} text-align: right;">{{ $lang->write('KG') }}</th>
+                <th style="{{ $cellTh }} text-align: right;">{{ $lang->write('CBM') }}</th>
+                <th style="{{ $cellTh }}">{{ $lang->write('Notes') }}</th>
             </tr>
-        </thead>
         </thead>
         <tbody>
             @foreach ($data_ as $item)
-                @php
-                    $data = DB::table('store_sea')->where('id',$item->in_id)->first();
-                @endphp
-                
+                @php $data = DB::table('store_sea')->where('id', $item->in_id)->first(); @endphp
                 <tr>
-                    <td style="{{$td_style}}">{{$clients[$item->client_id]->code ?? '-'}}</td>
-                    <td style="{{$td_style}}">{{$lang->write(ucfirst($data->type))}}</td>
-                    <td style="{{$td_style}}">{{$data->category}}</td>
-                    <td style="{{$td_style}}">{{$item->number}}</td>
-                    <td style="{{$td_style}}">{{strlen($data->notes) > 0 ? $data->notes : '-'}}</td>
+                    <td style="{{ $cellTd }} font-weight: 600;">{{ $clients[$item->client_id]->code ?? '-' }}</td>
+                    <td style="{{ $cellTd }}">{{ $lang->write(ucfirst($data->type ?? '')) }}</td>
+                    <td style="{{ $cellTd }}">{{ $data->category ?? '' }}</td>
+                    <td style="{{ $cellTd }} text-align: right;">{{ $item->number }}</td>
+                    <td style="{{ $cellTd }} text-align: right;">{{ $item->kg }}</td>
+                    <td style="{{ $cellTd }} text-align: right;">{{ $item->cbm }}</td>
+                    <td style="{{ $cellTd }}">{{ strlen($data->notes ?? '') > 0 ? $data->notes : '-' }}</td>
                 </tr>
             @endforeach
         </tbody>
     </table>
+
+    <div style="color: #5b667a; font-size: 9px; text-align: center; margin-top: 14px;">
+        {{ $lang->write('Generated by') }} {{ $settings['company_name'] ?? '' }} · {{ date('Y-m-d H:i') }}
+    </div>
 </div>

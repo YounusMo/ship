@@ -202,8 +202,8 @@
 
 <div class="header row">
     <div class="col" style="width: 60%">
-        <span class="brand-mark">M</span>
-        <span class="brand">{{ $settings['company_name'] ?? 'MATAZ TRADING' }}</span>
+        @include('partials.brand_mark_pdf', ['settings' => $settings, 'brandColor' => $brandColor, 'accentColor' => $accentColor, 'size' => 30])
+        <span class="brand">{{ $settings['company_name'] ?? '' }}</span>
         <div class="sub">
             {{ $settings['address'] ?? '' }}
             @if (!empty($settings['phone'])) &middot; {{ $settings['phone'] }} @endif

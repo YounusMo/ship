@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
@@ -20,15 +21,18 @@ class settingsController extends Controller
         $sett = json_decode($config,true);
 
         // Capture before-values for the audit log so a change to company name,
-        // address, tax_id, or receipt_footer is reviewable later. Without
-        // this, an attacker who phished one admin session could silently
-        // rewrite receipt footers (which is what counterparties see) or
-        // change the tax id, and only save2/update_exchange were logged.
-        $tracked = ['timezone','email','company_name','address','phone','commercial_registry','tax_id','receipt_footer'];
+        // address, tax_id, receipt_footer, or tracking_prefix is reviewable
+        // later. Without this, an attacker who phished one admin session
+        // could silently rewrite receipt footers (which is what counterparties
+        // see) or change the tax id, and only save2/update_exchange were
+        // logged. The print PIN is handled separately below — we never log
+        // the hash, only the fact that it rotated.
+        $tracked = ['timezone','email','company_name','address','phone','commercial_registry','tax_id','receipt_footer','tracking_prefix'];
         $before = [];
         foreach ($tracked as $k) {
             $before[$k] = $sett[$k] ?? null;
         }
+        $pinHashBefore = $sett['print_pin_hash'] ?? '';
 
         $data = [
             'timezone'            => $request->timezone,
@@ -43,7 +47,31 @@ class settingsController extends Controller
             'tax_id'              => $request->tax_id              ?? ($sett['tax_id'] ?? ''),
             'receipt_footer'      => $request->receipt_footer      ?? ($sett['receipt_footer'] ?? ''),
             'logo'                => '',
+            // Short alphanumeric (≤5 chars) shown on every tracking sticker
+            // — uppercase + strip anything that wouldn't render cleanly on
+            // a scanner / human-typed lookup.
+            'tracking_prefix'     => mb_strtoupper(preg_replace('/[^A-Za-z0-9]/', '',
+                                        (string) ($request->tracking_prefix ?? ($sett['tracking_prefix'] ?? ''))
+                                     )),
+            // Hashed PIN required for bulk-printing every sticker in a
+            // container/trip. Blank submit -> preserve existing hash so
+            // the field can be left empty in the form once set.
+            'print_pin_hash'      => $sett['print_pin_hash'] ?? '',
         ];
+        // Cap at 5 chars regardless of what was submitted.
+        $data['tracking_prefix'] = substr($data['tracking_prefix'], 0, 5);
+
+        $newPin = trim((string) ($request->print_pin ?? ''));
+        if ($newPin !== '') {
+            // Constrain to 4-8 digits; reject everything else so an
+            // accidental long string doesn't silently become the PIN.
+            if (!preg_match('/^\d{4,8}$/', $newPin)) {
+                return redirect('/settings')->withErrors([
+                    'print_pin' => 'PIN must be 4-8 digits.',
+                ]);
+            }
+            $data['print_pin_hash'] = Hash::make($newPin);
+        }
 
         $logo = $request->file('logo');
         if($logo){
@@ -58,13 +86,14 @@ class settingsController extends Controller
         foreach ($tracked as $k) {
             $after[$k] = $data[$k] ?? null;
         }
+        $pinRotated = ($data['print_pin_hash'] ?? '') !== $pinHashBefore;
         // Only emit an audit row when something actually changed — avoids
         // flooding the log on save clicks that touched only the logo.
         $changed = array_keys(array_filter(
             $tracked,
             fn($k) => ($before[$k] ?? null) !== ($after[$k] ?? null)
         ));
-        if (!empty($changed) || $logo) {
+        if (!empty($changed) || $logo || $pinRotated) {
             $this->logAudit(
                 'settings_save',
                 'settings',
@@ -74,6 +103,9 @@ class settingsController extends Controller
                     'after'       => $after,
                     'changed'     => $changed,
                     'logo_updated'=> (bool) $logo,
+                    // The PIN itself is never logged — only the rotation event.
+                    // Reviewers can correlate by user_id + timestamp.
+                    'pin_rotated' => $pinRotated,
                 ],
                 'General settings updated'
             );
@@ -103,6 +135,8 @@ class settingsController extends Controller
             'commercial_registry' => $sett['commercial_registry'] ?? '',
             'tax_id'              => $sett['tax_id'] ?? '',
             'receipt_footer'      => $sett['receipt_footer'] ?? '',
+            'tracking_prefix'     => $sett['tracking_prefix'] ?? '',
+            'print_pin_hash'      => $sett['print_pin_hash'] ?? '',
             'currency_eur'        => floatval($request->currency_eur),
             'currency_den'        => floatval($request->currency_den),
             'currency_cny'        => floatval($request->currency_cny),
@@ -151,6 +185,8 @@ class settingsController extends Controller
             'commercial_registry' => $sett['commercial_registry'] ?? '',
             'tax_id'              => $sett['tax_id'] ?? '',
             'receipt_footer'      => $sett['receipt_footer'] ?? '',
+            'tracking_prefix'     => $sett['tracking_prefix'] ?? '',
+            'print_pin_hash'      => $sett['print_pin_hash'] ?? '',
             'currency_eur'        => floatval($request->currency_eur),
             'currency_den'        => floatval($request->currency_den),
             'currency_cny'        => floatval($request->currency_cny),
@@ -220,6 +256,59 @@ class settingsController extends Controller
     public function get(){
         $config = file_get_contents($this->settings_file);
         $data = json_decode($config,true);
+
+        // Derive fallbacks so callers never have to nullcheck. Stored value
+        // wins; if blank we fall back to something sensible derived from
+        // the existing fields.
+        $data['tracking_prefix'] = $data['tracking_prefix']
+            ?? self::deriveBrandPrefix($data['company_name'] ?? '');
+        if ($data['tracking_prefix'] === '') {
+            $data['tracking_prefix'] = self::deriveBrandPrefix($data['company_name'] ?? '');
+        }
         return $data;
+    }
+
+    /**
+     * Path to the uploaded logo if one exists, or null. Used by PDF/HTML
+     * brand-mark partials to decide between rendering an <img> vs the
+     * fallback monogram.
+     */
+    public static function brandLogoPath(): ?string
+    {
+        $p = public_path('images/logo.png');
+        return is_file($p) && filesize($p) > 0 ? $p : null;
+    }
+
+    /**
+     * First letter of company_name uppercased — used as the monogram when
+     * no logo is uploaded.
+     */
+    public static function brandInitial(array $settings): string
+    {
+        $name = trim((string) ($settings['company_name'] ?? ''));
+        if ($name === '') return '?';
+        return mb_strtoupper(mb_substr($name, 0, 1));
+    }
+
+    /**
+     * Derive a 2-3 letter prefix from the company_name initials. Used as
+     * the default tracking_prefix when the operator hasn't picked one
+     * explicitly. "MATAZ TRADING COMPANY" -> "MTC". Single-word names
+     * fall back to the first 3 letters: "Shipnow" -> "SHI".
+     */
+    public static function deriveBrandPrefix(string $companyName): string
+    {
+        $name = trim($companyName);
+        if ($name === '') return '';
+        $words = preg_split('/\s+/', preg_replace('/[^A-Za-z0-9 ]+/', '', $name));
+        $words = array_values(array_filter($words, fn($w) => $w !== ''));
+        if (count($words) >= 2) {
+            $initials = '';
+            foreach (array_slice($words, 0, 3) as $w) {
+                $initials .= mb_substr($w, 0, 1);
+            }
+            return mb_strtoupper($initials);
+        }
+        return mb_strtoupper(mb_substr($words[0] ?? '', 0, 3));
     }
 }

@@ -50,8 +50,16 @@
                 <td>{{$item->notes}}</td>
                 <td>{{$item->created_date}} {{$item->created_time}}</td>
                 <td>
-                    <button class="btn btn-primary btn-sm" onclick="editReseved({{$item->id}})">{{$lang->write('Edit')}}</button>
-                    <button class="btn btn-danger btn-sm" onclick="cancel({{$item->id}})">{{$lang->write('Cancel')}}</button>
+                    @php $isLocked = !empty($locked[$item->id]); @endphp
+                    @if ($isLocked)
+                        <span class="badge bg-dark" title="{{ $lang->write('Delivered and paid — edits disabled.') }}">🔒 {{ $lang->write('Locked') }}</span>
+                    @else
+                        <button class="btn btn-primary btn-sm" onclick="editReseved({{$item->id}})">{{$lang->write('Edit')}}</button>
+                    @endif
+                    <a class="btn btn-success btn-sm" target="_blank" href="{{ url('/shipping/stickers/store_sky/' . $item->id) }}">{{$lang->write('Stickers')}}</a>
+                    @if (!$isLocked)
+                        <button class="btn btn-danger btn-sm" onclick="cancel({{$item->id}})">{{$lang->write('Cancel')}}</button>
+                    @endif
                 </td>
             </tr>
         @endforeach

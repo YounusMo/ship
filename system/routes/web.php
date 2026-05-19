@@ -24,8 +24,14 @@ use App\Http\Controllers\reconciliationController;
 use App\Http\Controllers\receiptsController;
 use App\Http\Controllers\accountingController;
 use App\Http\Controllers\journalController;
+use App\Http\Controllers\shipmentStickersController;
 
-Route::get('/logout', [usersController::class,'logout']);
+// Logout is POST + CSRF so a malicious <img src> or third-party form can't
+// force-log-out an authenticated user. The controller handles either guard
+// (web or client) so a single route works for both. No middleware: the
+// controller no-ops when neither guard is authenticated, and a POST without
+// a valid CSRF token is rejected by Laravel's VerifyCsrfToken middleware.
+Route::post('/logout', [usersController::class,'logout']);
 
 Route::middleware(['chkAuthClient'])->group(function(){
 
@@ -305,8 +311,23 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
             Route::post('/load_inside',[skyController::class,'load_inside']);
             Route::post('/get_eject_modal',[skyController::class,'get_eject_modal']);
             Route::post('/eject',[skyController::class,'eject']);
-            
+
         });
+
+        // Per-piece tracking sticker PDF (one per page, 100×150mm). Works
+        // for both store_sea and store_sky. Auto-generates pieces on first
+        // request if they're missing (legacy rows).
+        Route::get('/stickers/{source_table}/{source_id}',
+            [shipmentStickersController::class, 'stickerPdf'])
+            ->where('source_table', 'store_(sea|sky)')
+            ->where('source_id', '[0-9]+');
+
+        // Bulk sticker PDF for every shipment in a container/trip.
+        // PIN-protected — POST so the secret never lands in URLs/logs.
+        Route::post('/stickers/container/{container_table}/{container_id}',
+            [shipmentStickersController::class, 'bulkContainerStickers'])
+            ->where('container_table', 'containers_(sea|sky)')
+            ->where('container_id', '[0-9]+');
     });
 
     Route::prefix('branches')->group(function(){
@@ -503,6 +524,14 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
 
     
 });
+
+// Public shipment tracking (no auth — that's the whole point of a QR).
+// View-model in the controller is field-allow-listed; nothing sensitive
+// leaks here. Rate-limited per IP to make code-space enumeration painful
+// without breaking the "scan a sticker once" flow.
+Route::get('/track/{code}', [shipmentStickersController::class, 'publicTrack'])
+    ->where('code', '[A-Za-z0-9\-]+')
+    ->middleware('throttle:30,1');
 
 Route::get('/get_lang',[langController::class,'get_lang']);
 

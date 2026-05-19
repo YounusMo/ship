@@ -30,102 +30,35 @@ class accountingController extends Controller
     }
 
     /* ============================================================
-     *  Trial Balance
-     *  GET /accounting/trial-balance?as_of=YYYY-MM-DD&period_from=YYYY-MM-DD&period_to=YYYY-MM-DD
-     *  Balance-sheet rows = balances on entity tables as of now.
-     *  P&L rows           = activity within the period (defaults to current month).
-     *  Owner's Equity     = balancing figure (Assets - Liabilities - other Equity - Net Income).
+     *  Trial Balance — DEPRECATED entry point
+     *
+     *  The journal is now the single source of truth, so this URL
+     *  redirects to /accounting/journal-trial-balance. Old links and
+     *  bookmarks keep working without revealing the entity-derived view
+     *  (which by construction can drift from the journal — that's what
+     *  the drift detector is for).
+     *
+     *  The deriveAccountBalances() helper below is kept private and is
+     *  only consumed by driftReport(); once drift goes permanently green
+     *  it can be retired too.
      * ============================================================ */
     public function trialBalance(Request $request)
     {
         $this->requireAdmin();
-
-        $asOf       = $request->get('as_of', date('Y-m-d'));
-        $periodFrom = $request->get('period_from', date('Y-m-01'));
-        $periodTo   = $request->get('period_to', date('Y-m-t'));
-
-        $accounts = DB::table('chart_of_accounts')->where('is_active', true)->orderBy('code')->get();
-        $balances = $this->deriveAccountBalances($periodFrom, $periodTo);
-
-        $rows = [];
-        $totals = ['debit' => array_fill_keys($this->currencies, 0.0), 'credit' => array_fill_keys($this->currencies, 0.0)];
-        $netIncome = array_fill_keys($this->currencies, 0.0);
-
-        foreach ($accounts as $a) {
-            $amounts = $balances[$a->derivation_key] ?? array_fill_keys($this->currencies, 0.0);
-            $row = [
-                'code'           => $a->code,
-                'name'           => $a->name,
-                'type'           => $a->type,
-                'normal_balance' => $a->normal_balance,
-                'amounts'        => $amounts,
-            ];
-            $rows[] = $row;
-
-            // Aggregate totals
-            $bucket = $a->normal_balance;
-            foreach ($this->currencies as $c) {
-                $val = (float) ($amounts[$c] ?? 0.0);
-                $totals[$bucket][$c] += $val;
-                if ($a->type === 'revenue') $netIncome[$c] += $val;
-                if ($a->type === 'expense') $netIncome[$c] -= $val;
-            }
-        }
-
-        // Owner's equity plug: Assets - (Liabilities + non-plug Equity) - Net Income = plug
-        // We display the computed plug for the 'owners_equity' row by overwriting its value.
-        $assets       = array_fill_keys($this->currencies, 0.0);
-        $liabilities  = array_fill_keys($this->currencies, 0.0);
-        $otherEquity  = array_fill_keys($this->currencies, 0.0);
-        foreach ($rows as $r) {
-            foreach ($this->currencies as $c) {
-                $v = (float) ($r['amounts'][$c] ?? 0.0);
-                if ($r['type'] === 'asset')     $assets[$c] += $v;
-                if ($r['type'] === 'liability') $liabilities[$c] += $v;
-                if ($r['type'] === 'equity' && $r['code'] !== '3000') {
-                    if ($r['normal_balance'] === 'credit') $otherEquity[$c] += $v;
-                    else $otherEquity[$c] -= $v;
-                }
-            }
-        }
-        foreach ($rows as &$r) {
-            if ($r['code'] === '3000') {
-                foreach ($this->currencies as $c) {
-                    $r['amounts'][$c] = $assets[$c] - $liabilities[$c] - $otherEquity[$c] - $netIncome[$c];
-                }
-            }
-        }
-        unset($r);
-
-        // Recompute totals after plug
-        $totals = ['debit' => array_fill_keys($this->currencies, 0.0), 'credit' => array_fill_keys($this->currencies, 0.0)];
-        foreach ($rows as $r) {
-            $bucket = $r['normal_balance'];
-            foreach ($this->currencies as $c) {
-                $totals[$bucket][$c] += (float) ($r['amounts'][$c] ?? 0.0);
-            }
-        }
-
-        $dataController = new dataController();
-        $lang = new langController();
-        return view('pages.accounting.trial_balance', [
-            'rows'        => $rows,
-            'totals'      => $totals,
-            'netIncome'   => $netIncome,
-            'currencies'  => $this->currencies,
-            'asOf'        => $asOf,
-            'periodFrom'  => $periodFrom,
-            'periodTo'    => $periodTo,
-            'data'        => $dataController,
-            'lang'        => $lang,
-            'section'     => 'accounting',
-            'page'        => 'trial_balance',
-        ]);
+        $qs = http_build_query(array_filter([
+            'as_of' => $request->get('as_of') ?: $request->get('period_to'),
+        ]));
+        return redirect('/accounting/journal-trial-balance' . ($qs ? '?' . $qs : ''));
     }
 
     /**
-     * Derive per-currency amounts for each derivation_key used in the chart of accounts.
-     * Balance-sheet keys come from entity tables; P&L keys come from transaction sums in [from,to].
+     * Derive per-currency amounts for each derivation_key used in the chart
+     * of accounts. Balance-sheet keys come from entity tables; P&L keys
+     * come from transaction sums in [from,to].
+     *
+     * Only used by driftReport() — every report-facing path now reads the
+     * journal directly via journalController::balancesAsOf() /
+     * activityBetween().
      */
     private function deriveAccountBalances(string $from, string $to): array
     {
@@ -404,9 +337,16 @@ class accountingController extends Controller
      *  Cash flow statement (PDF) — direct method.
      *  GET /accounting/cash-flow?from=&to=
      *
-     *  Sums treasury_transactions by category over the period,
-     *  shows beginning cash, inflow/outflow per category, ending cash.
-     *  Per-currency columns.
+     *  Direct method, sourced entirely from journal_lines. We walk every
+     *  open journal_entry whose entry_date falls in [from, to] and that
+     *  touches the cash account (1000). The cash line gives us the per-
+     *  currency signed delta; the entry's `kind` tells us which bucket
+     *  the movement belongs to.
+     *
+     *  Beginning / ending cash come from journalController::balancesAsOf()
+     *  evaluated at the day before $from and at $to respectively, so the
+     *  cash equation always reconciles to the journal — no reaching into
+     *  branches.balance_* anymore.
      * ============================================================ */
     public function cashFlowStatement(Request $request)
     {
@@ -414,82 +354,66 @@ class accountingController extends Controller
         $from = $request->get('from', date('Y-m-01'));
         $to   = $request->get('to',   date('Y-m-t'));
 
-        // Ending cash = current sum of branches.balance_* (the live cash
-        // position). Beginning cash = ending minus net change posted in
-        // [from, to] on treasury_transactions, which is the canonical cash
-        // ledger (every deposit/withdraw/expense across all source modules
-        // writes here).
-        $endingCash = array_fill_keys($this->currencies, 0.0);
-        foreach ($this->currencies as $c) {
-            $endingCash[$c] = (float) DB::table('branches')
-                ->where('deleted', 0)->sum('balance_' . $c);
-        }
+        $journal = new journalController();
 
-        $deltaInPeriod = array_fill_keys($this->currencies, 0.0);
-        $rows = DB::table('treasury_transactions')
-            ->whereBetween('created_date', [$from, $to])
-            ->select('currency', 'plus_minus', DB::raw('SUM(value) as total'))
-            ->groupBy('currency', 'plus_minus')->get();
-        foreach ($rows as $r) {
-            if (!in_array($r->currency, $this->currencies, true)) continue;
-            $sign = ($r->plus_minus === 'plus' || $r->plus_minus === '+') ? 1 : -1;
-            $deltaInPeriod[$r->currency] += $sign * (float) $r->total;
-        }
+        // Cash positions snap directly off the journal so the report ties
+        // out: ending - beginning == sum(per-bucket signed activity).
+        $balanceBefore = $journal->balancesAsOf(date('Y-m-d', strtotime($from . ' -1 day')));
+        $balanceAtEnd  = $journal->balancesAsOf($to);
+
+        $cashCode = '1000';
         $beginningCash = array_fill_keys($this->currencies, 0.0);
+        $endingCash    = array_fill_keys($this->currencies, 0.0);
         foreach ($this->currencies as $c) {
-            $beginningCash[$c] = $endingCash[$c] - $deltaInPeriod[$c];
+            // Cash is debit-normal: signed_net (dr-cr) IS the natural figure.
+            $beginningCash[$c] = (float) ($balanceBefore[$cashCode][$c] ?? 0);
+            $endingCash[$c]    = (float) ($balanceAtEnd[$cashCode][$c] ?? 0);
         }
 
-        // Categorize cash movements by type+purpose in branches_transactions.
-        // (treasury_transactions doesn't carry purpose, so we use the source
-        // ledger that does.)
+        // Buckets are keyed by journal `kind`. Anything we can't map gets
+        // collected into other_inflow / other_outflow so a new kind never
+        // silently disappears from the statement.
         $categories = [
-            'inflow_client'    => ['label' => 'Cash received from clients',           'sign' => '+', 'rules' => [['types' => ['deposit', 'exp_deposit'], 'source' => 'client']]],
-            'outflow_client'   => ['label' => 'Cash paid to clients',                 'sign' => '-', 'rules' => [['types' => ['withdraw', 'withdraw_commission', 'exp_withdraw'], 'source' => 'client']]],
-            'outflow_supplier' => ['label' => 'Cash paid to suppliers',               'sign' => '-', 'rules' => [['types' => ['supplier_deposit'], 'source' => 'supplier']]],
-            'outflow_broker'   => ['label' => 'Cash paid to customs brokers',         'sign' => '-', 'rules' => [['types' => ['customs_deposit', 'exp_custom_deposit'], 'source' => 'broker']]],
-            'outflow_opex'     => ['label' => 'Operating expenses paid',              'sign' => '-', 'rules' => [['types' => ['expenses_branch'], 'purposes_exclude' => ['owner_drawing','owner_salary','owner_loan_out','owner_loan_repayment','owner_capital_in']]]],
-            'outflow_owner_draw' => ['label' => 'Owner drawings',                     'sign' => '-', 'rules' => [['purposes' => ['owner_drawing']]]],
-            'outflow_owner_sal'  => ['label' => 'Owner salary paid',                  'sign' => '-', 'rules' => [['purposes' => ['owner_salary']]]],
-            'inflow_owner_cap'   => ['label' => 'Owner capital contributions',        'sign' => '+', 'rules' => [['purposes' => ['owner_capital_in']]]],
-            'other_inflow'     => ['label' => 'Other inflows',                        'sign' => '+', 'rules' => []],
-            'other_outflow'    => ['label' => 'Other outflows',                       'sign' => '-', 'rules' => []],
+            'inflow_client'      => ['label' => 'Cash received from clients',   'sign' => '+'],
+            'outflow_client'     => ['label' => 'Cash paid to clients',         'sign' => '-'],
+            'outflow_supplier'   => ['label' => 'Cash paid to suppliers',       'sign' => '-'],
+            'inflow_supplier'    => ['label' => 'Refunds from suppliers',       'sign' => '+'],
+            'outflow_broker'     => ['label' => 'Cash paid to customs brokers', 'sign' => '-'],
+            'inflow_broker'      => ['label' => 'Refunds from customs brokers', 'sign' => '+'],
+            'outflow_opex'       => ['label' => 'Operating expenses paid',      'sign' => '-'],
+            'outflow_owner_draw' => ['label' => 'Owner drawings',               'sign' => '-'],
+            'outflow_owner_sal'  => ['label' => 'Owner salary paid',            'sign' => '-'],
+            'inflow_owner_cap'   => ['label' => 'Owner capital contributions',  'sign' => '+'],
+            'other_inflow'       => ['label' => 'Other inflows',                'sign' => '+'],
+            'other_outflow'      => ['label' => 'Other outflows',               'sign' => '-'],
         ];
-
-        // Walk treasury_transactions (cash ledger). It has type but not
-        // purpose — purpose lives on the source ledgers, so we look it up by
-        // joining on transaction_number. The join is best-effort; rows that
-        // don't match fall through to the "other" buckets.
         $sums = array_fill_keys(array_keys($categories), array_fill_keys($this->currencies, 0.0));
 
-        $tx = DB::table('treasury_transactions')
-            ->whereBetween('created_date', [$from, $to])
+        // Pull every cash-touching line in the period along with its parent
+        // entry's kind. No status filter — both halves of a reversal pair
+        // (original status='reversed' + counter kind='reversal') need to be
+        // included so the cash equation `ending - beginning == netChange`
+        // reconciles for cross-period reversals. Same-period reversals
+        // cancel naturally because their dr/cr are equal and opposite.
+        $cashLines = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
+            ->where('journal_lines.account_code', $cashCode)
+            ->whereBetween('journal_entries.entry_date', [$from, $to])
+            ->select(
+                'journal_entries.kind',
+                'journal_lines.currency',
+                'journal_lines.dr',
+                'journal_lines.cr'
+            )
             ->get();
 
-        $txNumbers = $tx->pluck('transaction_number')->filter()->unique()->all();
-        $purposeByTxn = [];
-        if (!empty($txNumbers)) {
-            foreach (['clients_transactions', 'branches_transactions', 'suppliers_transactions', 'customs_brokers_transactions'] as $src) {
-                $rows = DB::table($src)
-                    ->whereIn('transaction_number', $txNumbers)
-                    ->select('transaction_number', 'purpose')
-                    ->get();
-                foreach ($rows as $r) {
-                    if (!empty($r->purpose) && !isset($purposeByTxn[$r->transaction_number])) {
-                        $purposeByTxn[$r->transaction_number] = $r->purpose;
-                    }
-                }
-            }
-        }
-
-        foreach ($tx as $r) {
-            if (!in_array($r->currency, $this->currencies, true)) continue;
-            $isInflow = ($r->plus_minus === 'plus' || $r->plus_minus === '+');
-            $val = (float) $r->value;
-            $purpose = $purposeByTxn[$r->transaction_number] ?? null;
-
-            $bucket = $this->classifyCashMovement($r->type, $purpose, $isInflow);
-            $sums[$bucket][$r->currency] += $val;
+        foreach ($cashLines as $l) {
+            if (!in_array($l->currency, $this->currencies, true)) continue;
+            $delta = (float) $l->dr - (float) $l->cr;   // +inflow / -outflow
+            if (abs($delta) < 0.0001) continue;
+            $bucket = $this->classifyJournalCashKind($l->kind, $delta > 0);
+            // Sums are stored unsigned — the category's sign drives display.
+            $sums[$bucket][$l->currency] += abs($delta);
         }
 
         $netChange = array_fill_keys($this->currencies, 0.0);
@@ -526,28 +450,55 @@ class accountingController extends Controller
     }
 
     /**
-     * Map a (type, purpose, direction) tuple onto a cash-flow category key.
-     * Anything that doesn't match a specific rule falls into other_inflow /
-     * other_outflow so nothing silently disappears from the statement.
+     * Map a journal-entry kind (combined with the cash-line direction) onto
+     * a cash-flow category key. Buckets that don't have a deterministic
+     * direction by kind alone use $isInflow as the tiebreaker. Anything we
+     * don't know about falls into other_inflow / other_outflow so a newly
+     * introduced kind shows up in the report instead of vanishing.
      */
-    private function classifyCashMovement(string $type, ?string $purpose, bool $isInflow): string
+    private function classifyJournalCashKind(?string $kind, bool $isInflow): string
     {
-        $ownerPurposes = ['owner_drawing','owner_salary','owner_loan_out','owner_loan_repayment','owner_capital_in'];
-        if ($purpose === 'owner_drawing')        return 'outflow_owner_draw';
-        if ($purpose === 'owner_salary')         return 'outflow_owner_sal';
-        if ($purpose === 'owner_capital_in')     return 'inflow_owner_cap';
-        if ($purpose === 'owner_loan_out')       return 'outflow_owner_draw';
-        if ($purpose === 'owner_loan_repayment') return 'inflow_owner_cap';
+        switch ($kind) {
+            case 'client_deposit':              return 'inflow_client';
+            case 'client_withdraw':             return 'outflow_client';
 
-        if (in_array($type, ['supplier_deposit'], true))                                return 'outflow_supplier';
-        if (in_array($type, ['customs_deposit', 'exp_custom_deposit'], true))           return 'outflow_broker';
-        if (in_array($type, ['expenses_branch', 'exp_withdraw'], true) && !$isInflow)   return 'outflow_opex';
+            case 'supplier_deposit':            return 'outflow_supplier';
+            case 'supplier_refund':             return 'inflow_supplier';
 
-        // Client-side movements show up in branches_transactions with type
-        // 'deposit'/'withdraw' (treasury counterpart of client mutations).
-        if (in_array($type, ['deposit', 'exp_deposit'], true) && $isInflow)             return 'inflow_client';
-        if (in_array($type, ['withdraw', 'withdraw_commission'], true) && !$isInflow)   return 'outflow_client';
+            case 'broker_deposit':              return 'outflow_broker';
+            case 'broker_refund':               return 'inflow_broker';
 
+            case 'expense':                     return 'outflow_opex';
+            case 'owner_drawing':               return 'outflow_owner_draw';
+            case 'owner_salary':                return 'outflow_owner_sal';
+
+            // branch_deposit covers cash injections — owner capital is the
+            // dominant case, so route there. Genuinely odd inflows fall
+            // through to other_inflow via the default below.
+            case 'branch_deposit':              return 'inflow_owner_cap';
+
+            // Cash count corrections move cash but aren't operating activity
+            // — surface them in "other" so they're visible without skewing
+            // the operating buckets.
+            case 'cash_count_over':             return 'other_inflow';
+            case 'cash_count_short':            return 'other_outflow';
+
+            // Currency conversions touch cash on both sides per currency,
+            // but no cash leaves the business in aggregate — show them in
+            // "other" so the per-currency view is honest about movement.
+            case 'client_currency_transfer':    return $isInflow ? 'other_inflow' : 'other_outflow';
+
+            // Reversal counter entries: same-period reversals net to zero
+            // against their original here and disappear. Cross-period
+            // reversals surface in "other" so the cash equation still ties
+            // out (ending - beginning == netChange) — the alternative is
+            // to silently hide them and break the reconciliation.
+            case 'reversal':                    return $isInflow ? 'other_inflow' : 'other_outflow';
+
+            // Branch-to-branch transfers (transfer_in / transfer_out) and
+            // commission entries don't touch cash, so they shouldn't reach
+            // here — but if they do (future routing) put them in "other".
+        }
         return $isInflow ? 'other_inflow' : 'other_outflow';
     }
 
@@ -656,34 +607,48 @@ class accountingController extends Controller
     /* ============================================================
      *  Profit & Loss statement (PDF)
      *  GET /accounting/profit-loss?from=YYYY-MM-DD&to=YYYY-MM-DD
+     *
+     *  Sourced from journal_lines via journalController::activityBetween().
+     *  Every revenue/expense account in chart_of_accounts is iterated in
+     *  code order, so a new account starts appearing here the moment it
+     *  gets its first journal posting — no controller change needed.
      * ============================================================ */
     public function pnlStatement(Request $request)
     {
         $this->requireAdmin();
         $from = $request->get('from', date('Y-m-01'));
         $to   = $request->get('to',   date('Y-m-t'));
-        $balances = $this->deriveAccountBalances($from, $to);
 
-        $revenue = [
-            ['key' => 'commission_revenue', 'label' => 'Commission revenue'],
-            ['key' => 'shipping_revenue',   'label' => 'Shipping revenue'],
-        ];
-        $expenses = [
-            ['key' => 'operating_expenses', 'label' => 'Operating expenses'],
-            ['key' => 'owner_salary',       'label' => 'Owner\'s salary'],
-        ];
+        $activity = (new journalController())->activityBetween($from, $to);
 
+        $accounts = DB::table('chart_of_accounts')
+            ->where('is_active', true)
+            ->whereIn('type', ['revenue', 'expense'])
+            ->orderBy('code')
+            ->get();
+
+        $revenue  = [];
+        $expenses = [];
         $totals = ['revenue' => array_fill_keys($this->currencies, 0.0),
                    'expense' => array_fill_keys($this->currencies, 0.0),
                    'net'     => array_fill_keys($this->currencies, 0.0)];
-        foreach ($revenue as $r) {
+
+        foreach ($accounts as $a) {
+            // signed_net is dr-cr. Revenue (credit-normal) reads as
+            // -signed_net; expense (debit-normal) reads as +signed_net.
+            // Apply the sign once here so the view stays dumb.
+            $sign    = $a->normal_balance === 'debit' ? 1 : -1;
+            $amounts = array_fill_keys($this->currencies, 0.0);
             foreach ($this->currencies as $c) {
-                $totals['revenue'][$c] += (float) ($balances[$r['key']][$c] ?? 0);
+                $amounts[$c] = $sign * (float) ($activity[$a->code][$c] ?? 0);
             }
-        }
-        foreach ($expenses as $e) {
-            foreach ($this->currencies as $c) {
-                $totals['expense'][$c] += (float) ($balances[$e['key']][$c] ?? 0);
+            $row = ['code' => $a->code, 'label' => $a->name, 'amounts' => $amounts];
+            if ($a->type === 'revenue') {
+                $revenue[] = $row;
+                foreach ($this->currencies as $c) $totals['revenue'][$c] += $amounts[$c];
+            } else {
+                $expenses[] = $row;
+                foreach ($this->currencies as $c) $totals['expense'][$c] += $amounts[$c];
             }
         }
         foreach ($this->currencies as $c) {
@@ -694,7 +659,7 @@ class accountingController extends Controller
         $lang = new langController();
         $data = new dataController();
         $html = view('pages.accounting.pnl_pdf', compact(
-            'from', 'to', 'revenue', 'expenses', 'balances', 'totals',
+            'from', 'to', 'revenue', 'expenses', 'totals',
             'settings', 'lang', 'data'
         ))->render();
 
@@ -717,63 +682,114 @@ class accountingController extends Controller
     /* ============================================================
      *  Balance Sheet (PDF)
      *  GET /accounting/balance-sheet?as_of=YYYY-MM-DD
+     *
+     *  Sourced from journal_lines via journalController::balancesAsOf().
+     *  Asset / liability / equity rows iterate every active account in
+     *  chart_of_accounts in code order. Net income (YTD) is derived from
+     *  revenue/expense activity Jan 1 → asOf and shown as a separate
+     *  equity line. Owner's equity stays a balancing plug — once retained
+     *  earnings get a real account it can be retired.
      * ============================================================ */
     public function balanceSheet(Request $request)
     {
         $this->requireAdmin();
-        $asOf       = $request->get('as_of', date('Y-m-d'));
-        // P&L window = year-to-date through asOf, so retained earnings includes YTD net income.
-        $yearStart  = date('Y-01-01', strtotime($asOf));
-        $balances   = $this->deriveAccountBalances($yearStart, $asOf);
+        $asOf      = $request->get('as_of', date('Y-m-d'));
+        $yearStart = date('Y-01-01', strtotime($asOf));
 
-        $assets = [
-            ['key' => 'cash_total',   'label' => 'Cash on hand'],
-            ['key' => 'ar_clients',   'label' => 'Accounts receivable — clients'],
-            ['key' => 'ar_suppliers', 'label' => 'Prepaid to suppliers'],
-            ['key' => 'ar_brokers',   'label' => 'Prepaid to customs brokers'],
-        ];
-        $liabilities = [
-            ['key' => 'client_deposits', 'label' => 'Client deposits (unearned)'],
-            ['key' => 'ap_suppliers',    'label' => 'Accounts payable — suppliers'],
-            ['key' => 'ap_brokers',      'label' => 'Accounts payable — customs brokers'],
-        ];
-        $equityFixed = [
-            ['key' => 'owner_drawings', 'label' => 'Owner\'s drawings', 'sign' => -1],
-        ];
+        $journal  = new journalController();
+        $balances = $journal->balancesAsOf($asOf);
+        $ytd      = $journal->activityBetween($yearStart, $asOf);
 
-        $totals = array_fill_keys(['assets', 'liabilities', 'equity'], array_fill_keys($this->currencies, 0.0));
-        foreach ($assets as $a) {
-            foreach ($this->currencies as $c) $totals['assets'][$c] += (float) ($balances[$a['key']][$c] ?? 0);
-        }
-        foreach ($liabilities as $l) {
-            foreach ($this->currencies as $c) $totals['liabilities'][$c] += (float) ($balances[$l['key']][$c] ?? 0);
-        }
-        foreach ($equityFixed as $e) {
+        $accounts = DB::table('chart_of_accounts')
+            ->where('is_active', true)
+            ->orderBy('code')
+            ->get();
+
+        $assets      = [];
+        $liabilities = [];
+        $equityRows  = [];   // every equity account except code 3000 (plug)
+        $totals      = array_fill_keys(['assets', 'liabilities', 'equity'], array_fill_keys($this->currencies, 0.0));
+
+        foreach ($accounts as $a) {
+            // signed_net = SUM(dr) - SUM(cr). Convert to natural direction
+            // by sign-flipping for credit-normal accounts.
+            $sign    = $a->normal_balance === 'debit' ? 1 : -1;
+            $amounts = array_fill_keys($this->currencies, 0.0);
             foreach ($this->currencies as $c) {
-                $totals['equity'][$c] += $e['sign'] * (float) ($balances[$e['key']][$c] ?? 0);
+                $amounts[$c] = $sign * (float) ($balances[$a->code][$c] ?? 0);
+            }
+            $row = ['code' => $a->code, 'label' => $a->name, 'amounts' => $amounts];
+
+            if ($a->type === 'asset') {
+                $assets[] = $row;
+                foreach ($this->currencies as $c) $totals['assets'][$c] += $amounts[$c];
+            } elseif ($a->type === 'liability') {
+                $liabilities[] = $row;
+                foreach ($this->currencies as $c) $totals['liabilities'][$c] += $amounts[$c];
+            } elseif ($a->type === 'equity' && $a->code !== '3000') {
+                // Code 3000 = Owner's equity plug, computed below.
+                $equityRows[] = $row;
+                foreach ($this->currencies as $c) $totals['equity'][$c] += $amounts[$c];
             }
         }
-        // Net income YTD
+
+        // Net income YTD = (revenue) - (expense), each in natural direction.
         $netIncome = array_fill_keys($this->currencies, 0.0);
-        $revenueKeys = ['commission_revenue', 'shipping_revenue'];
-        $expenseKeys = ['operating_expenses', 'owner_salary'];
-        foreach ($this->currencies as $c) {
-            foreach ($revenueKeys as $k) $netIncome[$c] += (float) ($balances[$k][$c] ?? 0);
-            foreach ($expenseKeys as $k) $netIncome[$c] -= (float) ($balances[$k][$c] ?? 0);
+        foreach ($accounts as $a) {
+            if ($a->type !== 'revenue' && $a->type !== 'expense') continue;
+            $sign = $a->normal_balance === 'debit' ? 1 : -1;
+            foreach ($this->currencies as $c) {
+                $val = $sign * (float) ($ytd[$a->code][$c] ?? 0);
+                if ($a->type === 'revenue') $netIncome[$c] += $val;
+                else                        $netIncome[$c] -= $val;
+            }
         }
-        // Owner's equity plug = Assets - Liabilities - (other equity + net income)
+
+        // Owner's Equity now comes directly from the journal (code 3000) —
+        // not synthesized as a plug. Letting the report tie by construction
+        // hid genuine drift: a swallowed journal post or an unclosed period
+        // would silently inflate equity instead of surfacing as an
+        // imbalance. We compute the real balance here and surface any
+        // residual as $imbalance for the view to render as a red banner.
+        // Net income remains a separate line until a formal Retained
+        // Earnings closing entry rolls it into equity at year-end.
         $ownersEquity = array_fill_keys($this->currencies, 0.0);
+        $eq3000 = $accounts->firstWhere('code', '3000');
+        if ($eq3000) {
+            $sign = $eq3000->normal_balance === 'debit' ? 1 : -1;
+            foreach ($this->currencies as $c) {
+                $ownersEquity[$c] = $sign * (float) ($balances['3000'][$c] ?? 0);
+            }
+        }
+        // Roll Owner's Equity + YTD net income into the equity total so the
+        // view's subtotal row matches what's rendered.
         foreach ($this->currencies as $c) {
-            $ownersEquity[$c] = $totals['assets'][$c] - $totals['liabilities'][$c] - $totals['equity'][$c] - $netIncome[$c];
             $totals['equity'][$c] += $ownersEquity[$c] + $netIncome[$c];
+        }
+
+        // Imbalance check. A == L + E should hold for any internally
+        // consistent journal. If it doesn't, we display the gap rather than
+        // hide it. A 0.005 floor swallows float noise without missing real
+        // drift.
+        $imbalance    = array_fill_keys($this->currencies, 0.0);
+        $hasImbalance = false;
+        foreach ($this->currencies as $c) {
+            $imbalance[$c] = round(
+                $totals['assets'][$c] - $totals['liabilities'][$c] - $totals['equity'][$c],
+                2
+            );
+            if (abs($imbalance[$c]) > 0.005) {
+                $hasImbalance = true;
+            }
         }
 
         $settings = (new settingsController())->get();
         $lang = new langController();
         $data = new dataController();
         $html = view('pages.accounting.balance_sheet_pdf', compact(
-            'asOf', 'assets', 'liabilities', 'equityFixed',
-            'balances', 'totals', 'netIncome', 'ownersEquity',
+            'asOf', 'assets', 'liabilities', 'equityRows',
+            'totals', 'netIncome', 'ownersEquity',
+            'imbalance', 'hasImbalance',
             'settings', 'lang', 'data'
         ))->render();
 
@@ -822,9 +838,12 @@ class accountingController extends Controller
         $entity    = $this->deriveAccountBalances($yearStart, $asOf);
 
         // Journal-derived per-account balances. signed_net = DR - CR.
+        // No status filter: both halves of a reversal pair are included so
+        // they cancel arithmetically (see journalController::balancesAsOf
+        // for the full explanation). Entity balances already reflect net-
+        // of-reversal state, so this is what makes the drift comparison fair.
         $journalRows = DB::table('journal_lines')
             ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
-            ->where('journal_entries.status', 'open')
             ->where('journal_entries.entry_date', '<=', $asOf)
             ->select(
                 'journal_lines.account_code',

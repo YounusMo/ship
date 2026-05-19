@@ -6,8 +6,8 @@
 
 <div class="row mb-3 align-items-end">
     <div class="col-md-8 mb-2">
-        <h4 class="h4">{{ $lang->write('Trial Balance (journal-based)') }}</h4>
-        <small class="text-muted">{{ $lang->write('Derived from journal_lines — totals balance by construction. The earlier "Trial Balance" derives from entity tables; this one is the authoritative DR/CR view.') }}</small>
+        <h4 class="h4">{{ $lang->write('Trial Balance') }}</h4>
+        <small class="text-muted">{{ $lang->write('Sourced from journal_lines — totals balance by construction. P&L, Balance Sheet and Cash Flow PDFs all read from the same journal, so what you see here is what those reports add up to.') }}</small>
     </div>
     <div class="col-md-4 mb-2">
         <form method="get" class="d-flex justify-content-end gap-2 align-items-end">

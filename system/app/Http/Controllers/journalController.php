@@ -175,6 +175,77 @@ class journalController extends Controller
     }
 
     /* ============================================================
+     *  Public balance helpers — the journal IS the source of truth
+     *
+     *  Both methods return:
+     *    [account_code => [currency => signed_net]]
+     *  where signed_net = SUM(dr) - SUM(cr).
+     *
+     *  Reversal handling: we deliberately do NOT filter on status. When
+     *  an entry is reversed, the original is flipped to 'reversed' and a
+     *  new counter entry is posted with status='open'. Filtering on
+     *  status='open' would exclude the original while keeping the
+     *  counter — producing a balance that is the NEGATIVE of the
+     *  original, instead of zero. Including both halves lets dr/cr
+     *  arithmetic cancel them naturally, and an as-of query before the
+     *  reversal date correctly includes only the original (the reversal
+     *  is filtered out by entry_date).
+     *
+     *  Reports apply the per-account normal_balance side to convert this
+     *  to a natural-direction figure (positive = healthy).
+     * ============================================================ */
+
+    /**
+     * Cumulative balance per account_code as of $asOf.
+     * Use for balance-sheet style accounts (assets/liabilities/equity).
+     */
+    public function balancesAsOf(string $asOf): array
+    {
+        $rows = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
+            ->where('journal_entries.entry_date', '<=', $asOf)
+            ->select(
+                'journal_lines.account_code',
+                'journal_lines.currency',
+                DB::raw('SUM(journal_lines.dr) - SUM(journal_lines.cr) as signed_net')
+            )
+            ->groupBy('journal_lines.account_code', 'journal_lines.currency')
+            ->get();
+        return $this->pivotByCode($rows);
+    }
+
+    /**
+     * Activity per account_code within [$from, $to].
+     * Use for P&L style accounts (revenue/expense).
+     */
+    public function activityBetween(string $from, string $to): array
+    {
+        $rows = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
+            ->whereBetween('journal_entries.entry_date', [$from, $to])
+            ->select(
+                'journal_lines.account_code',
+                'journal_lines.currency',
+                DB::raw('SUM(journal_lines.dr) - SUM(journal_lines.cr) as signed_net')
+            )
+            ->groupBy('journal_lines.account_code', 'journal_lines.currency')
+            ->get();
+        return $this->pivotByCode($rows);
+    }
+
+    private function pivotByCode($rows): array
+    {
+        $out = [];
+        foreach ($rows as $r) {
+            if (!in_array($r->currency, $this->currencies, true)) continue;
+            $out[$r->account_code] = $out[$r->account_code]
+                ?? array_fill_keys($this->currencies, 0.0);
+            $out[$r->account_code][$r->currency] = (float) $r->signed_net;
+        }
+        return $out;
+    }
+
+    /* ============================================================
      *  Reports
      * ============================================================ */
 
@@ -187,9 +258,10 @@ class journalController extends Controller
         $this->requireAdmin();
         $asOf = $request->get('as_of', date('Y-m-d'));
 
+        // No status filter — see comment on balancesAsOf() for why both halves
+        // of a reversed pair must be included so they net naturally.
         $rows = DB::table('journal_lines')
             ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
-            ->where('journal_entries.status', 'open')
             ->where('journal_entries.entry_date', '<=', $asOf)
             ->select(
                 'journal_lines.account_code',

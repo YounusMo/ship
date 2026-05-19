@@ -66,6 +66,22 @@
 
 <div style="width:100%; overflow:scroll" class="container_data">
     <input type="hidden" class="container_id" value="{{$id}}">
+
+    {{-- PIN-protected bulk-print of every sticker in this container.
+         The PIN itself is hashed in settings; the form just POSTs and
+         opens the returned PDF in a new tab on success. --}}
+    <div class="d-flex justify-content-end mb-2">
+        <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#bulkStickerPinModal">
+            {{$lang->write('Print all stickers')}}
+        </button>
+    </div>
+
+    @include('pages.shipping.stickers.bulk_pin_modal', [
+        'containerTable' => 'containers_sea',
+        'containerId'    => $id,
+        'lang'           => $lang,
+    ])
+
     <table class="table">
         <thead>
             <tr>
@@ -201,6 +217,7 @@
                                 @endif
                             
                                 <button {{$disabled ? '' : 'disabled'}} class='ms-1 btn btn-sm btn-secondary delivery' onclick="delivery({{$item->id}})">{{$lang->write('Delivery')}}</button>
+                                <a class='ms-1 btn btn-sm btn-success' target="_blank" href="{{ url('/shipping/stickers/store_sea/' . $item->in_id) }}">{{$lang->write('Stickers')}}</a>
                                 <button class='ms-1 btn btn-sm btn-danger cancel' onclick="{{!$canceled ? 'cancel_in_container('.$item->id.')' : ''}}">{{$lang->write('Cancel')}}</button>
                             @endif
                         </td>

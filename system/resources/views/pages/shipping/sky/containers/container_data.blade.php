@@ -64,6 +64,20 @@
 
 <div style="width:100%; overflow:scroll" class="container_data">
     <input type="hidden" class="container_id" value="{{$id}}">
+
+    {{-- PIN-protected bulk-print of every sticker in this trip. --}}
+    <div class="d-flex justify-content-end mb-2">
+        <button type="button" class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#bulkStickerPinModal">
+            {{$lang->write('Print all stickers')}}
+        </button>
+    </div>
+
+    @include('pages.shipping.stickers.bulk_pin_modal', [
+        'containerTable' => 'containers_sky',
+        'containerId'    => $id,
+        'lang'           => $lang,
+    ])
+
     <table class="table">
         <thead>
             <tr>
@@ -197,6 +211,7 @@
                                     <button {{$disabled ? 'disabled' : ''}} class='ms-1 btn btn-sm btn-secondary' onclick=" {{!$disabled ? 'showPay('.$item->id.')' : ''}}">{{$lang->write('Payment')}}</button>        
                                 @endif
                                 <button {{$disabled ? '' : 'disabled'}} class='ms-1 btn btn-sm btn-secondary delivery' onclick="delivery({{$item->id}})">{{$lang->write('Delivery')}}</button>
+                                <a class='ms-1 btn btn-sm btn-success' target="_blank" href="{{ url('/shipping/stickers/store_sky/' . $item->in_id) }}">{{$lang->write('Stickers')}}</a>
                                 <button class='ms-1 btn btn-sm btn-danger cancel' onclick="{{!$canceled ? 'cancel_in_container('.$item->id.')' : ''}}">{{$lang->write('Cancel')}}</button>
                             @endif
                         </td>

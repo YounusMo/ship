@@ -1,14 +1,16 @@
 {
     "timezone": "Asia\/Hong_Kong",
-    "currency_eur": 1.7,
-    "currency_den": 8.2,
-    "currency_cny": 6.9,
-    "email": "MOTAZALBASHARI@GMAIL.COM",
-    "company_name": "MATAZ TRADING COMPANY",
+    "logo": "",
+    "company_name": "SHIP FLOW",
     "address": "Guangzhou, China",
     "phone": "0086-15013009970",
+    "email": "info@shipflow.com",
     "commercial_registry": "0123-456",
     "tax_id": "LY-987654",
     "receipt_footer": "Thank you. This receipt is valid for accounting and tax purposes.",
-    "logo": ""
+    "tracking_prefix": "SHIP",
+    "print_pin_hash": "$2y$12$kniJxkbNjFBJaY5zz1hh7O3R\/PHx7U98q7BjeYqohq08C9IWyhyBi",
+    "currency_eur": 1.7,
+    "currency_den": 8.2,
+    "currency_cny": 6.9
 }

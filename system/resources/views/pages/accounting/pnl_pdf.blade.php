@@ -46,7 +46,7 @@
 <div class="header">
     <div class="row">
         <div class="col" style="width: 60%;">
-            <span class="brand-mark">M</span>
+            @include('partials.brand_mark_pdf', ['settings' => $settings, 'brandColor' => $brandColor, 'accentColor' => $accentColor, 'size' => 30])
             <span class="brand">{{ $settings['company_name'] ?? '' }}</span>
             <div class="sub">{{ $settings['address'] ?? '' }} · {{ $settings['phone'] ?? '' }} · {{ $settings['email'] ?? '' }}</div>
         </div>
@@ -77,11 +77,14 @@
     </thead>
     <tbody>
         <tr class="section"><td colspan="5">{{ $lang->write('Revenue') }}</td></tr>
+        @if (count($revenue) === 0)
+            <tr><td colspan="5" style="color: {{ $muted }}; text-align: center;">{{ $lang->write('No revenue postings in period.') }}</td></tr>
+        @endif
         @foreach ($revenue as $r)
             <tr>
-                <td>{{ $lang->write($r['label']) }}</td>
+                <td><span style="color: {{ $muted }}">{{ $r['code'] }}</span> &nbsp; {{ $lang->write($r['label']) }}</td>
                 @foreach ($currencies as $c)
-                    <td class="num">{{ _f($balances[$r['key']][$c] ?? 0) }}</td>
+                    <td class="num">{{ _f($r['amounts'][$c] ?? 0) }}</td>
                 @endforeach
             </tr>
         @endforeach
@@ -93,11 +96,14 @@
         </tr>
 
         <tr class="section"><td colspan="5">{{ $lang->write('Expenses') }}</td></tr>
+        @if (count($expenses) === 0)
+            <tr><td colspan="5" style="color: {{ $muted }}; text-align: center;">{{ $lang->write('No expense postings in period.') }}</td></tr>
+        @endif
         @foreach ($expenses as $e)
             <tr>
-                <td>{{ $lang->write($e['label']) }}</td>
+                <td><span style="color: {{ $muted }}">{{ $e['code'] }}</span> &nbsp; {{ $lang->write($e['label']) }}</td>
                 @foreach ($currencies as $c)
-                    <td class="num">{{ _f($balances[$e['key']][$c] ?? 0) }}</td>
+                    <td class="num">{{ _f($e['amounts'][$c] ?? 0) }}</td>
                 @endforeach
             </tr>
         @endforeach
@@ -119,7 +125,7 @@
 
 <div class="footer">
     {{ $lang->write('Generated') }} {{ date('Y-m-d H:i') }} ·
-    {{ $lang->write('Reporting currency split is reported per balance; FX restatement uses rates from the FX history log.') }}
+    {{ $lang->write('Sourced from journal_lines (open entries only). Reversed entries are excluded by construction.') }}
 </div>
 
 </body>
