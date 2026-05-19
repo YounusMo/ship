@@ -209,12 +209,30 @@ class usersController extends Controller
      
 
     public function change_pass(Request $request){
-        if (!in_array(auth()->user()->type, ['admin'], true)) {
+        $authUser = auth()->user();
+        if (!$authUser || !in_array($authUser->type, ['admin'], true)) {
             abort(403, 'Unauthorized');
         }
 
+        // Require the calling admin to re-confirm their OWN password before
+        // resetting another user's. Without this, a single compromised admin
+        // session is a one-step takeover of every account (including other
+        // admins). Confirmation also prevents a stolen tab from issuing a
+        // silent password reset.
+        $currentPassword = (string) $request->input('current_password', '');
+        if ($currentPassword === '' || !Hash::check($currentPassword, $authUser->password)) {
+            abort(422, 'Current admin password required');
+        }
+
+        // Minimum length on the NEW password — keep bcrypt happy and reject
+        // accidentally-empty resets that would let anyone log in as the target.
+        $newPassword = (string) $request->input('password', '');
+        if (strlen($newPassword) < 8) {
+            abort(422, 'New password must be at least 8 characters');
+        }
+
         DB::table('users')->where('id',$request->id)->update([
-            'password' => Hash::make($request->password),
+            'password' => Hash::make($newPassword),
         ]);
 
         // Never log the new password — only that one was set.

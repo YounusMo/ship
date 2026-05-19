@@ -29,6 +29,7 @@ Route::get('/logout', [usersController::class,'logout']);
 
 Route::middleware(['chkAuthClient'])->group(function(){
 
+
     Route::prefix('client')->group(function(){
         Route::get('/', function () {
             return view('pages.client.transactions.index',[
@@ -516,7 +517,9 @@ Route::get('/login/{selected_lang?}', function ($selected_lang = 'en') {
 Route::prefix('auth')->group(function(){
 
     Route::prefix('user')->group(function(){
-        Route::post('/login', [usersController::class,'login'])->middleware('throttle:5,1');
+        // Per-identifier rate limit (see AppServiceProvider::boot). The legacy
+        // `throttle:5,1` was per-IP only, which credential stuffing bypassed.
+        Route::post('/login', [usersController::class,'login'])->middleware('throttle:login');
     });
 
 });

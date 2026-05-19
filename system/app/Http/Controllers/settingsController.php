@@ -19,6 +19,17 @@ class settingsController extends Controller
         $config = file_get_contents($this->settings_file);
         $sett = json_decode($config,true);
 
+        // Capture before-values for the audit log so a change to company name,
+        // address, tax_id, or receipt_footer is reviewable later. Without
+        // this, an attacker who phished one admin session could silently
+        // rewrite receipt footers (which is what counterparties see) or
+        // change the tax id, and only save2/update_exchange were logged.
+        $tracked = ['timezone','email','company_name','address','phone','commercial_registry','tax_id','receipt_footer'];
+        $before = [];
+        foreach ($tracked as $k) {
+            $before[$k] = $sett[$k] ?? null;
+        }
+
         $data = [
             'timezone'            => $request->timezone,
             'currency_eur'        => $sett['currency_eur'],
@@ -39,9 +50,34 @@ class settingsController extends Controller
             $logo->move(public_path('images'),'logo.png');
         }
 
-        $data = json_encode($data,JSON_PRETTY_PRINT);
+        $data_json = json_encode($data,JSON_PRETTY_PRINT);
 
-        file_put_contents($this->settings_file,$data);
+        file_put_contents($this->settings_file,$data_json);
+
+        $after = [];
+        foreach ($tracked as $k) {
+            $after[$k] = $data[$k] ?? null;
+        }
+        // Only emit an audit row when something actually changed — avoids
+        // flooding the log on save clicks that touched only the logo.
+        $changed = array_keys(array_filter(
+            $tracked,
+            fn($k) => ($before[$k] ?? null) !== ($after[$k] ?? null)
+        ));
+        if (!empty($changed) || $logo) {
+            $this->logAudit(
+                'settings_save',
+                'settings',
+                null,
+                [
+                    'before'      => $before,
+                    'after'       => $after,
+                    'changed'     => $changed,
+                    'logo_updated'=> (bool) $logo,
+                ],
+                'General settings updated'
+            );
+        }
 
         return redirect('/settings');
     }

@@ -413,8 +413,48 @@ class dataController extends Controller
         }
     }
 
+    /**
+     * Per-row tenant check for the bulk delete endpoints. branch_admin should
+     * only ever soft-delete records that belong to their own branch — without
+     * this guard, a branch_admin could POST /del_recs with ids belonging to
+     * clients/suppliers/customs_brokers/store_* rows in another branch and the
+     * mass-update would happily oblige.
+     *
+     * Implementation is best-effort: if the table has a `branch` column we
+     * verify every id resolves to the caller's branch; if not, we fall through
+     * unchanged (admin-only tables are already blocked by assertCanMutateTable).
+     */
+    private function assertRowsInCallerBranch(string $table, array $ids): void
+    {
+        $user = auth()->user();
+        if (!$user || $user->type === 'admin') {
+            return;
+        }
+        if (empty($ids)) {
+            return;
+        }
+        if (!\Illuminate\Support\Facades\Schema::hasColumn($table, 'branch')) {
+            return;
+        }
+        $callerBranch = (int) $user->branch;
+        $foreignCount = DB::table($table)
+            ->whereIn('id', $ids)
+            ->where(function ($q) use ($callerBranch) {
+                $q->where('branch', '!=', $callerBranch)
+                  ->orWhereNull('branch');
+            })
+            ->count();
+        if ($foreignCount > 0) {
+            abort(403, 'Cannot mutate records outside your branch');
+        }
+    }
+
     public function del_recs(Request $request){
         $this->assertCanMutateTable((string) $request->table);
+        $checkIds = json_decode((string) $request->ids, true);
+        if (is_array($checkIds) && !empty($checkIds)) {
+            $this->assertRowsInCallerBranch((string) $request->table, $checkIds);
+        }
 
         DB::transaction(function() use($request){
             try {
