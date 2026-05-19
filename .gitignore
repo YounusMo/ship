@@ -27,10 +27,13 @@ __MACOSX/
 *.swp
 Thumbs.db
 
-# User-uploaded content directories — track structure not contents
-photos/sea/*/
-photos/sky/*/
-photos/teacher/*/
-!photos/.htaccess
-!photos/sea/.gitkeep
-!photos/sky/.gitkeep
+# User-uploaded content directories — track structure not contents. The
+# patterns are anchored to system/public/ where the photos actually live;
+# the previous unanchored patterns matched nothing and let uploads leak
+# into commits.
+system/public/photos/sea/*/
+system/public/photos/sky/*/
+system/public/photos/teacher/*/
+!system/public/photos/.htaccess
+!system/public/photos/sea/.gitkeep
+!system/public/photos/sky/.gitkeep
