@@ -117,6 +117,13 @@ class seaController extends Controller
                 $transaction_number = $data['transaction_number'] ?? null;
                 $client_id          = $data['client_id'] ?? null;
 
+                // Tenant boundary: branch_admins may only create receipts for
+                // clients in their own branch. Admins pass straight through.
+                // Also enforces existence — replaces the legacy $chk_client
+                // truthiness check below (kept for now to preserve the err
+                // path's exact response shape on edge cases).
+                $this->assertCanAccessClient($client_id);
+
                 $chk_client = DB::table('clients')->where('id',$client_id)->first();
 
                 $files = [];

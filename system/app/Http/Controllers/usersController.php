@@ -153,6 +153,11 @@ class usersController extends Controller
 
         if ($user && Hash::check($password, $user->password)) {
             Auth::guard('web')->login($user);
+            // Regenerate the session ID after every successful authentication.
+            // Without this, a pre-login cookie (XSS on another tenant, shared
+            // hotspot, MITM during HTTP redirect) becomes the authenticated
+            // session the moment the victim logs in.
+            $request->session()->regenerate();
             return redirect('/'); // أو أي صفحة dashboard خاصة بالـ users
         }
 
@@ -161,24 +166,31 @@ class usersController extends Controller
             ->where(function($q)use($identifier){
                 $q->where('email', $identifier)->orWhere('code', $identifier);
             })
-            
+
             ->first();
 
         if ($client && Hash::check($password, $client->password)) {
             Auth::guard('client')->login($client);
-
+            $request->session()->regenerate();
             return redirect('/client'); // صفحة خاصة بالـ clients
         }
 
         // لو فشل الاثنين
         return redirect('/login')->with('err', 'Invalid credentials');
-       
+
     }
 
     public function get(Request $request){
         $get = DB::table('users')->where('id',$request->id)->first();
+        if ($get) {
+            // Never return the bcrypt hash or remember_token. Bcrypt-12 isn't
+            // trivially cracked, but a malicious branch_admin who can call this
+            // endpoint could offline-crack a higher-privileged admin password.
+            // The frontend never displays these fields anyway.
+            unset($get->password, $get->remember_token);
+        }
         $br_name = '';
-        if($get->type === 'branch_admin'){
+        if($get && $get->type === 'branch_admin'){
             $branch = DB::table('branches')->where('id',$get->branch)->first();
             switch(auth()->user()->lang){
                 case 'ar':

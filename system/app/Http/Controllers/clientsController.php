@@ -118,10 +118,26 @@ class clientsController extends Controller
 
 
     public function create(Request $request){
+        // Role gate + tenant clamp. Without this, a branch_admin could
+        // POST branch=<other-branch> and create clients in branches they
+        // don't own; the rest of the system trusts the stored branch column
+        // for all visibility/access decisions, so this is the only place to
+        // stop the escape.
+        $authUser = auth()->user();
+        if (!$authUser || !in_array($authUser->type, ['admin', 'branch_admin'], true)) {
+            abort(403, 'Unauthorized');
+        }
+        if ($authUser->type === 'branch_admin') {
+            // Force the new client into the caller's own branch regardless of
+            // what they posted. We mutate the request so downstream code paths
+            // (and the audit log) see the clamped value, not the spoofed one.
+            $request->merge(['branch' => (int) $authUser->branch]);
+        }
+
         try {
 
             $response = null;
-            
+
             DB::transaction(function () use ($request, &$response) {
 
                 $dataController = new dataController();
@@ -198,10 +214,16 @@ class clientsController extends Controller
     }
 
     public function save(Request $request){
+        // Tenant boundary: branch_admin may only edit clients in their own
+        // branch. assertCanAccessClient also verifies the target exists, so
+        // we can drop the legacy 'exist' truthiness checks below if we ever
+        // clean this method up. (Admins pass straight through.)
+        $this->assertCanAccessClient($request->id);
+
         try {
-            
+
             $response = null;
-            
+
             DB::transaction(function () use ($request, &$response) {
 
                 $name     = trim($request->name);

@@ -45,11 +45,22 @@ class clientController extends Controller
 
     public function load_sea_containers(Request $request){
         try {
-            
-            $get = DB::table('containers_sea');
 
-            
-            $get = $get->orderBy('id','DESC');
+            // Scope to containers the authenticated client actually has cargo
+            // in. Without this filter a logged-in client could enumerate every
+            // container in the system — including counterparties' names,
+            // codes, totals — by paginating freely. The view ties container
+            // membership to store_out_sea (client_id, container_id), so we
+            // mirror that here.
+            $client_id = Auth::guard('client')->user()->id;
+            $get = DB::table('containers_sea')
+                ->whereIn('id', function ($q) use ($client_id) {
+                    $q->select('container_id')
+                      ->from('store_out_sea')
+                      ->where('client_id', $client_id)
+                      ->whereNotNull('container_id');
+                })
+                ->orderBy('id','DESC');
 
             $count = $get->count();
             $get   = $get->paginate(env('PAGEVIEW'));
@@ -64,10 +75,16 @@ class clientController extends Controller
 
     public function load_sky_containers(Request $request){
         try {
-            
-            $get = DB::table('containers_sky');
 
-            $get = $get->orderBy('id','DESC');
+            $client_id = Auth::guard('client')->user()->id;
+            $get = DB::table('containers_sky')
+                ->whereIn('id', function ($q) use ($client_id) {
+                    $q->select('container_id')
+                      ->from('store_out_sky')
+                      ->where('client_id', $client_id)
+                      ->whereNotNull('container_id');
+                })
+                ->orderBy('id','DESC');
 
             $count = $get->count();
             $get   = $get->paginate(env('PAGEVIEW'));

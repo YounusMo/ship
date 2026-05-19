@@ -115,6 +115,10 @@ class skyController extends Controller
                 $transaction_number = $data['transaction_number'] ?? null;
                 $client_id          = $data['client_id'] ?? null;
 
+                // Tenant boundary: branch_admins may only create receipts for
+                // clients in their own branch. Admins pass straight through.
+                $this->assertCanAccessClient($client_id);
+
                 $chk_client = DB::table('clients')->where('id',$client_id)->first();
 
                 $files = [];
