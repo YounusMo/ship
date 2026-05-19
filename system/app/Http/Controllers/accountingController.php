@@ -1176,8 +1176,25 @@ class accountingController extends Controller
         $txnNumber = $dataController->transaction_number('cash_count_adj', $cc->id);
         $autoId    = ((int) DB::table('branches_transactions')->where('branch', $cc->branch_id)->max('auto_id')) + 1;
 
+        // Double-entry journal lines: cash count adjustment.
+        // Over   → Dr 1000 Cash on hand    | Cr 4000 Commission revenue (misc gain)
+        // Short  → Dr 5000 Operating exp   | Cr 1000 Cash on hand        (misc loss)
+        if ($isOver) {
+            $journalLines = [
+                ['account_code' => '1000', 'dr' => $value, 'cr' => 0,     'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count overage'],
+                ['account_code' => '4000', 'dr' => 0,      'cr' => $value, 'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count overage (misc gain)'],
+            ];
+        } else {
+            $journalLines = [
+                ['account_code' => '5000', 'dr' => $value, 'cr' => 0,     'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count shortage'],
+                ['account_code' => '1000', 'dr' => 0,      'cr' => $value, 'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count shortage'],
+            ];
+        }
+
         $branchTxnId = null;
-        DB::transaction(function () use ($cc, $id, $type, $plusMinus, $value, $purpose, $autoId, $txnNumber, $user, &$branchTxnId) {
+        // The journal post must live INSIDE this transaction so a journal
+        // failure rolls back the branches/treasury/cash_counts mutations too.
+        DB::transaction(function () use ($cc, $id, $type, $plusMinus, $value, $purpose, $autoId, $txnNumber, $user, $isOver, $journalLines, &$branchTxnId) {
             $branchTxnId = DB::table('branches_transactions')->insertGetId([
                 'type'         => $type,
                 'data'         => json_encode(['cash_count_id' => $cc->id]),
@@ -1220,30 +1237,7 @@ class accountingController extends Controller
                 'adjustment_posted'        => true,
                 'adjustment_transaction_id'=> $branchTxnId,
             ]);
-        });
 
-        $this->logAudit('cash_count_adjust', 'cash_counts', $id, [
-            'variance' => $cc->variance,
-            'currency' => $cc->currency,
-            'branch_id'=> $cc->branch_id,
-            'branch_transaction_id' => $branchTxnId,
-        ], 'Posted cash-count variance adjustment');
-
-        // Double-entry journal: cash count adjustment.
-        // Over   → Dr 1000 Cash on hand    | Cr 4000 Commission revenue (misc gain)
-        // Short  → Dr 5000 Operating exp   | Cr 1000 Cash on hand        (misc loss)
-        try {
-            if ($isOver) {
-                $lines = [
-                    ['account_code' => '1000', 'dr' => $value, 'cr' => 0,     'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count overage'],
-                    ['account_code' => '4000', 'dr' => 0,      'cr' => $value, 'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count overage (misc gain)'],
-                ];
-            } else {
-                $lines = [
-                    ['account_code' => '5000', 'dr' => $value, 'cr' => 0,     'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count shortage'],
-                    ['account_code' => '1000', 'dr' => 0,      'cr' => $value, 'currency' => $cc->currency, 'branch_id' => $cc->branch_id, 'description' => 'Cash count shortage'],
-                ];
-            }
             (new \App\Http\Controllers\journalController())->record([
                 'entry_date'         => date('Y-m-d'),
                 'kind'               => $isOver ? 'cash_count_over' : 'cash_count_short',
@@ -1252,11 +1246,16 @@ class accountingController extends Controller
                 'source_id'          => $id,
                 'transaction_number' => $txnNumber,
                 'branch_id'          => $cc->branch_id,
-                'lines'              => $lines,
+                'lines'              => $journalLines,
             ]);
-        } catch (\Throwable $ex) {
-            \Illuminate\Support\Facades\Log::warning('journal post failed (cash count): ' . $ex->getMessage());
-        }
+        });
+
+        $this->logAudit('cash_count_adjust', 'cash_counts', $id, [
+            'variance' => $cc->variance,
+            'currency' => $cc->currency,
+            'branch_id'=> $cc->branch_id,
+            'branch_transaction_id' => $branchTxnId,
+        ], 'Posted cash-count variance adjustment');
 
         return response()->json(['type' => 'success', 'branch_transaction_id' => $branchTxnId]);
     }

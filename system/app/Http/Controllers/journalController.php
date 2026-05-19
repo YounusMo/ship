@@ -34,12 +34,24 @@ class journalController extends Controller
      *   ]
      *
      * Invariant enforced: per-currency SUM(dr) == SUM(cr). Throws if violated.
+     *
+     * Period guard: the entry_date must fall in an open accounting period
+     * (today is also checked, per assertPeriodOpen semantics). This guard
+     * lives here — not at every call site — so anyone posting a journal
+     * entry from any code path (controller, command, future caller) cannot
+     * accidentally write into a closed month. Backfill of historical rows
+     * passes $enforcePeriod=false; nothing else should.
+     *
      * Returns the new entry_id.
      */
-    public function record(array $entry): int
+    public function record(array $entry, bool $enforcePeriod = true): int
     {
         if (empty($entry['lines']) || !is_array($entry['lines']) || count($entry['lines']) < 2) {
             throw new \InvalidArgumentException('journal entry requires >=2 lines');
+        }
+
+        if ($enforcePeriod) {
+            $this->assertPeriodOpen($entry['entry_date'] ?? date('Y-m-d'));
         }
 
         // Per-currency balance check.

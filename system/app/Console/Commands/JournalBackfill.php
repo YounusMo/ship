@@ -112,7 +112,9 @@ class JournalBackfill extends Command
             return;
         }
         try {
-            $this->journal->record($entry);
+            // Backfill replays history into closed months by design — opt out
+            // of the period guard. Live writers do NOT pass this flag.
+            $this->journal->record($entry, /* enforcePeriod */ false);
             $this->stats['created']++;
         } catch (\Throwable $e) {
             $this->stats['error']++;
