@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/transactions_provider.dart';
@@ -52,7 +53,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               error: (e, _) => Center(child: Text('$e')),
               data: (s) {
                 if (s.items.isEmpty) {
-                  return const Center(child: Text('No transactions yet.'));
+                  return Center(child: Text(AppLocalizations.of(context)!.noTransactionsYet));
                 }
                 return ListView.separated(
                   controller: _scroll,
@@ -83,25 +84,25 @@ class _CurrencyFilter extends StatelessWidget {
   final String? current;
   final ValueChanged<String?> onChanged;
 
-  static const _choices = <(String?, String)>[
-    (null,  'All'),
-    ('usd', 'USD'),
-    ('eur', 'EUR'),
-    ('den', 'LYD'),
-    ('cny', 'CNY'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    final choices = <(String?, String)>[
+      (null,  l.filterAll),
+      ('usd', l.currencyUsd),
+      ('eur', l.currencyEur),
+      ('den', l.currencyLyd),
+      ('cny', l.currencyCny),
+    ];
     return SizedBox(
       height: 48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemCount: _choices.length,
+        itemCount: choices.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
-          final (value, label) = _choices[i];
+          final (value, label) = choices[i];
           final selected = value == current;
           return ChoiceChip(
             label: Text(label),

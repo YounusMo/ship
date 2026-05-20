@@ -60,4 +60,38 @@ class DeviceController extends Controller
             ->update(['revoked_at' => now()]);
         return response()->json(['type' => 'success']);
     }
+
+    /**
+     * List the authenticated client's active devices. Used by the mobile
+     * settings screen so users can see and individually revoke sessions
+     * (e.g. "lost my old phone"). The token itself is never returned —
+     * only enough to identify the device.
+     */
+    public function index(Request $request)
+    {
+        $rows = DB::table('client_devices')
+            ->where('client_id', $request->user()->id)
+            ->whereNull('revoked_at')
+            ->orderByDesc('last_seen_at')
+            ->select([
+                'id', 'platform', 'device_model', 'os_version', 'app_version',
+                'last_seen_at', 'created_at',
+            ])
+            ->get();
+        return response()->json(['data' => $rows]);
+    }
+
+    /**
+     * Soft-revoke a specific device by id (NOT by token — the mobile app
+     * shouldn't have to know the token to revoke a different device).
+     * Scoped by client_id so a user can't revoke someone else's row.
+     */
+    public function revokeById(Request $request, int $id)
+    {
+        DB::table('client_devices')
+            ->where('id', $id)
+            ->where('client_id', $request->user()->id)
+            ->update(['revoked_at' => now()]);
+        return response()->json(['type' => 'success']);
+    }
 }

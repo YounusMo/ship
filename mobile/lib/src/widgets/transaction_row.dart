@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../models/transaction.dart';
@@ -15,12 +16,13 @@ class TransactionRow extends StatelessWidget {
     final sign  = isDebit ? '−' : (isCredit ? '+' : '');
     final amount = NumberFormat.decimalPattern().format(tx.value);
 
+    final l = AppLocalizations.of(context)!;
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: color.withValues(alpha: 0.1),
         child: Icon(_iconFor(tx.type), color: color),
       ),
-      title: Text(_titleFor(tx.type), style: const TextStyle(fontWeight: FontWeight.w600)),
+      title: Text(_titleFor(l, tx.type), style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(
         '${tx.createdDate} · ${tx.transactionNumber ?? tx.purpose ?? ''}'.trim(),
       ),
@@ -43,11 +45,11 @@ class TransactionRow extends StatelessWidget {
         _            => Icons.swap_vert,
       };
 
-  String _titleFor(String type) => switch (type) {
-        'deposit'    => 'Deposit',
-        'withdraw'   => 'Withdrawal',
-        'commission' => 'Commission',
-        'transfer'   => 'Transfer',
+  String _titleFor(AppLocalizations l, String type) => switch (type) {
+        'deposit'    => l.txDeposit,
+        'withdraw'   => l.txWithdrawal,
+        'commission' => l.txCommission,
+        'transfer'   => l.txTransfer,
         _            => type,
       };
 }

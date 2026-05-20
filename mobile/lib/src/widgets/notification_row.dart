@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 import '../models/notification_item.dart';
@@ -19,6 +20,7 @@ class NotificationRow extends StatelessWidget {
       _             => (Icons.notifications_none,              Colors.grey),
     };
 
+    final l = AppLocalizations.of(context)!;
     return ListTile(
       tileColor: unread ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.04) : null,
       leading: Stack(
@@ -35,7 +37,7 @@ class NotificationRow extends StatelessWidget {
             ),
         ],
       ),
-      title: Text(_titleFor(item), style: TextStyle(fontWeight: unread ? FontWeight.w700 : FontWeight.w500)),
+      title: Text(_titleFor(l, item), style: TextStyle(fontWeight: unread ? FontWeight.w700 : FontWeight.w500)),
       subtitle: Text(_subtitleFor(item)),
       trailing: Text(
         DateFormat.MMMd().format(item.createdAt),
@@ -45,33 +47,33 @@ class NotificationRow extends StatelessWidget {
     );
   }
 
-  String _titleFor(NotificationItem n) {
+  String _titleFor(AppLocalizations l, NotificationItem n) {
     switch (n.category) {
       case 'transaction':
         final kind = n.data['kind'] as String? ?? 'transaction';
         return switch (kind) {
-          'deposit'      => 'Deposit posted',
-          'withdraw'     => 'Withdrawal posted',
-          'commission'   => 'Commission charged',
-          'transfer_in'  => 'Transfer received',
-          'transfer_out' => 'Transfer sent',
-          'transfer'     => 'Currency transfer',
-          _               => 'Transaction posted',
+          'deposit'      => l.notificationTransactionDeposit,
+          'withdraw'     => l.notificationTransactionWithdraw,
+          'commission'   => l.notificationTransactionCommission,
+          'transfer_in'  => l.notificationTransactionTransferIn,
+          'transfer_out' => l.notificationTransactionTransferOut,
+          'transfer'     => l.notificationTransactionTransfer,
+          _               => l.notificationTransactionDefault,
         };
       case 'shipment':
         final mode   = n.data['mode']   as String? ?? '';
         final status = n.data['status'] as String? ?? '';
-        final label  = mode == 'sea' ? 'Sea' : 'Air';
+        final modeLabel = mode == 'sea' ? l.filterSea : l.filterAir;
         return switch (status) {
-          'received' => '$label shipment received',
-          'shipped'  => '$label shipment dispatched',
-          'canceled' => '$label shipment canceled',
-          _           => '$label shipment update',
+          'received' => l.notificationShipmentReceived(modeLabel),
+          'shipped'  => l.notificationShipmentShipped(modeLabel),
+          'canceled' => l.notificationShipmentCanceled(modeLabel),
+          _           => l.notificationShipmentDefault(modeLabel),
         };
       case 'receipt':
-        return 'Receipt ${n.data['receipt_number'] ?? ''}';
+        return l.notificationReceiptPrefix('${n.data['receipt_number'] ?? ''}');
       default:
-        return 'Update';
+        return l.notificationUpdate;
     }
   }
 

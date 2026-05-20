@@ -6,6 +6,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/shipment_detail_screen.dart';
 import 'screens/shipments_screen.dart';
 import 'screens/splash_screen.dart';
@@ -58,6 +59,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id   = int.parse(state.pathParameters['id']!);
           return ShipmentDetailScreen(mode: mode, id: id);
         },
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (_, __) => const SettingsScreen(),
       ),
     ],
   );

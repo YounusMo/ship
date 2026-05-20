@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 class BalanceCard extends StatelessWidget {
@@ -47,10 +48,10 @@ class BalanceCard extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               negative
-                  ? 'You owe'
+                  ? AppLocalizations.of(context)!.labelYouOwe
                   : positive
-                      ? 'We owe you'
-                      : 'Settled',
+                      ? AppLocalizations.of(context)!.labelWeOwe
+                      : AppLocalizations.of(context)!.labelSettled,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
             ),
           ],

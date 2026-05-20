@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'router.dart';
+import 'state/locale_provider.dart';
 import 'theme.dart';
 
 class ShipFlowApp extends ConsumerWidget {
@@ -11,27 +13,23 @@ class ShipFlowApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    // null = follow system locale; a Locale = user-pinned via Settings.
+    final locale = ref.watch(localeProvider).valueOrNull;
 
     return MaterialApp.router(
-      title: 'ShipFlow',
+      onGenerateTitle: (ctx) => AppLocalizations.of(ctx)!.appTitle,
       debugShowCheckedModeBanner: false,
       theme: shipflowLightTheme,
       darkTheme: shipflowDarkTheme,
       themeMode: ThemeMode.system,
-      // i18n: codegen lives at .dart_tool/flutter_gen/... after `flutter pub get`.
-      // Until that runs, AppLocalizations isn't importable — to keep this file
-      // compileable in a fresh checkout, we wire only the delegates and the
-      // supported locales here; screens look strings up via Localizations.of
-      // once the codegen file is present.
+      locale: locale,
       localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const <Locale>[
-        Locale('en'),
-        Locale('ar'),
-      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
     );
   }

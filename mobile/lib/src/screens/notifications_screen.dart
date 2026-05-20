@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/notifications_provider.dart';
@@ -32,6 +33,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final state = ref.watch(notificationsProvider);
     final unread = state.valueOrNull?.unreadCount ?? 0;
 
@@ -43,10 +45,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                Text('$unread unread'),
+                Text(l.unreadCount(unread)),
                 TextButton(
                   onPressed: () => ref.read(notificationsProvider.notifier).markAllRead(),
-                  child: const Text('Mark all read'),
+                  child: Text(l.markAllRead),
                 ),
               ],
             ),
@@ -59,7 +61,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               error: (e, _) => Center(child: Text('$e')),
               data: (s) {
                 if (s.items.isEmpty) {
-                  return const Center(child: Text('No notifications yet.'));
+                  return Center(child: Text(l.noNotificationsYet));
                 }
                 return ListView.separated(
                   controller: _scroll,

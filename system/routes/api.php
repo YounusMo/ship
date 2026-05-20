@@ -34,6 +34,9 @@ Route::middleware(['auth:sanctum', 'client.sanctum'])->group(function () {
 
     Route::post('/devices/register', [DeviceController::class, 'register']);
     Route::post('/devices/revoke',   [DeviceController::class, 'revoke']);
+    Route::get('/devices',           [DeviceController::class, 'index']);
+    Route::post('/devices/{id}/revoke', [DeviceController::class, 'revokeById'])
+        ->where('id', '[0-9]+');
 
     Route::get('/balances',     BalanceController::class);
     Route::get('/transactions', [TransactionController::class, 'index']);

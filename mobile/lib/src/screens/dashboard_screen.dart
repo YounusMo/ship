@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -11,6 +12,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final balance = ref.watch(balanceProvider);
+    final l = AppLocalizations.of(context)!;
 
     return RefreshIndicator(
       onRefresh: () => ref.read(balanceProvider.notifier).refresh(),
@@ -22,12 +24,12 @@ class DashboardScreen extends ConsumerWidget {
           children: <Widget>[
             const SizedBox(height: 4),
             Text(
-              'Your balances',
+              l.balancesTitle,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
-              'Sourced from journal as of ${DateFormat.yMMMd().add_jm().format(b.asOf)}',
+              l.sourcedAt(DateFormat.yMMMd().add_jm().format(b.asOf)),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.black54),
             ),
             const SizedBox(height: 16),
@@ -59,6 +61,7 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -69,7 +72,7 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: onRetry, child: const Text('Try again')),
+            ElevatedButton(onPressed: onRetry, child: Text(l.tryAgain)),
           ],
         ),
       ),

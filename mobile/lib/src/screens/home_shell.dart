@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,21 +13,24 @@ class HomeShell extends ConsumerWidget {
   const HomeShell({super.key, required this.child});
   final Widget child;
 
-  static const _tabs = <_TabSpec>[
-    _TabSpec(path: '/home',          icon: Icons.dashboard_outlined,         active: Icons.dashboard,           label: 'Home'),
-    _TabSpec(path: '/transactions',  icon: Icons.receipt_long_outlined,      active: Icons.receipt_long,        label: 'Transactions'),
-    _TabSpec(path: '/shipments',     icon: Icons.local_shipping_outlined,    active: Icons.local_shipping,      label: 'Shipments'),
-    _TabSpec(path: '/notifications', icon: Icons.notifications_none_outlined,active: Icons.notifications,       label: 'Alerts'),
-  ];
+  static const _tabPaths = <String>['/home', '/transactions', '/shipments', '/notifications'];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l      = AppLocalizations.of(context)!;
     final client = ref.watch(authProvider).valueOrNull;
     final unread = ref.watch(notificationsProvider).valueOrNull?.unreadCount ?? 0;
 
     final location = GoRouterState.of(context).matchedLocation;
     final selectedIndex =
-        _tabs.indexWhere((t) => location.startsWith(t.path)).clamp(0, _tabs.length - 1);
+        _tabPaths.indexWhere((p) => location.startsWith(p)).clamp(0, _tabPaths.length - 1);
+
+    final tabs = <_TabSpec>[
+      _TabSpec(icon: Icons.dashboard_outlined,          active: Icons.dashboard,      label: l.tabHome),
+      _TabSpec(icon: Icons.receipt_long_outlined,       active: Icons.receipt_long,   label: l.tabTransactions),
+      _TabSpec(icon: Icons.local_shipping_outlined,     active: Icons.local_shipping, label: l.tabShipments),
+      _TabSpec(icon: Icons.notifications_none_outlined, active: Icons.notifications,  label: l.tabNotifications),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -40,26 +44,24 @@ class HomeShell extends ConsumerWidget {
         ),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Sign out',
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-            },
+            tooltip: l.settingsTitle,
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
           ),
         ],
       ),
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
-        onDestinationSelected: (i) => context.go(_tabs[i].path),
+        onDestinationSelected: (i) => context.go(_tabPaths[i]),
         destinations: <Widget>[
-          for (var i = 0; i < _tabs.length; i++)
+          for (var i = 0; i < tabs.length; i++)
             NavigationDestination(
               icon: i == 3 && unread > 0
-                ? Badge.count(count: unread, child: Icon(_tabs[i].icon))
-                : Icon(_tabs[i].icon),
-              selectedIcon: Icon(_tabs[i].active),
-              label: _tabs[i].label,
+                ? Badge.count(count: unread, child: Icon(tabs[i].icon))
+                : Icon(tabs[i].icon),
+              selectedIcon: Icon(tabs[i].active),
+              label: tabs[i].label,
             ),
         ],
       ),
@@ -68,9 +70,8 @@ class HomeShell extends ConsumerWidget {
 }
 
 class _TabSpec {
-  final String path;
   final IconData icon;
   final IconData active;
   final String label;
-  const _TabSpec({required this.path, required this.icon, required this.active, required this.label});
+  const _TabSpec({required this.icon, required this.active, required this.label});
 }

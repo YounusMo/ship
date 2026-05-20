@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/shipment_detail.dart';
@@ -13,15 +14,16 @@ class ShipmentDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l     = AppLocalizations.of(context)!;
     final key   = ShipmentDetailKey(mode, id);
     final state = ref.watch(shipmentDetailProvider(key));
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Shipment'),
+        title: Text(l.shipmentTitle),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l.shipmentRefresh,
             icon: const Icon(Icons.refresh),
             onPressed: () => ref.read(shipmentDetailProvider(key).notifier).refresh(),
           ),
@@ -42,8 +44,9 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final modeLabel   = detail.mode == 'sea' ? 'Sea' : 'Air';
-    final bucketLabel = detail.bucket == 'received' ? 'Received at warehouse' : 'In transit';
+    final l           = AppLocalizations.of(context)!;
+    final modeLabel   = detail.mode == 'sea' ? l.filterSea : l.filterAir;
+    final bucketLabel = detail.bucket == 'received' ? l.shipmentReceived : l.shipmentInTransit;
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -64,18 +67,18 @@ class _Body extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _kv('Transaction', detail.transactionNumber ?? '—'),
-                _kv('Pieces',      detail.pieces_?.toString() ?? '—'),
-                _kv('KG',          detail.kg?.toStringAsFixed(2) ?? '—'),
-                _kv('CBM',         detail.cbm?.toStringAsFixed(3) ?? '—'),
-                if (detail.category != null) _kv('Category', detail.category!),
-                if (detail.shipFrom != null) _kv('Origin',   detail.shipFrom!),
-                if (detail.createdDate != null) _kv('Date',  detail.createdDate!),
+                _kv(l.shipmentTransaction, detail.transactionNumber ?? '—'),
+                _kv(l.shipmentPieces,      detail.pieces_?.toString() ?? '—'),
+                _kv(l.shipmentKg,          detail.kg?.toStringAsFixed(2) ?? '—'),
+                _kv(l.shipmentCbm,         detail.cbm?.toStringAsFixed(3) ?? '—'),
+                if (detail.category != null) _kv(l.shipmentCategory, detail.category!),
+                if (detail.shipFrom != null) _kv(l.shipmentOrigin,   detail.shipFrom!),
+                if (detail.createdDate != null) _kv(l.shipmentDate,  detail.createdDate!),
                 if (detail.paymentPending)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Chip(
-                      label: const Text('Payment pending'),
+                      label: Text(l.shipmentPaymentPending),
                       backgroundColor: Colors.orange.shade100,
                     ),
                   ),
@@ -86,7 +89,7 @@ class _Body extends StatelessWidget {
         const SizedBox(height: 16),
         if (detail.pieces.isNotEmpty) ...<Widget>[
           Text(
-            'Tracking codes (${detail.pieces.length})',
+            l.shipmentTrackingCodes(detail.pieces.length),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
@@ -118,6 +121,7 @@ class _PieceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final isCanceled = (piece.status ?? '').toLowerCase() == 'canceled';
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -134,15 +138,18 @@ class _PieceTile extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
-        subtitle: Text('Piece ${piece.pieceIndex} of ${piece.pieceTotal}${piece.status != null ? " · ${piece.status}" : ""}'),
+        subtitle: Text(
+          '${l.shipmentPieceCounter(piece.pieceIndex, piece.pieceTotal)}'
+          '${piece.status != null ? " · ${piece.status}" : ""}',
+        ),
         trailing: IconButton(
-          tooltip: 'Copy',
+          tooltip: l.shipmentCopy,
           icon: const Icon(Icons.copy_outlined),
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: piece.trackingCode));
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Copied ${piece.trackingCode}')),
+                SnackBar(content: Text(l.shipmentCopied(piece.trackingCode))),
               );
             }
           },
@@ -155,14 +162,17 @@ class _PieceTile extends StatelessWidget {
 class _EmptyPieces extends StatelessWidget {
   const _EmptyPieces();
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 32),
-    child: Column(
-      children: const <Widget>[
-        Icon(Icons.qr_code_2, size: 48, color: Colors.black26),
-        SizedBox(height: 8),
-        Text('No per-piece tracking codes yet for this shipment.'),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Column(
+        children: <Widget>[
+          const Icon(Icons.qr_code_2, size: 48, color: Colors.black26),
+          const SizedBox(height: 8),
+          Text(l.shipmentNoPieces),
+        ],
+      ),
+    );
+  }
 }

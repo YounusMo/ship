@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../api/api_exceptions.dart';
@@ -43,7 +44,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final state = ref.read(authProvider);
       if (state.hasError) {
         setState(() {
-          _errorMessage = _humanize(state.error);
+          _errorMessage = _humanize(context, state.error);
         });
       } else {
         // Successful login. Register this device with the backend so push
@@ -55,21 +56,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  String _humanize(Object? err) {
+  String _humanize(BuildContext context, Object? err) {
+    final l = AppLocalizations.of(context)!;
     if (err is ApiException) {
       return switch (err.code) {
-        ApiErrorCode.unauthorized => 'Invalid identifier or password.',
-        ApiErrorCode.rateLimited  => 'Too many attempts. Try again shortly.',
-        ApiErrorCode.network      => 'No connection to the server.',
+        ApiErrorCode.unauthorized => l.invalidCredentials,
+        ApiErrorCode.rateLimited  => l.rateLimited,
+        ApiErrorCode.network      => l.noConnection,
         _                          => err.message,
       };
     }
-    return 'Sign-in failed. Try again.';
+    return l.signInFailed;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -83,11 +86,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    Text('ShipFlow',
+                    Text(l.appTitle,
                       style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 4),
-                    Text('Client portal', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+                    Text(l.appSubtitle, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.black54)),
                     const SizedBox(height: 32),
 
                     TextFormField(
@@ -95,11 +98,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       autocorrect: false,
                       enableSuggestions: false,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Email or code',
-                        prefixIcon: Icon(Icons.person_outline),
+                      decoration: InputDecoration(
+                        labelText: l.emailOrCode,
+                        prefixIcon: const Icon(Icons.person_outline),
                       ),
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      validator: (v) => (v == null || v.trim().isEmpty) ? l.required : null,
                     ),
                     const SizedBox(height: 12),
 
@@ -109,14 +112,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _submit(),
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: l.password,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
                           onPressed: () => setState(() => _obscure = !_obscure),
                         ),
                       ),
-                      validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                      validator: (v) => (v == null || v.isEmpty) ? l.required : null,
                     ),
                     if (_errorMessage != null) ...<Widget>[
                       const SizedBox(height: 16),
@@ -128,12 +131,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: _submitting ? null : _submit,
                       child: _submitting
                         ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Sign in'),
+                        : Text(l.signIn),
                     ),
 
                     const SizedBox(height: 24),
                     Text(
-                      'Contact your branch administrator for credentials or a password reset.',
+                      l.needHelpContact,
                       style: theme.textTheme.bodySmall?.copyWith(color: Colors.black54),
                       textAlign: TextAlign.center,
                     ),

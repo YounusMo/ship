@@ -23,6 +23,14 @@ class AuthNotifier extends AsyncNotifier<Client?> {
     // Biometric gate: if the user enabled Face/Touch ID after a previous
     // login, prompt before re-hydrating the session. Failure to authenticate
     // is treated like a missing token — the user lands on /login.
+    //
+    // The prompt text comes from the platform system dialog. Localizing it
+    // properly requires a BuildContext (to read AppLocalizations) which a
+    // Notifier doesn't have. The OS picks the right language for the
+    // surrounding biometric system UI regardless; we pass an English
+    // application name here so users on AR see a mixed Arabic prompt with
+    // "ShipFlow" baked in — acceptable trade-off until we surface this
+    // string via a context-aware bootstrap step.
     final bio = ref.read(biometricControllerProvider);
     if (await bio.isEnabled() && await bio.isAvailable()) {
       final ok = await bio.authenticate(reason: 'Unlock ShipFlow');

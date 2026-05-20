@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../models/balance.dart';
 import '../models/client.dart';
+import '../models/client_device.dart';
 import '../models/notification_item.dart';
 import '../models/paginated.dart';
 import '../models/shipment.dart';
@@ -62,6 +63,19 @@ class ApiService {
       'device_model': deviceModel,
       'os_version'  : osVersion,
     });
+  }
+
+  Future<List<ClientDevice>> devices() async {
+    final resp = await _dio.get<Map<String, dynamic>>('/api/devices');
+    final rows = (resp.data?['data'] as List?) ?? const <dynamic>[];
+    return rows
+        .whereType<Map<String, dynamic>>()
+        .map(ClientDevice.fromJson)
+        .toList();
+  }
+
+  Future<void> revokeDeviceById(int id) async {
+    await _dio.post<void>('/api/devices/$id/revoke');
   }
 
   // --- Data -----------------------------------------------------------

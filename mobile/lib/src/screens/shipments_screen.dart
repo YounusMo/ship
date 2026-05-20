@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/shipments_provider.dart';
@@ -33,6 +34,7 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context)!;
     final state = ref.watch(shipmentsProvider);
 
     return Column(
@@ -40,10 +42,10 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: SegmentedButton<String>(
-            segments: const <ButtonSegment<String>>[
-              ButtonSegment(value: 'all', label: Text('All')),
-              ButtonSegment(value: 'sea', label: Text('Sea')),
-              ButtonSegment(value: 'sky', label: Text('Air')),
+            segments: <ButtonSegment<String>>[
+              ButtonSegment(value: 'all', label: Text(l.filterAll)),
+              ButtonSegment(value: 'sea', label: Text(l.filterSea)),
+              ButtonSegment(value: 'sky', label: Text(l.filterAir)),
             ],
             selected: <String>{_mode},
             onSelectionChanged: (s) {
@@ -60,7 +62,7 @@ class _ShipmentsScreenState extends ConsumerState<ShipmentsScreen> {
               error: (e, _) => Center(child: Text('$e')),
               data: (s) {
                 if (s.items.isEmpty) {
-                  return const Center(child: Text('No shipments yet.'));
+                  return Center(child: Text(l.noShipmentsYet));
                 }
                 return ListView.separated(
                   controller: _scroll,

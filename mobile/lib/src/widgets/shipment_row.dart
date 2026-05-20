@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/shipment.dart';
@@ -10,9 +11,10 @@ class ShipmentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = shipment;
+    final l = AppLocalizations.of(context)!;
     final modeIcon = s.isSea ? Icons.directions_boat : Icons.flight;
-    final modeLabel = s.isSea ? 'Sea' : 'Air';
-    final bucketLabel = s.bucket == 'received' ? 'Received' : 'In transit';
+    final modeLabel = s.isSea ? l.filterSea : l.filterAir;
+    final bucketLabel = s.bucket == 'received' ? l.shipmentReceivedBadge : l.shipmentInTransitBadge;
     final bucketColor = s.bucket == 'received' ? Colors.blue : Colors.green;
 
     final size = <String>[
@@ -39,7 +41,7 @@ class ShipmentRow extends StatelessWidget {
       ),
       trailing: s.paymentPending
         ? Chip(
-            label: const Text('Payment due', style: TextStyle(fontSize: 10)),
+            label: Text(l.shipmentPaymentDueChip, style: const TextStyle(fontSize: 10)),
             backgroundColor: Colors.orange.shade100,
             visualDensity: VisualDensity.compact,
           )
