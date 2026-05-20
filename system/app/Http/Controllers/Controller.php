@@ -380,7 +380,7 @@ abstract class Controller
                 ->max('series_number');
             $nextNumber = ((int) $maxRow) + 1;
 
-            return $db->table('receipts')->insertGetId([
+            $receiptId = $db->table('receipts')->insertGetId([
                 'series_letter'        => $series,
                 'series_number'        => $nextNumber,
                 'source_table'         => $payload['source_table'],
@@ -401,6 +401,46 @@ abstract class Controller
                 'issued_by_user_name'  => $user?->name,
                 'issued_at'            => date('Y-m-d H:i:s'),
             ]);
+
+            // Mobile notification fan-out: one hook here covers all seven
+            // issueReceipt call sites. DB::afterCommit defers until the
+            // surrounding transaction commits — if the parent operation
+            // rolls back, the receipt row rolls back with it and we never
+            // fire a notification for a receipt that doesn't exist.
+            if (
+                ($payload['counterparty_type'] ?? null) === 'client'
+                && is_numeric($payload['counterparty_id'] ?? null)
+            ) {
+                $clientId      = (int) $payload['counterparty_id'];
+                $receiptNumber = trim($series . $nextNumber);
+                $kind          = (string) $payload['kind'];
+                $currency      = (string) ($payload['currency'] ?? '');
+                $amount        = isset($payload['amount']) ? (float) $payload['amount'] : 0.0;
+                $txn           = $payload['transaction_number'] ?? null;
+                $sourceTable   = $payload['source_table'] ?? null;
+                $sourceId      = is_numeric($payload['source_id'] ?? null) ? (int) $payload['source_id'] : null;
+
+                \Illuminate\Support\Facades\DB::afterCommit(function () use (
+                    $clientId, $receiptId, $receiptNumber, $kind, $currency,
+                    $amount, $txn, $sourceTable, $sourceId
+                ) {
+                    $client = \App\Models\Client::find($clientId);
+                    if ($client) {
+                        $client->notify(new \App\Notifications\ReceiptIssued(
+                            receiptId: $receiptId,
+                            receiptNumber: $receiptNumber,
+                            kind: $kind,
+                            currency: $currency,
+                            amount: $amount,
+                            transactionNumber: $txn,
+                            sourceTable: $sourceTable,
+                            sourceId: $sourceId,
+                        ));
+                    }
+                });
+            }
+
+            return $receiptId;
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning(
                 'issueReceipt failed: ' . $e->getMessage(),

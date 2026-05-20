@@ -489,6 +489,36 @@ class clientsController extends Controller
                             ],
                         ]);
 
+                        // Both sides get notified — sender as transfer_out (−),
+                        // recipient as transfer_in (+). issueReceipt at the top
+                        // of this branch already fires ReceiptIssued for each
+                        // side, so each client sees two related notifications
+                        // (a paper receipt + a balance-change).
+                        $sender    = \App\Models\Client::find($id);
+                        $recipient = \App\Models\Client::find($to_client);
+                        \Illuminate\Support\Facades\DB::afterCommit(function () use ($sender, $recipient, $value, $currency, $transaction_number, $from_row_id, $to_row_id, $purpose) {
+                            if ($sender) {
+                                $sender->notify(new \App\Notifications\ClientTransactionPosted(
+                                    kind: 'transfer_out',
+                                    currency: $currency,
+                                    amount: (float) $value,
+                                    transactionNumber: $transaction_number,
+                                    purpose: $purpose,
+                                    sourceId: $from_row_id,
+                                ));
+                            }
+                            if ($recipient) {
+                                $recipient->notify(new \App\Notifications\ClientTransactionPosted(
+                                    kind: 'transfer_in',
+                                    currency: $currency,
+                                    amount: (float) $value,
+                                    transactionNumber: $transaction_number,
+                                    purpose: $purpose,
+                                    sourceId: $to_row_id,
+                                ));
+                            }
+                        });
+
                         $err = false;
                     }else{
                         $err = true;
@@ -1056,6 +1086,20 @@ class clientsController extends Controller
                                      'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
                                 ],
                             ]);
+
+                            $clientForNotify = \App\Models\Client::find($id);
+                            if ($clientForNotify) {
+                                \Illuminate\Support\Facades\DB::afterCommit(function () use ($clientForNotify, $value, $currency, $transaction_number, $withdraw_row_id, $purpose) {
+                                    $clientForNotify->notify(new \App\Notifications\ClientTransactionPosted(
+                                        kind: 'withdraw',
+                                        currency: $currency,
+                                        amount: (float) $value,
+                                        transactionNumber: $transaction_number,
+                                        purpose: $purpose,
+                                        sourceId: $withdraw_row_id,
+                                    ));
+                                });
+                            }
                         }
 
                         $err = false;
@@ -1231,6 +1275,20 @@ class clientsController extends Controller
                                      'counterparty_type' => 'client', 'counterparty_id' => (int) $id],
                                 ],
                             ]);
+
+                            $clientForNotify = \App\Models\Client::find($id);
+                            if ($clientForNotify) {
+                                \Illuminate\Support\Facades\DB::afterCommit(function () use ($clientForNotify, $value, $currency, $transaction_number, $commission_row_id) {
+                                    $clientForNotify->notify(new \App\Notifications\ClientTransactionPosted(
+                                        kind: 'commission',
+                                        currency: $currency,
+                                        amount: (float) $value,
+                                        transactionNumber: $transaction_number,
+                                        purpose: 'commission',
+                                        sourceId: $commission_row_id,
+                                    ));
+                                });
+                            }
                         }
 
                         $err = false;

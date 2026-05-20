@@ -187,6 +187,25 @@ class clientsReportsController extends Controller
                                  'counterparty_type' => 'client', 'counterparty_id' => (int) $get->client_id, 'description' => 'Increase to-currency claim'],
                             ],
                         ]);
+
+                        // Currency-transfer approval is the moment the client's
+                        // balance actually moves — fire the push now, not at
+                        // pending-row creation time. issueReceipt above fires
+                        // ReceiptIssued via the Controller hook automatically.
+                        $clientForNotify = \App\Models\Client::find($get->client_id);
+                        if ($clientForNotify) {
+                            $approvalSnapshot = $get; // freeze for the closure
+                            \Illuminate\Support\Facades\DB::afterCommit(function () use ($clientForNotify, $approvalSnapshot) {
+                                $clientForNotify->notify(new \App\Notifications\ClientTransactionPosted(
+                                    kind: 'transfer',
+                                    currency: (string) $approvalSnapshot->currency,
+                                    amount: (float) $approvalSnapshot->value,
+                                    transactionNumber: $approvalSnapshot->transaction_number,
+                                    purpose: $approvalSnapshot->purpose,
+                                    sourceId: (int) $approvalSnapshot->id,
+                                ));
+                            });
+                        }
                     }
                 }else{
                     $value     = $request->value;

@@ -150,6 +150,27 @@ class skyController extends Controller
                         (int) $client_id ?: null
                     );
 
+                    // Mobile push: shipment received at warehouse. afterCommit
+                    // ensures we never notify on a rolled-back insert.
+                    $clientForNotify = \App\Models\Client::find($client_id);
+                    if ($clientForNotify) {
+                        $pieces = (int) ($data['number'] ?? 0);
+                        $kg     = isset($data['kg']) ? (float) $data['kg'] : null;
+                        $cbm    = isset($data['cbm']) ? (float) $data['cbm'] : null;
+                        \Illuminate\Support\Facades\DB::afterCommit(function () use ($clientForNotify, $newId, $transaction_number, $pieces, $kg, $cbm) {
+                            $clientForNotify->notify(new \App\Notifications\ShipmentStatusChanged(
+                                mode: 'sky',
+                                status: 'received',
+                                sourceId: (int) $newId,
+                                sourceTable: 'store_sky',
+                                transactionNumber: $transaction_number,
+                                pieces: $pieces ?: null,
+                                kg: $kg,
+                                cbm: $cbm,
+                            ));
+                        });
+                    }
+
                     $err = false;
                 }else{
                     $err = true;

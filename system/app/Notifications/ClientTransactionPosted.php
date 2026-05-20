@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Notifications\Channels\FcmChannel;
 use App\Notifications\Messages\FcmMessage;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
 /**
@@ -19,7 +20,7 @@ use Illuminate\Notifications\Notification;
  * the moment we serialize and (b) the app fetches /api/balances on
  * receipt anyway.
  */
-class ClientTransactionPosted extends Notification
+class ClientTransactionPosted extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -53,11 +54,13 @@ class ClientTransactionPosted extends Notification
     public function toFcm(mixed $notifiable): FcmMessage
     {
         $title = match ($this->kind) {
-            'deposit'    => 'Deposit posted',
-            'withdraw'   => 'Withdrawal posted',
-            'commission' => 'Commission charged',
-            'transfer'   => 'Transfer posted',
-            default      => 'Transaction posted',
+            'deposit'      => 'Deposit posted',
+            'withdraw'     => 'Withdrawal posted',
+            'commission'   => 'Commission charged',
+            'transfer'     => 'Transfer posted',
+            'transfer_in'  => 'Transfer received',
+            'transfer_out' => 'Transfer sent',
+            default        => 'Transaction posted',
         };
         $body = sprintf('%s %s', $this->formatAmount(), strtoupper($this->currency));
         if ($this->transactionNumber) {
@@ -76,7 +79,11 @@ class ClientTransactionPosted extends Notification
 
     private function formatAmount(): string
     {
-        $sign = in_array($this->kind, ['withdraw', 'commission'], true) ? '−' : '+';
+        // Negative-direction kinds: money leaves the client's claim on us.
+        // 'transfer' (currency transfer) shows '±' since both legs move
+        // simultaneously and the app surfaces both via separate rows.
+        $negative = ['withdraw', 'commission', 'transfer_out'];
+        $sign = in_array($this->kind, $negative, true) ? '−' : '+';
         return $sign . number_format($this->amount, 2);
     }
 }
