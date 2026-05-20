@@ -6,6 +6,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/shipment_detail_screen.dart';
 import 'screens/shipments_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/transactions_screen.dart';
@@ -17,7 +18,7 @@ import 'state/auth_provider.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/',
     refreshListenable: _AuthListenable(ref),
     redirect: (context, state) {
@@ -48,9 +49,25 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/notifications', builder: (_, __) => const NotificationsScreen()),
         ],
       ),
+      // Shipment detail lives OUTSIDE the bottom-nav shell so it pushes
+      // a full-screen route — the back button returns to the previous tab.
+      GoRoute(
+        path: '/shipments/:mode/:id',
+        builder: (context, state) {
+          final mode = state.pathParameters['mode']!;
+          final id   = int.parse(state.pathParameters['id']!);
+          return ShipmentDetailScreen(mode: mode, id: id);
+        },
+      ),
     ],
   );
+  activeRouter = router;
+  return router;
 });
+
+/// Global handle to the active GoRouter so PushService can deep-link from
+/// background notification taps without holding a BuildContext.
+GoRouter? activeRouter;
 
 /// Wires a Riverpod provider into go_router's refreshListenable contract.
 /// We notify on every auth state change so the guard above re-runs.

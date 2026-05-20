@@ -1,0 +1,51 @@
+{
+  "@@locale": "ar",
+
+  "appTitle": "شيب فلو",
+
+  "signIn":      "تسجيل الدخول",
+  "signOut":     "تسجيل الخروج",
+  "emailOrCode": "البريد أو الكود",
+  "password":    "كلمة المرور",
+  "required":    "حقل مطلوب",
+  "invalidCredentials": "بيانات الدخول غير صحيحة.",
+  "rateLimited":        "محاولات كثيرة. حاول لاحقاً.",
+  "noConnection":       "تعذر الاتصال بالخادم.",
+  "needHelpContact":    "للحصول على بيانات الدخول أو إعادة تعيين كلمة المرور، تواصل مع مدير الفرع.",
+
+  "tabHome":          "الرئيسية",
+  "tabTransactions":  "الحركات",
+  "tabShipments":     "الشحنات",
+  "tabNotifications": "التنبيهات",
+
+  "balancesTitle":    "أرصدتك",
+  "sourcedAt":        "محدّث من القيود في {at}",
+
+  "labelYouOwe":  "عليك",
+  "labelWeOwe":   "لك",
+  "labelSettled": "مسوّى",
+
+  "noTransactionsYet":  "لا توجد حركات بعد.",
+  "noShipmentsYet":     "لا توجد شحنات بعد.",
+  "noNotificationsYet": "لا توجد تنبيهات بعد.",
+
+  "unreadCount":   "غير مقروء: {n}",
+  "markAllRead":   "تعليم الكل كمقروء",
+
+  "shipmentTitle":       "الشحنة",
+  "shipmentReceived":    "تم الاستلام في المستودع",
+  "shipmentInTransit":   "في الطريق",
+  "shipmentTransaction": "رقم العملية",
+  "shipmentPieces":      "العدد",
+  "shipmentKg":          "كجم",
+  "shipmentCbm":         "م³",
+  "shipmentCategory":    "الفئة",
+  "shipmentOrigin":      "المصدر",
+  "shipmentDate":        "التاريخ",
+  "shipmentPaymentDue":  "مستحق الدفع",
+  "shipmentTrackingCodes": "أكواد التتبع ({n})",
+  "shipmentPieceCounter":  "القطعة {i} من {total}",
+  "shipmentNoPieces":      "لا توجد أكواد تتبع لهذه الشحنة.",
+
+  "biometricUnlockReason": "افتح شيب فلو"
+}

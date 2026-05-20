@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../api/api_service.dart';
+import '../router.dart' show activeRouter;
 
 /// Owns the FCM lifecycle:
 ///   - bootstrap() — request permission, wire foreground/background handlers.
@@ -58,11 +59,45 @@ class PushService {
       );
     });
 
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      // Deep-link target lives in message.data['category'] — leave routing
-      // to a follow-up commit; for now we just log so the wiring is visible.
-      debugPrint('[push] opened from notification: ${message.data}');
-    });
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleTap);
+
+    // App was terminated and the user tapped a push — replay the routing.
+    final initial = await FirebaseMessaging.instance.getInitialMessage();
+    if (initial != null) _handleTap(initial);
+  }
+
+  /// Translate a notification's data payload into a deep-link target. The
+  /// backend's [App\Notifications] classes all set a `category` key
+  /// (transaction|shipment|receipt) — we branch on it here.
+  void _handleTap(RemoteMessage message) {
+    final router = activeRouter;
+    if (router == null) return;
+    final data = message.data;
+    debugPrint('[push] tap → ${data['category']} ${data}');
+
+    switch (data['category']) {
+      case 'shipment':
+        // For row-level cancels / received / shipped, source_table identifies
+        // whether sourceId is a store_*_row (open detail) or a containers_*
+        // row (no detail screen yet — punt to the list).
+        final src  = data['source_table'] as String?;
+        final id   = int.tryParse('${data['source_id'] ?? ''}');
+        final mode = data['mode'] as String?;
+        if (id != null && mode != null && (src == 'store_sea' || src == 'store_sky' || src == 'store_out_sea' || src == 'store_out_sky')) {
+          router.push('/shipments/$mode/$id');
+          return;
+        }
+        router.go('/shipments');
+        return;
+      case 'transaction':
+        router.go('/transactions');
+        return;
+      case 'receipt':
+        router.go('/notifications');
+        return;
+      default:
+        router.go('/notifications');
+    }
   }
 
   /// Pulls the FCM token and POSTs it to /api/devices/register. Safe to

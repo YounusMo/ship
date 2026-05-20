@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter/foundation.dart';
 
 import 'api_exceptions.dart';
@@ -26,6 +27,23 @@ class ApiClient {
       // response so we can map error codes uniformly.
       validateStatus: (_) => true,
     ));
+
+    // Memory cache for GET responses. Short TTL — we still want a fresh
+    // balance after a deposit, but two consecutive list pulls within ~30s
+    // can be served from RAM (typical of tab-switching). The token
+    // interceptor sits in front so a logout invalidates implicitly via
+    // the changed Authorization header (cache key includes the URI but
+    // not headers, so we flush on logout below).
+    final cacheStore = MemCacheStore(maxSize: 5 * 1024 * 1024); // 5 MiB
+    _cacheOptions = CacheOptions(
+      store: cacheStore,
+      policy: CachePolicy.request,
+      hitCacheOnErrorExcept: const <int>[401, 403],
+      maxStale: const Duration(seconds: 30),
+      keyBuilder: CacheOptions.defaultCacheKeyBuilder,
+      allowPostMethod: false,
+    );
+    _dio.interceptors.add(DioCacheInterceptor(options: _cacheOptions));
 
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
@@ -60,12 +78,18 @@ class ApiClient {
 
   static final ApiClient instance = ApiClient._();
   late final Dio _dio;
+  late final CacheOptions _cacheOptions;
   String? _token;
 
   Dio get dio => _dio;
 
   void setToken(String token) => _token = token;
-  void clearToken()           => _token = null;
+  void clearToken() {
+    _token = null;
+    // Flush the cache so the next user on this device can't read the
+    // previous client's data from a stale entry.
+    _cacheOptions.store?.clean(staleOnly: false);
+  }
 
   /// Base URL is build-time configurable via:
   ///   flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8002

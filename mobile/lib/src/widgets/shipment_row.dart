@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../models/shipment.dart';
 
@@ -42,7 +43,8 @@ class ShipmentRow extends StatelessWidget {
             backgroundColor: Colors.orange.shade100,
             visualDensity: VisualDensity.compact,
           )
-        : null,
+        : const Icon(Icons.chevron_right, color: Colors.black38),
+      onTap: () => context.push('/shipments/${s.mode}/${s.id}'),
     );
   }
 }

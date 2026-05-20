@@ -83,18 +83,21 @@ Set `SESSION_SECURE_COOKIE=false` in `system/.env` for local HTTP testing (rever
 
 ## Status of this codebase
 
-This is a **first cut**. Working today:
+Working today:
 - Login → token persisted in Keychain / EncryptedSharedPreferences.
 - Dashboard with per-currency balance cards.
 - Paginated transactions list with currency filter.
 - Paginated shipments list (received + shipped buckets, sea + sky).
+- **Shipment detail screen** with per-piece tracking codes, copy-to-clipboard.
 - Notifications feed with unread badge and mark-read.
 - FCM token registration on login.
+- **Deep-link from FCM tap → relevant screen** (transaction/shipment/receipt categories).
+- **Biometric unlock** on cold start once a token is present (Face/Touch ID with passcode fallback).
+- **Offline cache** for GET responses via `dio_cache_interceptor` (5 MiB memory, 30 s stale-while-revalidate, flushed on logout).
+- **i18n scaffold**: `lib/l10n/app_en.arb` + `app_ar.arb` ready for codegen via `flutter pub get` (the backend supports Arabic per-client; the app will follow).
 
 Known gaps (next iteration):
-- Shipment detail screen with per-piece tracking codes (endpoint exists; UI not yet wired).
-- Deep-link from FCM payload → relevant screen.
-- Biometric unlock after first login (`local_auth`).
-- Pull-to-refresh on every list.
-- Offline cache via `dio_cache_interceptor` or a simple SQLite layer.
-- i18n: currently English-only. The backend supports `lang` per-client; the app should follow.
+- Settings screen (toggle biometrics, switch language, view device list, sign out).
+- Pull-to-refresh on the shipment detail screen.
+- Persist offline cache to disk (SQLite via `dio_cache_interceptor`'s `DbCacheStore`) so a cold-start without network still renders the last balances.
+- Full message catalogue: most screens still inline-hardcode English. After codegen, swap each literal for `AppLocalizations.of(context)!.<key>` — the keys are already in the ARB.

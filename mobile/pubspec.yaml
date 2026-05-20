@@ -44,6 +44,16 @@ dependencies:
   pull_to_refresh: ^2.0.0
   shimmer: ^3.0.0
 
+  # Biometric / passcode unlock on cold start.
+  local_auth: ^2.3.0
+
+  # Memory-cache for GET responses (lists / balances). Flushed on logout.
+  dio_cache_interceptor: ^3.5.0
+
+  # i18n scaffolding — see lib/l10n/*.arb and l10n.yaml.
+  flutter_localizations:
+    sdk: flutter
+
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
@@ -55,3 +65,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true   # turns on .arb → AppLocalizations codegen (l10n.yaml)

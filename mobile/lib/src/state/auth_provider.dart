@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/api_client.dart';
 import '../api/api_service.dart';
 import '../models/client.dart';
+import 'biometric_provider.dart';
 
 const _tokenKey  = 'shipflow.token';
 const _clientKey = 'shipflow.client.id';
@@ -18,6 +19,15 @@ class AuthNotifier extends AsyncNotifier<Client?> {
   Future<Client?> build() async {
     final token = await _storage.read(key: _tokenKey);
     if (token == null) return null;
+
+    // Biometric gate: if the user enabled Face/Touch ID after a previous
+    // login, prompt before re-hydrating the session. Failure to authenticate
+    // is treated like a missing token — the user lands on /login.
+    final bio = ref.read(biometricControllerProvider);
+    if (await bio.isEnabled() && await bio.isAvailable()) {
+      final ok = await bio.authenticate(reason: 'Unlock ShipFlow');
+      if (!ok) return null;
+    }
 
     // We have a token; ask the server to confirm it's still valid.
     // A 401 here means the token was revoked (logout from another device,
@@ -42,6 +52,14 @@ class AuthNotifier extends AsyncNotifier<Client?> {
       await _storage.write(key: _tokenKey,  value: result.token);
       await _storage.write(key: _clientKey, value: '${result.client.id}');
       ApiClient.instance.setToken(result.token);
+
+      // Enable biometric unlock by default after the first successful
+      // login on a device that supports it. Users can disable from a
+      // settings screen later — surfacing that switch is a follow-up.
+      final bio = ref.read(biometricControllerProvider);
+      if (await bio.isAvailable() && !(await bio.isEnabled())) {
+        await bio.setEnabled(true);
+      }
       return result.client;
     });
   }
@@ -54,6 +72,9 @@ class AuthNotifier extends AsyncNotifier<Client?> {
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _clientKey);
     ApiClient.instance.clearToken();
+    // Clear the biometric opt-in so the next user on this device isn't
+    // prompted for OUR Face ID on their splash screen.
+    await ref.read(biometricControllerProvider).setEnabled(false);
     state = const AsyncValue.data(null);
   }
 }

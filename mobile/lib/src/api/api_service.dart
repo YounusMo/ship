@@ -5,6 +5,7 @@ import '../models/client.dart';
 import '../models/notification_item.dart';
 import '../models/paginated.dart';
 import '../models/shipment.dart';
+import '../models/shipment_detail.dart';
 import '../models/transaction.dart';
 import 'api_client.dart';
 
@@ -82,6 +83,11 @@ class ApiService {
       queryParameters: <String, dynamic>{'page': page, 'mode': mode},
     );
     return Paginated<Shipment>.fromJson(resp.data!, Shipment.fromJson);
+  }
+
+  Future<ShipmentDetail> shipmentDetail({required String mode, required int id}) async {
+    final resp = await _dio.get<Map<String, dynamic>>('/api/shipments/$mode/$id');
+    return ShipmentDetail.fromJson(resp.data!);
   }
 
   Future<({int unreadCount, Paginated<NotificationItem> page})> notifications({int page = 1}) async {

@@ -1,0 +1,56 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "ShipFlow",
+  "@appTitle": { "description": "App name in the launcher / window title bar." },
+
+  "signIn":      "Sign in",
+  "signOut":     "Sign out",
+  "emailOrCode": "Email or code",
+  "password":    "Password",
+  "required":    "Required",
+  "invalidCredentials":  "Invalid identifier or password.",
+  "rateLimited":         "Too many attempts. Try again shortly.",
+  "noConnection":        "No connection to the server.",
+  "needHelpContact":     "Contact your branch administrator for credentials or a password reset.",
+
+  "tabHome":          "Home",
+  "tabTransactions":  "Transactions",
+  "tabShipments":     "Shipments",
+  "tabNotifications": "Alerts",
+
+  "balancesTitle":    "Your balances",
+  "sourcedAt":        "Sourced from journal as of {at}",
+  "@sourcedAt": { "placeholders": { "at": { "type": "String" } } },
+
+  "labelYouOwe":  "You owe",
+  "labelWeOwe":   "We owe you",
+  "labelSettled": "Settled",
+
+  "noTransactionsYet":  "No transactions yet.",
+  "noShipmentsYet":     "No shipments yet.",
+  "noNotificationsYet": "No notifications yet.",
+
+  "unreadCount":   "{n} unread",
+  "@unreadCount": { "placeholders": { "n": { "type": "int" } } },
+  "markAllRead":   "Mark all read",
+
+  "shipmentTitle":       "Shipment",
+  "shipmentReceived":    "Received at warehouse",
+  "shipmentInTransit":   "In transit",
+  "shipmentTransaction": "Transaction",
+  "shipmentPieces":      "Pieces",
+  "shipmentKg":          "KG",
+  "shipmentCbm":         "CBM",
+  "shipmentCategory":    "Category",
+  "shipmentOrigin":      "Origin",
+  "shipmentDate":        "Date",
+  "shipmentPaymentDue":  "Payment due",
+  "shipmentTrackingCodes": "Tracking codes ({n})",
+  "@shipmentTrackingCodes": { "placeholders": { "n": { "type": "int" } } },
+  "shipmentPieceCounter":  "Piece {i} of {total}",
+  "@shipmentPieceCounter": { "placeholders": { "i": { "type": "int" }, "total": { "type": "int" } } },
+  "shipmentNoPieces":      "No per-piece tracking codes yet for this shipment.",
+
+  "biometricUnlockReason": "Unlock ShipFlow"
+}

@@ -1,0 +1,14 @@
+# Flutter i18n config — codegen ARB → AppLocalizations.
+# Translations live in mobile/lib/l10n/*.arb.
+#
+# To add a new language:
+#   1. Drop a new app_<code>.arb into lib/l10n/ (mirror app_en.arb's keys).
+#   2. Run `flutter pub get` — codegen produces AppLocalizations.of(context).
+#   3. Add the locale to supportedLocales in app.dart.
+#
+# Strings: pass through AppLocalizations.of(context)!.<key> wherever you
+# render user-facing text. Stop hard-coding 'Sign in' / 'Logout' / etc.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
