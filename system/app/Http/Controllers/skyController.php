@@ -358,6 +358,8 @@ class skyController extends Controller
     public function cancel(Request $request){
         try {
             DB::transaction(function () use ($request) {
+                $row = DB::table('store_sky')->where('id', $request->id)->first();
+
                 DB::table('store_sky')->where('id',$request->id)->update([
                     'canceled'      => 'true',
                     'canceled_by'   => auth()->user()->id,
@@ -370,6 +372,24 @@ class skyController extends Controller
                 // Same transaction: if pieces fail, the canceled flag rolls back
                 // rather than leaving the two out of sync.
                 (new shipmentStickersController())->cancelPiecesFor('store_sky', (int) $request->id);
+
+                if ($row && !empty($row->client_id)) {
+                    $clientForNotify = \App\Models\Client::find($row->client_id);
+                    if ($clientForNotify) {
+                        \Illuminate\Support\Facades\DB::afterCommit(function () use ($clientForNotify, $row) {
+                            $clientForNotify->notify(new \App\Notifications\ShipmentStatusChanged(
+                                mode: 'sky',
+                                status: 'canceled',
+                                sourceId: (int) $row->id,
+                                sourceTable: 'store_sky',
+                                transactionNumber: $row->transaction_number ?? null,
+                                pieces: isset($row->number) ? (int) $row->number : null,
+                                kg: isset($row->kg) ? (float) $row->kg : null,
+                                cbm: isset($row->cbm) ? (float) $row->cbm : null,
+                            ));
+                        });
+                    }
+                }
             });
 
             return response()->json(['type' => 'success'], 200);
@@ -485,6 +505,26 @@ class skyController extends Controller
                                 'cbm'    => $cbm_,
                                 'kg'     => $kg_,
                             ]);
+
+                            // Mobile push: client's pieces packed + dispatched.
+                            $clientForNotify = \App\Models\Client::find($data['client_id']);
+                            if ($clientForNotify) {
+                                $piecesShipped = isset($number) ? (int) $number : null;
+                                $kgShipped     = isset($kg) ? (float) $kg : null;
+                                $cbmShipped    = isset($cbm) ? (float) $cbm : null;
+                                \Illuminate\Support\Facades\DB::afterCommit(function () use ($clientForNotify, $out_id, $transaction_number, $piecesShipped, $kgShipped, $cbmShipped) {
+                                    $clientForNotify->notify(new \App\Notifications\ShipmentStatusChanged(
+                                        mode: 'sky',
+                                        status: 'shipped',
+                                        sourceId: (int) $out_id,
+                                        sourceTable: 'store_out_sky',
+                                        transactionNumber: $transaction_number,
+                                        pieces: $piecesShipped ?: null,
+                                        kg: $kgShipped,
+                                        cbm: $cbmShipped,
+                                    ));
+                                });
+                            }
                         }
                     }        
                 }else{

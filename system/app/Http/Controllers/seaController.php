@@ -374,6 +374,13 @@ class seaController extends Controller
     public function cancel(Request $request){
         try {
             DB::transaction(function () use ($request) {
+                // Snapshot the row BEFORE we cancel — we need client_id +
+                // transaction_number + sizing for the notification, and the
+                // raw row stays the same after the update apart from the
+                // canceled flag, but reading first keeps the hook honest if
+                // the schema ever soft-deletes.
+                $row = DB::table('store_sea')->where('id', $request->id)->first();
+
                 DB::table('store_sea')->where('id',$request->id)->update([
                     'canceled'      => 'true',
                     'canceled_by'   => auth()->user()->id,
@@ -386,6 +393,24 @@ class seaController extends Controller
                 // Same transaction: if pieces fail, the canceled flag rolls back
                 // rather than leaving the two out of sync.
                 (new shipmentStickersController())->cancelPiecesFor('store_sea', (int) $request->id);
+
+                if ($row && !empty($row->client_id)) {
+                    $clientForNotify = \App\Models\Client::find($row->client_id);
+                    if ($clientForNotify) {
+                        \Illuminate\Support\Facades\DB::afterCommit(function () use ($clientForNotify, $row) {
+                            $clientForNotify->notify(new \App\Notifications\ShipmentStatusChanged(
+                                mode: 'sea',
+                                status: 'canceled',
+                                sourceId: (int) $row->id,
+                                sourceTable: 'store_sea',
+                                transactionNumber: $row->transaction_number ?? null,
+                                pieces: isset($row->number) ? (int) $row->number : null,
+                                kg: isset($row->kg) ? (float) $row->kg : null,
+                                cbm: isset($row->cbm) ? (float) $row->cbm : null,
+                            ));
+                        });
+                    }
+                }
             });
 
             return response()->json(['type' => 'success'], 200);
@@ -500,6 +525,29 @@ class seaController extends Controller
                                 'cbm'    => $cbm_,
                                 'kg'     => $kg_,
                             ]);
+
+                            // Mobile push: the client's pieces just got packed
+                            // into a container and dispatched. afterCommit
+                            // gates the fan-out on the surrounding transaction
+                            // committing — never notify on a rolled-back eject.
+                            $clientForNotify = \App\Models\Client::find($data['client_id']);
+                            if ($clientForNotify) {
+                                $piecesShipped = isset($number) ? (int) $number : null;
+                                $kgShipped     = isset($kg) ? (float) $kg : null;
+                                $cbmShipped    = isset($cbm) ? (float) $cbm : null;
+                                \Illuminate\Support\Facades\DB::afterCommit(function () use ($clientForNotify, $out_id, $transaction_number, $piecesShipped, $kgShipped, $cbmShipped) {
+                                    $clientForNotify->notify(new \App\Notifications\ShipmentStatusChanged(
+                                        mode: 'sea',
+                                        status: 'shipped',
+                                        sourceId: (int) $out_id,
+                                        sourceTable: 'store_out_sea',
+                                        transactionNumber: $transaction_number,
+                                        pieces: $piecesShipped ?: null,
+                                        kg: $kgShipped,
+                                        cbm: $cbmShipped,
+                                    ));
+                                });
+                            }
                         }
                     }     
                 }else{
