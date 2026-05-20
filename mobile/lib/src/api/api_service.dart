@@ -4,6 +4,7 @@ import '../models/balance.dart';
 import '../models/client.dart';
 import '../models/client_device.dart';
 import '../models/notification_item.dart';
+import '../models/notification_prefs.dart';
 import '../models/paginated.dart';
 import '../models/shipment.dart';
 import '../models/shipment_detail.dart';
@@ -121,6 +122,25 @@ class ApiService {
 
   Future<void> markAllNotificationsRead() async {
     await _dio.post<void>('/api/notifications/read-all');
+  }
+
+  Future<NotificationPrefs> notificationPrefs() async {
+    final resp = await _dio.get<Map<String, dynamic>>('/api/notifications/prefs');
+    return NotificationPrefs.fromJson(resp.data!);
+  }
+
+  Future<NotificationPrefs> updateNotificationPrefs({
+    bool? transactions,
+    bool? shipments,
+    bool? receipts,
+  }) async {
+    final patch = <String, dynamic>{
+      if (transactions != null) 'transactions': transactions,
+      if (shipments    != null) 'shipments'   : shipments,
+      if (receipts     != null) 'receipts'    : receipts,
+    };
+    final resp = await _dio.patch<Map<String, dynamic>>('/api/notifications/prefs', data: patch);
+    return NotificationPrefs.fromJson(resp.data!);
   }
 }
 

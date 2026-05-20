@@ -115,5 +115,13 @@
   "settingsRevokeConfirm":     "Push notifications and access from “{device}” will be revoked.",
   "@settingsRevokeConfirm":    { "placeholders": { "device": { "type": "String" } } },
   "settingsLastSeen":          "last seen {at}",
-  "@settingsLastSeen":         { "placeholders": { "at": { "type": "String" } } }
+  "@settingsLastSeen":         { "placeholders": { "at": { "type": "String" } } },
+
+  "settingsNotifications":       "Notifications",
+  "settingsNotifyTransactions":  "Transactions",
+  "settingsNotifyTransactionsSub":"Deposits, withdrawals, transfers, commissions.",
+  "settingsNotifyShipments":     "Shipments",
+  "settingsNotifyShipmentsSub":  "Received at warehouse, dispatched, canceled.",
+  "settingsNotifyReceipts":      "Receipts",
+  "settingsNotifyReceiptsSub":   "New receipts issued on your account."
 }

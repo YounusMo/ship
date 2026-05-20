@@ -47,8 +47,11 @@ dependencies:
   # Biometric / passcode unlock on cold start.
   local_auth: ^2.3.0
 
-  # Memory-cache for GET responses (lists / balances). Flushed on logout.
+  # Disk cache for GET responses (lists / balances) so a cold start with
+  # no network still renders the last balances. Flushed on logout.
   dio_cache_interceptor: ^3.5.0
+  dio_cache_interceptor_db_store: ^5.1.0
+  path_provider: ^2.1.4
 
   # i18n scaffolding — see lib/l10n/*.arb and l10n.yaml.
   flutter_localizations:

@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
+import 'package:dio_cache_interceptor_db_store/dio_cache_interceptor_db_store.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'api_exceptions.dart';
 
@@ -28,22 +30,25 @@ class ApiClient {
       validateStatus: (_) => true,
     ));
 
-    // Memory cache for GET responses. Short TTL — we still want a fresh
-    // balance after a deposit, but two consecutive list pulls within ~30s
-    // can be served from RAM (typical of tab-switching). The token
-    // interceptor sits in front so a logout invalidates implicitly via
-    // the changed Authorization header (cache key includes the URI but
-    // not headers, so we flush on logout below).
-    final cacheStore = MemCacheStore(maxSize: 5 * 1024 * 1024); // 5 MiB
+    // Disk-backed cache for GET responses. Survives cold starts, so the
+    // dashboard renders the last balances even when the phone has no
+    // network. Initialized lazily because path_provider returns a Future;
+    // until then, requests go straight through.
+    //
+    // The token interceptor sits behind the cache so a logged-out cache
+    // hit still attaches no Authorization header. clearToken() flushes
+    // the whole store on logout to prevent the next user on this device
+    // from reading the previous client's data.
     _cacheOptions = CacheOptions(
-      store: cacheStore,
+      store: MemCacheStore(maxSize: 5 * 1024 * 1024), // bootstrap value
       policy: CachePolicy.request,
       hitCacheOnErrorExcept: const <int>[401, 403],
-      maxStale: const Duration(seconds: 30),
+      maxStale: const Duration(minutes: 5),
       keyBuilder: CacheOptions.defaultCacheKeyBuilder,
       allowPostMethod: false,
     );
     _dio.interceptors.add(DioCacheInterceptor(options: _cacheOptions));
+    _upgradeToDiskCache();
 
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
@@ -78,8 +83,27 @@ class ApiClient {
 
   static final ApiClient instance = ApiClient._();
   late final Dio _dio;
-  late final CacheOptions _cacheOptions;
+  late CacheOptions _cacheOptions;
   String? _token;
+
+  /// Swap the bootstrap MemCacheStore for a disk-backed DbCacheStore so
+  /// future requests use it. Failures (e.g. sandboxed environments where
+  /// path_provider can't resolve a writable directory) fall back to the
+  /// in-memory store silently — better degraded perf than a crash.
+  Future<void> _upgradeToDiskCache() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      _cacheOptions = _cacheOptions.copyWith(
+        store: DbCacheStore(databasePath: '${dir.path}/shipflow_cache'),
+      );
+      // Replace the interceptor in place. The old MemCacheStore garbage
+      // collects on its own once nothing references it.
+      _dio.interceptors.removeWhere((i) => i is DioCacheInterceptor);
+      _dio.interceptors.insert(0, DioCacheInterceptor(options: _cacheOptions));
+    } catch (e) {
+      debugPrint('[api] disk cache upgrade failed, keeping in-memory: $e');
+    }
+  }
 
   Dio get dio => _dio;
 

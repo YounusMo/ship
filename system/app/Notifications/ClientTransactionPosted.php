@@ -35,6 +35,14 @@ class ClientTransactionPosted extends Notification implements ShouldQueue
 
     public function via(mixed $notifiable): array
     {
+        // Per-category mute: clients.notify_transactions = false suppresses
+        // both the in-app feed row AND the push payload for this category,
+        // so the unread badge stays in sync with what the user opted into.
+        // property_exists() doesn't catch Eloquent magic attributes, hence
+        // the instanceof check + direct attribute access.
+        if ($notifiable instanceof \App\Models\Client && !$notifiable->notify_transactions) {
+            return [];
+        }
         return ['database', FcmChannel::class];
     }
 

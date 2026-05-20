@@ -8,6 +8,7 @@ import '../state/auth_provider.dart';
 import '../state/biometric_provider.dart';
 import '../state/devices_provider.dart';
 import '../state/locale_provider.dart';
+import '../state/notification_prefs_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -71,6 +72,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
 
+          // Notifications --------------------------------------------------
+          _SectionHeader(text: l.settingsNotifications),
+          _NotificationPrefsSection(),
+
           // Security -------------------------------------------------------
           _SectionHeader(text: l.settingsSecurity),
           SwitchListTile(
@@ -84,7 +89,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             value: (_bioEnabled ?? false) && (_bioAvailable ?? false),
             onChanged: (_bioAvailable ?? false)
                 ? (v) async {
-                    await ref.read(biometricControllerProvider).setEnabled(v);
+                    final controller = ref.read(biometricControllerProvider);
+                    await controller.setEnabled(v);
+                    if (v) {
+                      // Refresh the cached prompt string in case the user
+                      // changed language since their last login — the next
+                      // cold start biometric gate reads from this cache.
+                      await controller.cacheLocalizedReason(l.biometricUnlockReason);
+                    }
                     setState(() => _bioEnabled = v);
                   }
                 : null,
@@ -205,6 +217,54 @@ class _SectionHeader extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// Three switches gating the three notification categories the backend
+/// fans out (ClientTransactionPosted / ShipmentStatusChanged / ReceiptIssued).
+/// Server-side via() returns [] when a category is off, so a mute kills
+/// both the in-app feed row AND the FCM push.
+class _NotificationPrefsSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l     = AppLocalizations.of(context)!;
+    final prefs = ref.watch(notificationPrefsProvider);
+
+    return prefs.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('$e'),
+      ),
+      data: (p) => Column(
+        children: <Widget>[
+          SwitchListTile(
+            secondary: const Icon(Icons.account_balance_wallet_outlined),
+            title: Text(l.settingsNotifyTransactions),
+            subtitle: Text(l.settingsNotifyTransactionsSub),
+            value: p.transactions,
+            onChanged: (v) => ref.read(notificationPrefsProvider.notifier).setTransactions(v),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.local_shipping_outlined),
+            title: Text(l.settingsNotifyShipments),
+            subtitle: Text(l.settingsNotifyShipmentsSub),
+            value: p.shipments,
+            onChanged: (v) => ref.read(notificationPrefsProvider.notifier).setShipments(v),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.receipt_outlined),
+            title: Text(l.settingsNotifyReceipts),
+            subtitle: Text(l.settingsNotifyReceiptsSub),
+            value: p.receipts,
+            onChanged: (v) => ref.read(notificationPrefsProvider.notifier).setReceipts(v),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DeviceTile extends StatelessWidget {

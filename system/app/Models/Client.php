@@ -25,6 +25,14 @@ class Client extends Authenticatable
     ];
 
     protected $casts = [
-        'email_verified_at' => 'datetime',
+        'email_verified_at'    => 'datetime',
+        // Per-category notification opt-in. Cast so the Notification class
+        // via() methods can use a plain `!$client->notify_*` truthiness
+        // check — Eloquent's default attribute path returns the raw DB
+        // value (often "0"/"1" strings on tinyint columns), which would
+        // not gate correctly without coercion.
+        'notify_transactions'  => 'boolean',
+        'notify_shipments'     => 'boolean',
+        'notify_receipts'      => 'boolean',
     ];
 }

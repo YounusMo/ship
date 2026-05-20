@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/api_exceptions.dart';
 import '../push/push_service.dart';
 import '../state/auth_provider.dart';
+import '../state/biometric_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -50,6 +51,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         // Successful login. Register this device with the backend so push
         // fan-outs reach us. Fire-and-forget — router redirect already kicked in.
         unawaited(PushService.instance.registerWithBackend());
+        // Cache the localized biometric prompt string. The next cold start
+        // reads it from secure storage so AuthNotifier (which has no
+        // BuildContext) still surfaces a localized prompt.
+        if (mounted) {
+          await ref.read(biometricControllerProvider)
+              .cacheLocalizedReason(AppLocalizations.of(context)!.biometricUnlockReason);
+        }
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

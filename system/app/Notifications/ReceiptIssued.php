@@ -36,6 +36,9 @@ class ReceiptIssued extends Notification implements ShouldQueue
 
     public function via(mixed $notifiable): array
     {
+        if ($notifiable instanceof \App\Models\Client && !$notifiable->notify_receipts) {
+            return [];
+        }
         return ['database', FcmChannel::class];
     }
 

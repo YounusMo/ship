@@ -39,6 +39,9 @@ class ShipmentStatusChanged extends Notification implements ShouldQueue
 
     public function via(mixed $notifiable): array
     {
+        if ($notifiable instanceof \App\Models\Client && !$notifiable->notify_shipments) {
+            return [];
+        }
         return ['database', FcmChannel::class];
     }
 

@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
 const _biometricEnabledKey = 'shipflow.biometric.enabled';
+const _biometricReasonKey  = 'shipflow.biometric.reason';
 
 /// Biometric-unlock gate. The flow:
 ///
@@ -35,13 +36,28 @@ class BiometricController {
   Future<void> setEnabled(bool enabled) =>
       _storage.write(key: _biometricEnabledKey, value: enabled ? '1' : '0');
 
+  /// Cache a locale-aware prompt string so the next cold-start biometric
+  /// gate (which runs in AuthNotifier with no BuildContext) can read it
+  /// from secure storage. Called from any screen that has a BuildContext:
+  /// login on successful sign-in, settings on the biometric toggle.
+  Future<void> cacheLocalizedReason(String reason) =>
+      _storage.write(key: _biometricReasonKey, value: reason);
+
   /// Returns true when the user successfully authenticated, false when
-  /// they canceled, and rethrows on platform errors so callers can
-  /// degrade gracefully (e.g. fall back to forcing a re-login).
-  Future<bool> authenticate({String reason = 'Confirm it is you'}) async {
+  /// they canceled or the platform rejected it.
+  ///
+  /// Reason precedence: explicit param > previously-cached localized
+  /// string > English fallback. The English fallback only surfaces on a
+  /// brand-new install where the user enabled biometrics before any
+  /// localized prompt path had a chance to populate the cache — rare in
+  /// practice because the enable toggle itself runs from a screen with
+  /// context.
+  Future<bool> authenticate({String? reason}) async {
+    final cached  = await _storage.read(key: _biometricReasonKey);
+    final prompt  = reason ?? cached ?? 'Unlock ShipFlow';
     try {
       return await _auth.authenticate(
-        localizedReason: reason,
+        localizedReason: prompt,
         options: const AuthenticationOptions(
           biometricOnly: false,        // allow passcode fallback
           stickyAuth: true,

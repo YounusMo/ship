@@ -52,4 +52,6 @@ Route::middleware(['auth:sanctum', 'client.sanctum'])->group(function () {
     Route::post('/notifications/{id}/read',      [NotificationController::class, 'markRead'])
         ->where('id', '[0-9a-f\-]+');
     Route::post('/notifications/read-all',       [NotificationController::class, 'markAllRead']);
+    Route::get('/notifications/prefs',           [NotificationController::class, 'getPrefs']);
+    Route::patch('/notifications/prefs',         [NotificationController::class, 'updatePrefs']);
 });

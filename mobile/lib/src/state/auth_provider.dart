@@ -24,16 +24,15 @@ class AuthNotifier extends AsyncNotifier<Client?> {
     // login, prompt before re-hydrating the session. Failure to authenticate
     // is treated like a missing token — the user lands on /login.
     //
-    // The prompt text comes from the platform system dialog. Localizing it
-    // properly requires a BuildContext (to read AppLocalizations) which a
-    // Notifier doesn't have. The OS picks the right language for the
-    // surrounding biometric system UI regardless; we pass an English
-    // application name here so users on AR see a mixed Arabic prompt with
-    // "ShipFlow" baked in — acceptable trade-off until we surface this
-    // string via a context-aware bootstrap step.
+    // The prompt string is sourced from a previously-cached localized
+    // version (see BiometricController.cacheLocalizedReason), which the
+    // login + settings screens populate on every successful entry. On a
+    // brand-new install the cache is empty and the controller falls back
+    // to English; in practice that path is unreachable because enabling
+    // biometrics in the first place runs from a screen with a context.
     final bio = ref.read(biometricControllerProvider);
     if (await bio.isEnabled() && await bio.isAvailable()) {
-      final ok = await bio.authenticate(reason: 'Unlock ShipFlow');
+      final ok = await bio.authenticate();
       if (!ok) return null;
     }
 

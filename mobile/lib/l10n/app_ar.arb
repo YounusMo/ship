@@ -101,5 +101,13 @@
   "settingsRevoke":            "تسجيل الخروج",
   "settingsRevokeTitle":       "تسجيل الخروج من هذا الجهاز؟",
   "settingsRevokeConfirm":     "سيتم إيقاف الإشعارات والوصول من “{device}”.",
-  "settingsLastSeen":          "آخر ظهور {at}"
+  "settingsLastSeen":          "آخر ظهور {at}",
+
+  "settingsNotifications":       "الإشعارات",
+  "settingsNotifyTransactions":  "الحركات",
+  "settingsNotifyTransactionsSub":"الإيداع والسحب والتحويل والعمولات.",
+  "settingsNotifyShipments":     "الشحنات",
+  "settingsNotifyShipmentsSub":  "وصول للمستودع والشحن والإلغاء.",
+  "settingsNotifyReceipts":      "الإيصالات",
+  "settingsNotifyReceiptsSub":   "الإيصالات الجديدة على حسابك."
 }
