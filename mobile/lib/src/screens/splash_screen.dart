@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:shipflow_client/l10n/app_localizations.dart';
 
 /// Shown while we restore the auth token from secure storage on cold start.
 /// The router replaces this with /login or /home as soon as the auth state

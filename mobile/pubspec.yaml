@@ -38,7 +38,8 @@ dependencies:
   flutter_local_notifications: ^17.2.3
 
   # Number/date formatting localized to the user's locale.
-  intl: ^0.19.0
+  # Pinned by flutter_localizations to 0.20.2 — we accept that floor.
+  intl: ^0.20.2
 
   # Pull-to-refresh, infinite scroll, shimmer placeholders.
   pull_to_refresh: ^2.0.0

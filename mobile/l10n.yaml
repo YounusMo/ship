@@ -12,3 +12,6 @@ arb-dir: lib/l10n
 template-arb-file: app_en.arb
 output-localization-file: app_localizations.dart
 output-class: AppLocalizations
+# Synthetic-package was removed in Flutter 3.41+ — codegen now writes a
+# real file to lib/l10n/app_localizations.dart, imported via the standard
+# `package:shipflow_client/l10n/app_localizations.dart` path.

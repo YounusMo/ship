@@ -11,6 +11,11 @@ build/
 **/*.g.dart
 **/*.freezed.dart
 
+# Flutter i18n codegen — produced by `flutter pub get` from lib/l10n/*.arb.
+# We commit the ARBs (source of truth); the generated dart is per-checkout.
+lib/l10n/app_localizations.dart
+lib/l10n/app_localizations_*.dart
+
 # Firebase / platform secrets — must be supplied per environment.
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
