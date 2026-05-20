@@ -1357,7 +1357,10 @@ class skyController extends Controller
 
             $all = DB::table('store_out_sky')->where('id',$request->id)->get();
 
-        
+            // Snapshot for the notification. See seaController::cancel_in_container
+            // for the rationale; mirrored intentionally.
+            $cancelTarget = $all->first();
+
             if(!$all){
                 return;
             }
@@ -1402,6 +1405,23 @@ class skyController extends Controller
 
             foreach ($branches as $key => $branch) {
                 $branchesController->update_balance($branch->id);
+            }
+
+            if ($cancelTarget && !empty($cancelTarget->client_id)) {
+                $client = \App\Models\Client::find($cancelTarget->client_id);
+                if ($client) {
+                    $client->notify(new \App\Notifications\ShipmentStatusChanged(
+                        mode: 'sky',
+                        status: 'canceled',
+                        sourceId: (int) $cancelTarget->id,
+                        sourceTable: 'store_out_sky',
+                        transactionNumber: $cancelTarget->transaction_number ?? null,
+                        containerId: isset($cancelTarget->container_id) ? (int) $cancelTarget->container_id : null,
+                        pieces: isset($cancelTarget->number) ? (int) $cancelTarget->number : null,
+                        kg: isset($cancelTarget->kg) ? (float) $cancelTarget->kg : null,
+                        cbm: isset($cancelTarget->cbm) ? (float) $cancelTarget->cbm : null,
+                    ));
+                }
             }
 
         } catch (\Throwable $th) {
@@ -1524,6 +1544,33 @@ class skyController extends Controller
 
             foreach ($branches as $key => $branch) {
                 $branchesController->update_balance($branch->id);
+            }
+
+            // Mobile push fan-out: see seaController::cancel_container for the
+            // shape. One notification per distinct client whose pieces lived
+            // in this container; deduped on client_id.
+            $affectedClientIds = collect();
+            if ($get->type === 'full') {
+                $affectedClientIds = DB::table('store_out_sky')
+                    ->where('container_id', $get->id)
+                    ->whereNotNull('client_id')
+                    ->distinct()
+                    ->pluck('client_id');
+            } elseif ($get->type === 'custom' && !empty($get->client_id)) {
+                $affectedClientIds = collect([$get->client_id]);
+            }
+            foreach ($affectedClientIds as $cid) {
+                $client = \App\Models\Client::find($cid);
+                if ($client) {
+                    $client->notify(new \App\Notifications\ShipmentStatusChanged(
+                        mode: 'sky',
+                        status: 'canceled',
+                        sourceId: (int) $get->id,
+                        sourceTable: 'containers_sky',
+                        transactionNumber: $get->number ?? null,
+                        containerId: (int) $get->id,
+                    ));
+                }
             }
        } catch (\Throwable $th) {
             Log::error($th->getMessage(), [

@@ -788,7 +788,12 @@ class seaController extends Controller
 
             $all = DB::table('store_out_sea')->where('id',$request->id)->get();
 
-        
+            // Snapshot for the notification BEFORE we tear down related rows
+            // — the row itself stays but its client_id is what we need to
+            // address the push to, and reading first keeps the hook honest
+            // if the schema ever changes the cancel behavior to a delete.
+            $cancelTarget = $all->first();
+
             if(!$all){
                 return;
             }
@@ -833,6 +838,28 @@ class seaController extends Controller
 
             foreach ($branches as $key => $branch) {
                 $branchesController->update_balance($branch->id);
+            }
+
+            // Mobile push: the client's piece-in-container was canceled.
+            // No surrounding DB::transaction wraps this method, so we fire
+            // the notification synchronously after every preceding write
+            // succeeded — any earlier throw would have hit the catch below
+            // and skipped this path entirely.
+            if ($cancelTarget && !empty($cancelTarget->client_id)) {
+                $client = \App\Models\Client::find($cancelTarget->client_id);
+                if ($client) {
+                    $client->notify(new \App\Notifications\ShipmentStatusChanged(
+                        mode: 'sea',
+                        status: 'canceled',
+                        sourceId: (int) $cancelTarget->id,
+                        sourceTable: 'store_out_sea',
+                        transactionNumber: $cancelTarget->transaction_number ?? null,
+                        containerId: isset($cancelTarget->container_id) ? (int) $cancelTarget->container_id : null,
+                        pieces: isset($cancelTarget->number) ? (int) $cancelTarget->number : null,
+                        kg: isset($cancelTarget->kg) ? (float) $cancelTarget->kg : null,
+                        cbm: isset($cancelTarget->cbm) ? (float) $cancelTarget->cbm : null,
+                    ));
+                }
             }
 
         } catch (\Throwable $th) {
@@ -954,6 +981,35 @@ class seaController extends Controller
 
             foreach ($branches as $key => $branch) {
                 $branchesController->update_balance($branch->id);
+            }
+
+            // Mobile push fan-out: one notification per distinct client whose
+            // cargo was in this container. For 'full' containers we read
+            // store_out_sea; for 'custom' the single $get->client_id covers it.
+            // We dedupe on client_id so a client with three rows in the same
+            // container gets ONE "container canceled" push, not three.
+            $affectedClientIds = collect();
+            if ($get->type === 'full') {
+                $affectedClientIds = DB::table('store_out_sea')
+                    ->where('container_id', $get->id)
+                    ->whereNotNull('client_id')
+                    ->distinct()
+                    ->pluck('client_id');
+            } elseif ($get->type === 'custom' && !empty($get->client_id)) {
+                $affectedClientIds = collect([$get->client_id]);
+            }
+            foreach ($affectedClientIds as $cid) {
+                $client = \App\Models\Client::find($cid);
+                if ($client) {
+                    $client->notify(new \App\Notifications\ShipmentStatusChanged(
+                        mode: 'sea',
+                        status: 'canceled',
+                        sourceId: (int) $get->id,
+                        sourceTable: 'containers_sea',
+                        transactionNumber: $get->number ?? null,
+                        containerId: (int) $get->id,
+                    ));
+                }
             }
        } catch (\Throwable $th) {
             Log::error($th->getMessage(), [
