@@ -826,6 +826,25 @@ class clientsController extends Controller
                                      'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
                                 ],
                             ]);
+
+                            // Mobile push + in-app feed. DB::afterCommit defers
+                            // the fan-out until the surrounding transaction
+                            // commits — if anything below this point throws and
+                            // rolls back, the client never sees a stale "deposit
+                            // posted" notification for a deposit that didn't.
+                            $clientForNotify = \App\Models\Client::find($id);
+                            if ($clientForNotify) {
+                                \Illuminate\Support\Facades\DB::afterCommit(function () use ($clientForNotify, $value, $currency, $transaction_number, $deposit_row_id, $purpose) {
+                                    $clientForNotify->notify(new \App\Notifications\ClientTransactionPosted(
+                                        kind: 'deposit',
+                                        currency: $currency,
+                                        amount: (float) $value,
+                                        transactionNumber: $transaction_number,
+                                        purpose: $purpose,
+                                        sourceId: $deposit_row_id,
+                                    ));
+                                });
+                            }
                         }
 
                         // Auto-register a prepayment row when the operator

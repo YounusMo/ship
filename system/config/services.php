@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // Firebase Cloud Messaging — used by App\Notifications\Channels\FcmChannel.
+    // Leave empty in local dev: the channel logs and skips push when unset, so
+    // notifications still write to the in-app feed via the database channel.
+    'fcm' => [
+        'project_id'       => env('FCM_PROJECT_ID'),
+        'credentials_path' => env('FCM_CREDENTIALS_PATH'),
+    ],
+
 ];
