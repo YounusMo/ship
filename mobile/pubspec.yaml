@@ -1,0 +1,57 @@
+name: shipflow_client
+description: Mobile client portal for MATAZ TRADING — balances, transactions, shipments, notifications.
+publish_to: 'none'
+
+# Bumped alongside the backend's VERSION marker in system/.env so support
+# can correlate field reports to a backend deploy.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.4.0
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP — Dio gives us interceptors for the token header and a clean error
+  # surface for the API exception mapping.
+  dio: ^5.7.0
+
+  # State management — Riverpod 2.x. AsyncNotifier covers our paginated
+  # endpoints cleanly without a separate caching layer.
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # Routing — go_router with declarative guards for the auth boundary.
+  go_router: ^14.2.7
+
+  # Secure storage for the Sanctum token (Keychain on iOS, EncryptedSharedPreferences on Android).
+  flutter_secure_storage: ^9.2.2
+
+  # Push — Firebase Messaging. Initialized only after the user logs in
+  # so we don't ask for notification permission on first launch.
+  firebase_core: ^3.6.0
+  firebase_messaging: ^15.1.3
+
+  # Local notifications — used to display foreground FCM payloads as banners.
+  flutter_local_notifications: ^17.2.3
+
+  # Number/date formatting localized to the user's locale.
+  intl: ^0.19.0
+
+  # Pull-to-refresh, infinite scroll, shimmer placeholders.
+  pull_to_refresh: ^2.0.0
+  shimmer: ^3.0.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.4.3
+
+flutter:
+  uses-material-design: true
