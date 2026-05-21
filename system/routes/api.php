@@ -62,3 +62,9 @@ Route::middleware(['auth:sanctum', 'client.sanctum'])->group(function () {
  * its own auth:sanctum middleware. See app/Modules/Purchases.
  */
 require __DIR__ . '/purchases.php';
+
+/*
+ * Tracking module — webhooks (open, signature-verified) + employee API
+ * (added in Phase 5). See app/Modules/Tracking.
+ */
+require __DIR__ . '/tracking.php';
