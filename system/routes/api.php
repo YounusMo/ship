@@ -55,3 +55,10 @@ Route::middleware(['auth:sanctum', 'client.sanctum'])->group(function () {
     Route::get('/notifications/prefs',           [NotificationController::class, 'getPrefs']);
     Route::patch('/notifications/prefs',         [NotificationController::class, 'updatePrefs']);
 });
+
+/*
+ * Operator-facing Purchases module — staff use only, NOT customers, so it
+ * lives outside the client.sanctum group. routes/purchases.php declares
+ * its own auth:sanctum middleware. See app/Modules/Purchases.
+ */
+require __DIR__ . '/purchases.php';

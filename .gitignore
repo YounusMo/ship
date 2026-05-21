@@ -14,6 +14,7 @@ system/storage/framework/testing/
 system/storage/logs/*.log
 system/bootstrap/cache/*.php
 !system/bootstrap/cache/.gitignore
+system/.phpunit.result.cache
 
 # Database dumps — large + sensitive. Keep backups out of the source repo.
 cron_jobs/backups/*.sql
