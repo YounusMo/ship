@@ -27,7 +27,7 @@ use App\Http\Controllers\Api\NotificationController;
 Route::post('/auth/login', [AuthController::class, 'login'])
     ->middleware('throttle:60,1');
 
-Route::middleware(['auth:sanctum', 'client.sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'client.sanctum', 'mobile.sanitize'])->group(function () {
 
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/me',           [AuthController::class, 'me']);

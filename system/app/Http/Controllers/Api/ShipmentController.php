@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Tracking\Enums\ShipmentMode;
+use App\Modules\Tracking\Services\UnifiedTimelineService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -102,17 +104,37 @@ class ShipmentController extends Controller
             abort(404);
         }
 
+        // Pieces lookup uses the per-bucket table — store_* for received,
+        // store_out_* for shipped — since the piece's source_table column
+        // mirrors the bucket name.
+        $pieceSourceTable = $bucket === 'shipped' ? "store_out_{$mode}" : "store_{$mode}";
         $pieces = DB::table('shipment_pieces')
-            ->where('source_table', "store_{$mode}")
+            ->where('source_table', $pieceSourceTable)
             ->where('source_id', $row->id)
             ->orderBy('piece_index')
             ->get();
 
+        // Unified tracking timeline is only meaningful for shipped rows
+        // (received-and-not-yet-dispatched rows have no upstream tracking
+        // and no internal hand-offs yet).
+        $tracking = null;
+        if ($bucket === 'shipped') {
+            $containerId = isset($row->container_id) ? (int) $row->container_id : null;
+            $tracking = app(UnifiedTimelineService::class)->for(
+                ShipmentMode::from($mode),
+                (int) $row->id,
+                $containerId,
+                null,
+                $request->header('Accept-Language'),
+            );
+        }
+
         return response()->json([
-            'mode'   => $mode,
-            'bucket' => $bucket,
-            'row'    => $row,
-            'pieces' => $pieces,
+            'mode'     => $mode,
+            'bucket'   => $bucket,
+            'row'      => $row,
+            'pieces'   => $pieces,
+            'tracking' => $tracking,
         ]);
     }
 }

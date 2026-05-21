@@ -31,20 +31,36 @@ class UnifiedTimelineService
     }
 
     /**
+     * Build the unified timeline for a customer-facing shipment view.
+     *
+     * Why containerId is separate from shipmentId: INTERNATIONAL events
+     * (ShipsGo) land at the CONTAINER level — multiple store_out_* rows
+     * can share one container (multi-customer container), so the upstream
+     * provider only knows about the container. INTERNAL events live at
+     * the per-shipment level. We merge both into one stream here so the
+     * Flutter app sees a single chronological timeline.
+     *
      * @return array{
      *   status: string,
      *   timeline: list<array<string, mixed>>,
      *   counts: array{international: int, internal: int}
      * }
      */
-    public function for(ShipmentMode $mode, int $shipmentId, ?int $pieceId = null, ?string $locale = null): array
-    {
-        $events = $this->loadEvents($mode, $shipmentId, $pieceId);
+    public function for(
+        ShipmentMode $mode,
+        int $shipmentId,
+        ?int $containerId = null,
+        ?int $pieceId = null,
+        ?string $locale = null,
+    ): array {
+        $events = $this->loadEvents($mode, $shipmentId, $containerId, $pieceId);
 
         return [
             'status'   => $this->statusComputer->derive($events),
             'timeline' => $events
-                ->sortBy('occurred_at')
+                ->sort(function (TrackingEvent $a, TrackingEvent $b) {
+                    return [$a->occurred_at, $a->id] <=> [$b->occurred_at, $b->id];
+                })
                 ->values()
                 ->map(fn (TrackingEvent $e) => $this->serializeEvent($e, $locale))
                 ->all(),
@@ -55,14 +71,37 @@ class UnifiedTimelineService
         ];
     }
 
+    /** Container source_table corresponding to a shipment mode. */
+    private function containerSourceTable(ShipmentMode $mode): string
+    {
+        return match ($mode) {
+            ShipmentMode::SEA => 'containers_sea',
+            ShipmentMode::SKY => 'containers_sky',
+        };
+    }
+
     /**
      * @return Collection<int, TrackingEvent>
      */
-    private function loadEvents(ShipmentMode $mode, int $shipmentId, ?int $pieceId): Collection
+    private function loadEvents(ShipmentMode $mode, int $shipmentId, ?int $containerId, ?int $pieceId): Collection
     {
+        $shipmentTable  = $mode->sourceTable();
+        $containerTable = $this->containerSourceTable($mode);
+
         $query = TrackingEvent::query()
-            ->forShipment($mode->sourceTable(), $shipmentId)
-            ->customerVisible();
+            ->customerVisible()
+            ->where(function ($q) use ($shipmentTable, $shipmentId, $containerTable, $containerId) {
+                $q->where(function ($qq) use ($shipmentTable, $shipmentId) {
+                    $qq->where('shipment_source_table', $shipmentTable)
+                       ->where('shipment_source_id', $shipmentId);
+                });
+                if ($containerId !== null) {
+                    $q->orWhere(function ($qq) use ($containerTable, $containerId) {
+                        $qq->where('shipment_source_table', $containerTable)
+                           ->where('shipment_source_id', $containerId);
+                    });
+                }
+            });
 
         if ($pieceId !== null) {
             // When viewing a specific piece, include events scoped to that
