@@ -1,4 +1,5 @@
 import 'shipment_piece.dart';
+import 'tracking_timeline.dart';
 
 /// One shipment with its pieces. Returned by `GET /api/shipments/{mode}/{id}`.
 /// The `row` field is intentionally untyped (Map) because the backing table
@@ -11,21 +12,30 @@ class ShipmentDetail {
   final Map<String, dynamic>  row;
   final List<ShipmentPiece>   pieces;
 
+  /// Unified tracking payload from the Phase 5a backend extension. Only
+  /// populated for the `shipped` bucket; `null` for received rows that
+  /// haven't been dispatched yet.
+  final TrackingTimeline?     tracking;
+
   const ShipmentDetail({
     required this.mode,
     required this.bucket,
     required this.row,
     required this.pieces,
+    required this.tracking,
   });
 
   factory ShipmentDetail.fromJson(Map<String, dynamic> json) => ShipmentDetail(
-    mode   : json['mode']   as String,
-    bucket : json['bucket'] as String,
-    row    : (json['row']   as Map<String, dynamic>?) ?? <String, dynamic>{},
-    pieces : ((json['pieces'] as List?) ?? const <dynamic>[])
+    mode     : json['mode']   as String,
+    bucket   : json['bucket'] as String,
+    row      : (json['row']   as Map<String, dynamic>?) ?? <String, dynamic>{},
+    pieces   : ((json['pieces'] as List?) ?? const <dynamic>[])
         .whereType<Map<String, dynamic>>()
         .map(ShipmentPiece.fromJson)
         .toList(),
+    tracking : json['tracking'] is Map<String, dynamic>
+        ? TrackingTimeline.fromJson(json['tracking'] as Map<String, dynamic>)
+        : null,
   );
 
   // Common row accessors — guarded with null-safety so a missing column

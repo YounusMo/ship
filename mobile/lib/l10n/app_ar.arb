@@ -109,5 +109,21 @@
   "settingsNotifyShipments":     "الشحنات",
   "settingsNotifyShipmentsSub":  "وصول للمستودع والشحن والإلغاء.",
   "settingsNotifyReceipts":      "الإيصالات",
-  "settingsNotifyReceiptsSub":   "الإيصالات الجديدة على حسابك."
+  "settingsNotifyReceiptsSub":   "الإيصالات الجديدة على حسابك.",
+
+  "trackingSectionTitle":            "تتبع الشحنة",
+  "trackingNoEventsYet":             "لا توجد تحديثات بعد — بمجرد شحن طلبك، ستظهر تحديثاته هنا.",
+  "trackingCountsLine":              "{intl} حدث دولي · {internal} حدث داخلي",
+  "@trackingCountsLine":             { "placeholders": { "intl": { "type": "int" }, "internal": { "type": "int" } } },
+  "trackingKindIntl":                "دولي",
+  "trackingKindInternal":            "داخلي",
+  "trackingStatusAtOrigin":          "في الأصل",
+  "trackingStatusInTransitIntl":     "قيد الشحن (دولي)",
+  "trackingStatusAtPort":            "في الميناء",
+  "trackingStatusAtHub":             "في المركز الرئيسي",
+  "trackingStatusInTransitInternal": "قيد الشحن (داخلي)",
+  "trackingStatusAtDestination":     "في الفرع",
+  "trackingStatusReadyForPickup":    "جاهز للاستلام",
+  "trackingStatusDelivered":         "تم التسليم",
+  "trackingStatusException":         "هناك مشكلة — تواصل مع الدعم"
 }

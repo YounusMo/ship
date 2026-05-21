@@ -123,5 +123,21 @@
   "settingsNotifyShipments":     "Shipments",
   "settingsNotifyShipmentsSub":  "Received at warehouse, dispatched, canceled.",
   "settingsNotifyReceipts":      "Receipts",
-  "settingsNotifyReceiptsSub":   "New receipts issued on your account."
+  "settingsNotifyReceiptsSub":   "New receipts issued on your account.",
+
+  "trackingSectionTitle":            "Tracking",
+  "trackingNoEventsYet":             "No tracking events yet — once your shipment ships, you'll see updates here.",
+  "trackingCountsLine":              "{intl} international event(s) · {internal} internal event(s)",
+  "@trackingCountsLine":             { "placeholders": { "intl": { "type": "int" }, "internal": { "type": "int" } } },
+  "trackingKindIntl":                "International",
+  "trackingKindInternal":            "Internal",
+  "trackingStatusAtOrigin":          "At origin",
+  "trackingStatusInTransitIntl":     "In transit (international)",
+  "trackingStatusAtPort":            "At port",
+  "trackingStatusAtHub":             "At hub",
+  "trackingStatusInTransitInternal": "In transit (internal)",
+  "trackingStatusAtDestination":     "At destination",
+  "trackingStatusReadyForPickup":    "Ready for pickup",
+  "trackingStatusDelivered":         "Delivered",
+  "trackingStatusException":         "Issue — contact support"
 }

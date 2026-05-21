@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/shipment_detail.dart';
 import '../models/shipment_piece.dart';
 import '../state/shipment_detail_provider.dart';
+import '../widgets/tracking_timeline_section.dart';
 
 class ShipmentDetailScreen extends ConsumerWidget {
   const ShipmentDetailScreen({super.key, required this.mode, required this.id});
@@ -86,6 +87,10 @@ class _Body extends StatelessWidget {
             ),
           ),
         ),
+        if (detail.tracking != null) ...<Widget>[
+          const SizedBox(height: 16),
+          TrackingTimelineSection(timeline: detail.tracking!),
+        ],
         const SizedBox(height: 16),
         if (detail.pieces.isNotEmpty) ...<Widget>[
           Text(
