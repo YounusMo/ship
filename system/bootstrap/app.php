@@ -22,6 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
             // White-label sanitizer for mobile responses — throws in
             // local/testing, scrubs+logs in production. See ALIGNMENT_PATCH.md §2.8.
             'mobile.sanitize' => \App\Modules\Tracking\Http\Middleware\EnforceMobileSanitization::class,
+            // Employee API gate — narrows Sanctum tokenable to User and
+            // requires the 'employee' ability stamped at login.
+            'employee.sanctum' => \App\Modules\Tracking\Http\Middleware\EnsureEmployee::class,
+            // Per-route branch scope check ('branch:N' ability must match
+            // the branch_id from the route/body/query).
+            'branch.scope' => \App\Modules\Tracking\Http\Middleware\EnforceBranchScope::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
