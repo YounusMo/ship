@@ -63,14 +63,32 @@ class ShipsGoWebhookTest extends TestCase
         ]);
     }
 
+    /** ShipsGo v2 envelope used in all signed-path tests below. */
+    private function v2Envelope(string $name, array $shipmentOverrides = []): array
+    {
+        return [
+            'event' => [
+                'id'   => 'shipsgo-evt-' . uniqid(),
+                'name' => $name,
+                'triggered_by' => ['name' => 'test', 'email' => 'test@example.com'],
+            ],
+            'shipment' => array_merge([
+                'id'               => random_int(1, 10_000_000),
+                'reference'        => $this->shipmentRef,
+                'container_number' => $this->shipmentRef,
+                'booking_number'   => null,
+            ], $shipmentOverrides),
+        ];
+    }
+
     public function test_rejects_invalid_signature(): void
     {
-        $body = json_encode(['event' => 'GATE_IN', 'reference_id' => $this->shipmentRef]);
+        $body = json_encode($this->v2Envelope('OCEAN.SHIPMENTS.CONTAINER_GATE_IN'));
 
         $resp = $this->postJson(
             '/api/v1/webhooks/shipsgo',
             json_decode($body, true),
-            ['X-ShipsGo-Signature' => 'not-the-right-signature'],
+            ['X-Shipsgo-Webhook-Signature' => 'not-the-right-signature'],
         );
 
         $resp->assertStatus(401);
@@ -81,23 +99,22 @@ class ShipsGoWebhookTest extends TestCase
     {
         Bus::fake([ProcessShipsGoWebhook::class]);
 
-        $payload = [
-            'event_id'     => 'shipsgo-evt-' . uniqid(),
-            'event'        => 'GATE_IN',
-            'reference_id' => $this->shipmentRef,
-            'timestamp'    => '2026-05-21T08:00:00Z',
-            'location'     => ['city' => 'Shanghai', 'country' => 'CN'],
-        ];
+        $payload = $this->v2Envelope('OCEAN.SHIPMENTS.CONTAINER_GATE_IN');
         $body = json_encode($payload);
         $signature = hash_hmac('sha256', $body, $this->secret);
 
         $resp = $this->call(
             'POST',
             '/api/v1/webhooks/shipsgo',
-            [],   // parameters
-            [],   // cookies
-            [],   // files
-            ['HTTP_X-ShipsGo-Signature' => $signature, 'CONTENT_TYPE' => 'application/json'],
+            [],
+            [],
+            [],
+            [
+                'HTTP_X-Shipsgo-Webhook-Signature' => $signature,
+                'HTTP_X-Shipsgo-Webhook-Id'        => $payload['event']['id'],
+                'HTTP_X-Shipsgo-Webhook-Name'      => $payload['event']['name'],
+                'CONTENT_TYPE'                     => 'application/json',
+            ],
             $body,
         );
 
@@ -110,24 +127,20 @@ class ShipsGoWebhookTest extends TestCase
     {
         Bus::fake([ProcessShipsGoWebhook::class]);
 
-        $payload = [
-            'event_id'     => 'shipsgo-evt-dup-' . uniqid(),
-            'event'        => 'LOADED',
-            'reference_id' => $this->shipmentRef,
-        ];
+        $payload = $this->v2Envelope('OCEAN.SHIPMENTS.CONTAINER_LOADED');
         $body      = json_encode($payload);
         $signature = hash_hmac('sha256', $body, $this->secret);
 
         // First call lands a row.
         $first = $this->call('POST', '/api/v1/webhooks/shipsgo', [], [], [],
-            ['HTTP_X-ShipsGo-Signature' => $signature, 'CONTENT_TYPE' => 'application/json'],
+            ['HTTP_X-Shipsgo-Webhook-Signature' => $signature, 'CONTENT_TYPE' => 'application/json'],
             $body,
         );
         $first->assertStatus(200);
 
         // Second call is a perfect replay — same body, same signature.
         $second = $this->call('POST', '/api/v1/webhooks/shipsgo', [], [], [],
-            ['HTTP_X-ShipsGo-Signature' => $signature, 'CONTENT_TYPE' => 'application/json'],
+            ['HTTP_X-Shipsgo-Webhook-Signature' => $signature, 'CONTENT_TYPE' => 'application/json'],
             $body,
         );
         $second->assertStatus(200);
@@ -139,18 +152,16 @@ class ShipsGoWebhookTest extends TestCase
 
     public function test_job_creates_tracking_event(): void
     {
-        $payload = [
-            'event_id'     => 'shipsgo-evt-' . uniqid(),
-            'event'        => 'ARRIVED',
-            'reference_id' => $this->shipmentRef,
-            'timestamp'    => '2026-05-21T10:30:00Z',
-            'location'     => ['city' => 'Misrata', 'country' => 'LY'],
-        ];
+        $payload = $this->v2Envelope('OCEAN.SHIPMENTS.CONTAINER_ARRIVED');
+        // v2 envelope is itself the event; the location lives on the
+        // event-row when present. Add it here so the row carries city/country.
+        $payload['location']  = ['city' => 'Misrata', 'country' => 'LY'];
+        $payload['timestamp'] = '2026-05-21T10:30:00Z';
 
         $delivery = WebhookDelivery::create([
             'provider'           => 'shipsgo',
-            'external_event_id'  => $payload['event_id'],
-            'event_type'         => $payload['event'],
+            'external_event_id'  => $payload['event']['id'],
+            'event_type'         => $payload['event']['name'],
             'payload'            => $payload,
             'signature_verified' => true,
             'received_at'        => now(),
@@ -165,7 +176,7 @@ class ShipsGoWebhookTest extends TestCase
         $event = TrackingEvent::query()
             ->where('shipment_source_table', 'containers_sea')
             ->where('shipment_source_id', $this->shipmentRowId)
-            ->where('event_type', 'ARRIVED')
+            ->where('event_type', 'OCEAN.SHIPMENTS.CONTAINER_ARRIVED')
             ->first();
         $this->assertNotNull($event);
         $this->assertEquals('Misrata', $event->city);
@@ -175,17 +186,13 @@ class ShipsGoWebhookTest extends TestCase
 
     public function test_job_is_idempotent_on_replay(): void
     {
-        $payload = [
-            'event_id'     => 'shipsgo-evt-' . uniqid(),
-            'event'        => 'DISCHARGED',
-            'reference_id' => $this->shipmentRef,
-            'timestamp'    => '2026-05-21T11:00:00Z',
-        ];
+        $payload = $this->v2Envelope('OCEAN.SHIPMENTS.CONTAINER_DISCHARGED');
+        $payload['timestamp'] = '2026-05-21T11:00:00Z';
 
         $delivery = WebhookDelivery::create([
             'provider'           => 'shipsgo',
-            'external_event_id'  => $payload['event_id'],
-            'event_type'         => $payload['event'],
+            'external_event_id'  => $payload['event']['id'],
+            'event_type'         => $payload['event']['name'],
             'payload'            => $payload,
             'signature_verified' => true,
             'received_at'        => now(),
@@ -200,7 +207,7 @@ class ShipsGoWebhookTest extends TestCase
         $count = TrackingEvent::query()
             ->where('shipment_source_table', 'containers_sea')
             ->where('shipment_source_id', $this->shipmentRowId)
-            ->where('event_type', 'DISCHARGED')
+            ->where('event_type', 'OCEAN.SHIPMENTS.CONTAINER_DISCHARGED')
             ->count();
 
         $this->assertSame(1, $count, 'Re-running the job must not create a duplicate event');

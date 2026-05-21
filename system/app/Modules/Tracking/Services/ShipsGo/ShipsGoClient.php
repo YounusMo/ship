@@ -62,15 +62,16 @@ class ShipsGoClient
         return $this->request('POST', '/air/shipments', $payload);
     }
 
-    /** Remaining credits on the account. Null if endpoint not available. */
+    /**
+     * Credits visibility: ShipsGo v2 doesn't expose a credits-balance
+     * endpoint. The "you're out of credits" signal comes back as HTTP 402
+     * NOT_ENOUGH_CREDITS on POST /ocean/shipments and POST /air/shipments.
+     * Surface that to ops by inspecting WebhookDelivery / job errors;
+     * there is no standalone credit-balance probe.
+     */
     public function getCredits(): ?int
     {
-        try {
-            $resp = $this->request('GET', '/account/credits');
-            return isset($resp['credits']) ? (int) $resp['credits'] : null;
-        } catch (ShipsGoApiException) {
-            return null;
-        }
+        return null;
     }
 
     /**
@@ -110,9 +111,12 @@ class ShipsGoClient
     {
         return Http::baseUrl(rtrim($this->baseUrl, '/'))
             ->withHeaders([
-                'X-API-Key'    => $this->apiKey,
-                'Accept'       => 'application/json',
-                'Content-Type' => 'application/json',
+                // ShipsGo v2 auth header — NOT 'X-API-Key', that returns 401.
+                // See https://api.shipsgo.com/docs/v2 — confirmed by probe
+                // returning 200 with X-Shipsgo-User-Token vs 401 with X-API-Key.
+                'X-Shipsgo-User-Token' => $this->apiKey,
+                'Accept'               => 'application/json',
+                'Content-Type'         => 'application/json',
             ])
             ->timeout($this->timeoutSeconds)
             ->connectTimeout(min(5, $this->timeoutSeconds))

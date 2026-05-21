@@ -68,9 +68,12 @@ class ProcessShipsGoWebhook implements ShouldQueue
     {
         $payload = $delivery->payload;
 
-        // ShipsGo payload shapes vary slightly between ocean and air; the
-        // top-level we care about is the list of events keyed under
-        // 'events' (or a single event at the root for the v2 shape).
+        // ShipsGo v2 webhook envelope shape:
+        //   { event: {id, name, triggered_by}, shipment: {id, reference,
+        //     container_number, booking_number, ...} }
+        // The "event_type" we record on tracking_events is the event.name
+        // (e.g. OCEAN.SHIPMENTS.CONTAINER_LOADED). Legacy multi-event shape
+        // ({events: [...]}) is still handled defensively.
         $events = $this->extractEvents($payload);
         if ($events === []) {
             return 0;
@@ -78,7 +81,7 @@ class ProcessShipsGoWebhook implements ShouldQueue
 
         $referenceId = $this->extractReferenceId($payload);
         if ($referenceId === null) {
-            throw new \RuntimeException('ShipsGo webhook missing reference_id / tracking number');
+            throw new \RuntimeException('ShipsGo webhook missing container_number / awb / reference');
         }
 
         [$sourceTable, $sourceId] = $this->resolveShipment($referenceId);
@@ -86,22 +89,23 @@ class ProcessShipsGoWebhook implements ShouldQueue
         $written = 0;
         foreach ($events as $i => $event) {
             $clientEventId = $this->buildEventId($delivery, $event, $i);
+            $eventType = $this->extractEventType($event, $payload);
 
             try {
                 DB::transaction(function () use (
-                    $event, $sourceTable, $sourceId, $clientEventId,
+                    $event, $payload, $sourceTable, $sourceId, $clientEventId, $eventType,
                 ) {
                     TrackingEvent::create([
                         'shipment_source_table' => $sourceTable,
                         'shipment_source_id'    => $sourceId,
                         'shipment_piece_id'     => null,
                         'kind'                  => TrackingEventKind::INTERNATIONAL,
-                        'event_type'            => (string) ($event['event'] ?? $event['type'] ?? 'UNKNOWN'),
+                        'event_type'            => $eventType,
                         'occurred_at'           => $this->parseTimestamp($event),
                         'city'                  => $event['location']['city']    ?? $event['port'] ?? null,
                         'country'               => $event['location']['country'] ?? null,
                         'raw_payload'           => $event,
-                        'translation_key'       => 'tracking::events.' . strtoupper((string) ($event['event'] ?? 'UNKNOWN')),
+                        'translation_key'       => 'tracking::events.' . strtoupper($eventType),
                         'translation_params'    => [
                             'city' => $event['location']['city'] ?? $event['port'] ?? '',
                         ],
@@ -111,8 +115,7 @@ class ProcessShipsGoWebhook implements ShouldQueue
                 });
                 $written++;
             } catch (\Illuminate\Database\UniqueConstraintViolationException) {
-                // Duplicate — that's the idempotency guarantee working as
-                // intended. Don't count, don't re-throw.
+                // Duplicate — the idempotency guarantee working as intended.
                 continue;
             }
         }
@@ -123,19 +126,52 @@ class ProcessShipsGoWebhook implements ShouldQueue
     /** @return array<int, array<string, mixed>> */
     private function extractEvents(array $payload): array
     {
+        // v2 envelope: top-level 'event' is a single event-meta object;
+        // shipment-level events are embedded under 'shipment.events' when
+        // the webhook is event-update flavored, OR the envelope itself
+        // IS the event for create/discard webhooks.
+        if (isset($payload['shipment']['events']) && is_array($payload['shipment']['events'])) {
+            return array_values($payload['shipment']['events']);
+        }
         if (isset($payload['events']) && is_array($payload['events'])) {
             return array_values($payload['events']);
         }
-        // Single-event shape — treat the payload itself as the event.
+        // Single-event envelope (create / discard / status-change) — treat
+        // the envelope itself as one event row.
         if (isset($payload['event']) || isset($payload['type'])) {
             return [$payload];
         }
         return [];
     }
 
+    private function extractEventType(array $event, array $envelope): string
+    {
+        // v2 event-meta lives at envelope.event.name when the event row
+        // is the envelope. Per-row events under shipment.events carry
+        // their own 'name' or 'event' field. Skip values that are arrays
+        // — that's the envelope's event-meta object, not the event name.
+        foreach ([
+            $event['name'] ?? null,
+            // event['event'] may be a string (legacy) OR an array (v2 envelope) — only accept strings.
+            is_string($event['event'] ?? null) ? $event['event'] : null,
+            $event['type'] ?? null,
+            $envelope['event']['name'] ?? null,
+        ] as $candidate) {
+            if (is_string($candidate) && $candidate !== '') {
+                return $candidate;
+            }
+        }
+        return 'UNKNOWN';
+    }
+
     private function extractReferenceId(array $payload): ?string
     {
-        return $payload['reference_id']
+        // v2 envelope keeps shipment identifiers under 'shipment'.
+        return $payload['shipment']['container_number']
+            ?? $payload['shipment']['awb_number']
+            ?? $payload['shipment']['booking_number']
+            ?? $payload['shipment']['reference']
+            ?? $payload['reference_id']
             ?? $payload['reference']
             ?? $payload['tracking_number']
             ?? $payload['container_number']
@@ -173,13 +209,20 @@ class ProcessShipsGoWebhook implements ShouldQueue
 
     private function buildEventId(WebhookDelivery $delivery, array $event, int $index): string
     {
+        // Multi-event payloads: prefer the per-event id. Single-event
+        // envelopes: the dedup id was already captured in the
+        // WebhookDelivery.external_event_id (synthesized by the
+        // controller when missing), so reuse it with an index suffix to
+        // distinguish if a payload ever carries multiple events sharing
+        // one envelope id.
         $providerEventId = $event['id'] ?? $event['event_id'] ?? null;
         if ($providerEventId !== null) {
             return "shipsgo:{$providerEventId}";
         }
-        // Fall back to a hash that's stable across redeliveries of the
-        // same event but distinct across genuinely different events.
-        $material = $delivery->external_event_id . '|' . $index . '|' . json_encode($event);
+        if ($delivery->external_event_id !== '') {
+            return "shipsgo:{$delivery->external_event_id}:{$index}";
+        }
+        $material = $index . '|' . json_encode($event);
         return 'shipsgo:' . hash('sha256', $material);
     }
 

@@ -37,9 +37,15 @@ class ShipsGoWebhookController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $rawBody = $request->getContent();
-        $signature = $request->header('X-ShipsGo-Signature')
-            ?? $request->header('X-Signature')
-            ?? $request->header('Signature');
+        // ShipsGo v2 webhook headers (see api.shipsgo.com/docs/v2):
+        //   X-Shipsgo-Webhook-Signature  HMAC over raw body
+        //   X-Shipsgo-Webhook-Id         dedup key
+        //   X-Shipsgo-Webhook-Name       event type (e.g. OCEAN.SHIPMENTS.SHIPMENT_CREATED)
+        $signature = $request->header('X-Shipsgo-Webhook-Signature')
+            ?? $request->header('X-ShipsGo-Signature')  // legacy fallback
+            ?? $request->header('X-Signature');
+        $webhookId   = $request->header('X-Shipsgo-Webhook-Id');
+        $webhookName = $request->header('X-Shipsgo-Webhook-Name');
 
         $verified = $this->verifier->verify($rawBody, $signature);
         if (! $verified) {
@@ -57,17 +63,27 @@ class ShipsGoWebhookController extends Controller
             );
         }
 
+        // Dedup id priority: webhook header > event.id in body > hash(body).
         $externalId = (string) (
-            $payload['event_id']
+            $webhookId
+            ?? ($payload['event']['id'] ?? null)
+            ?? $payload['event_id']
             ?? $payload['id']
             ?? hash('sha256', $rawBody)
+        );
+        $eventType = (string) (
+            $webhookName
+            ?? ($payload['event']['name'] ?? null)
+            ?? $payload['event']
+            ?? $payload['type']
+            ?? 'unknown'
         );
 
         try {
             $delivery = WebhookDelivery::create([
                 'provider'           => 'shipsgo',
                 'external_event_id'  => $externalId,
-                'event_type'         => (string) ($payload['event'] ?? $payload['type'] ?? 'unknown'),
+                'event_type'         => $eventType,
                 'payload'            => $payload,
                 'signature'          => $signature,
                 'signature_verified' => true,
