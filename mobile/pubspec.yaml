@@ -49,9 +49,11 @@ dependencies:
   local_auth: ^2.3.0
 
   # Disk cache for GET responses (lists / balances) so a cold start with
-  # no network still renders the last balances. Flushed on logout.
+  # no network still renders the last balances. Flushed on logout. We use
+  # the file-backed store baked into dio_cache_interceptor — sqlite-based
+  # alternatives (dio_cache_interceptor_db_store) fail to load
+  # objective_c.framework on iOS 26.5.
   dio_cache_interceptor: ^3.5.0
-  dio_cache_interceptor_db_store: ^5.1.0
   path_provider: ^2.1.4
 
   # i18n scaffolding — see lib/l10n/*.arb and l10n.yaml.

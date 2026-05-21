@@ -53,10 +53,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         unawaited(PushService.instance.registerWithBackend());
         // Cache the localized biometric prompt string. The next cold start
         // reads it from secure storage so AuthNotifier (which has no
-        // BuildContext) still surfaces a localized prompt.
+        // BuildContext) still surfaces a localized prompt. Guarded because
+        // the redirect can dispose us mid-await; failure is harmless (next
+        // login retries it).
         if (mounted) {
-          await ref.read(biometricControllerProvider)
-              .cacheLocalizedReason(AppLocalizations.of(context)!.biometricUnlockReason);
+          try {
+            final reason = AppLocalizations.of(context)!.biometricUnlockReason;
+            unawaited(
+              ref.read(biometricControllerProvider).cacheLocalizedReason(reason),
+            );
+          } catch (_) {
+            // Widget unmounted between `mounted` check and ref.read — ignore.
+          }
         }
       }
     } finally {

@@ -32,21 +32,28 @@ class Transaction {
     this.branch,
   });
 
-  factory Transaction.fromJson(Map<String, dynamic> json) => Transaction(
-    id                : (json['id'] as num).toInt(),
-    transactionNumber : json['transaction_number'] as String?,
-    autoId            : (json['auto_id'] as num?)?.toInt(),
-    type              : json['type'] as String,
-    currency          : json['currency'] as String,
-    value             : double.tryParse('${json['value']}') ?? 0,
-    toCurrency        : json['to_currency']    as String?,
-    transferValue     : json['transfer_value'] == null ? null : double.tryParse('${json['transfer_value']}'),
-    purpose           : json['purpose']        as String?,
-    notes             : json['notes']          as String?,
-    createdDate       : json['created_date']   as String,
-    createdTime       : json['created_time']   as String?,
-    branch            : (json['branch'] as num?)?.toInt(),
-  );
+  factory Transaction.fromJson(Map<String, dynamic> json) {
+    // Several backend columns (value, auto_id, branch, etc.) are MySQL TEXT
+    // even though they hold numbers — the API surfaces them as JSON strings.
+    // Coerce defensively so the list doesn't crash on any one row.
+    int?    asInt(Object? v)    => v == null ? null : int.tryParse('$v');
+    double? asDouble(Object? v) => v == null ? null : double.tryParse('$v');
+    return Transaction(
+      id                : (asInt(json['id']) ?? 0),
+      transactionNumber : json['transaction_number'] as String?,
+      autoId            : asInt(json['auto_id']),
+      type              : json['type'] as String,
+      currency          : json['currency'] as String,
+      value             : asDouble(json['value']) ?? 0,
+      toCurrency        : json['to_currency'] as String?,
+      transferValue     : asDouble(json['transfer_value']),
+      purpose           : json['purpose']     as String?,
+      notes             : json['notes']       as String?,
+      createdDate       : json['created_date']as String,
+      createdTime       : json['created_time']as String?,
+      branch            : asInt(json['branch']),
+    );
+  }
 
   /// Sign convention for the list row:
   ///   deposit, transfer_in  → +
