@@ -1,0 +1,58 @@
+name: shipflow_employee
+description: "ShipFlow employee scan app — QR-driven internal tracking."
+publish_to: 'none'
+
+# Bumped alongside the backend's VERSION marker in system/.env so support
+# can correlate field reports to a backend deploy. Mirror customer app cadence.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.3
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # HTTP — Dio for interceptors + clean error mapping (same as customer app).
+  dio: ^5.7.0
+
+  # State — Riverpod 2.x AsyncNotifier across providers.
+  flutter_riverpod: ^2.5.1
+
+  # Routing — go_router with auth guard.
+  go_router: ^14.2.7
+
+  # Secure storage for Sanctum token + active branch id.
+  flutter_secure_storage: ^9.2.2
+
+  # Camera + barcode scanning. mobile_scanner is the best-maintained option;
+  # supports both iOS and Android and exposes a clean stream API.
+  mobile_scanner: ^5.2.3
+
+  # Offline outbox storage — small, reliable, no codegen.
+  sqflite: ^2.3.3
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # Detect connectivity transitions to drain the outbox automatically.
+  connectivity_plus: ^6.0.5
+
+  # Date/number formatting for the activity log.
+  intl: ^0.20.2
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  # In-memory sqlite for OutboxStore tests — runs in headless `flutter test`
+  # without needing a real device/simulator.
+  sqflite_common_ffi: ^2.3.3
+
+flutter:
+  uses-material-design: true
+  generate: true
