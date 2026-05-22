@@ -184,6 +184,102 @@ class ShipsGoWebhookTest extends TestCase
         $this->assertEquals('INTERNATIONAL', $event->kind->value);
     }
 
+    public function test_job_walks_nested_container_events_from_v2_shipment_updated(): void
+    {
+        // Real v2 webhook shape per the dashboard: per-leg events live
+        // inside shipment.containers[*].events[*]. SHIPMENT_UPDATED is
+        // the carrier delivery type.
+        $payload = [
+            'event' => [
+                'id'   => 'shipsgo-evt-' . uniqid(),
+                'name' => 'OCEAN.SHIPMENTS.SHIPMENT_UPDATED',
+                'triggered_by' => ['name' => 'system', 'email' => null],
+            ],
+            'shipment' => [
+                'id'               => random_int(1, 10_000_000),
+                'reference'        => $this->shipmentRef,
+                'container_number' => $this->shipmentRef,
+                'containers' => [
+                    [
+                        'number' => $this->shipmentRef,
+                        'events' => [
+                            ['type' => 'GATE_IN',    'timestamp' => '2026-05-10T08:00:00Z', 'location' => ['city' => 'Shanghai', 'country' => 'CN']],
+                            ['type' => 'LOADED',     'timestamp' => '2026-05-11T03:30:00Z', 'location' => ['city' => 'Shanghai', 'country' => 'CN']],
+                            ['type' => 'DEPARTED',   'timestamp' => '2026-05-11T22:00:00Z', 'location' => ['city' => 'Shanghai', 'country' => 'CN']],
+                            ['type' => 'ARRIVED',    'timestamp' => '2026-05-20T18:00:00Z', 'location' => ['city' => 'Misrata',  'country' => 'LY']],
+                            ['type' => 'DISCHARGED', 'timestamp' => '2026-05-21T05:00:00Z', 'location' => ['city' => 'Misrata',  'country' => 'LY']],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $delivery = WebhookDelivery::create([
+            'provider'           => 'shipsgo',
+            'external_event_id'  => $payload['event']['id'],
+            'event_type'         => $payload['event']['name'],
+            'payload'            => $payload,
+            'signature_verified' => true,
+            'received_at'        => now(),
+        ]);
+
+        (new ProcessShipsGoWebhook($delivery->id))->handle();
+
+        $delivery->refresh();
+        $this->assertNotNull($delivery->processed_at);
+        $this->assertNull($delivery->processing_error);
+
+        $rows = TrackingEvent::query()
+            ->where('shipment_source_table', 'containers_sea')
+            ->where('shipment_source_id', $this->shipmentRowId)
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(5, $rows, 'Each nested leg event must become its own tracking_events row');
+        $types = $rows->pluck('event_type')->all();
+        $this->assertEquals(['GATE_IN', 'LOADED', 'DEPARTED', 'ARRIVED', 'DISCHARGED'], $types);
+
+        $arrived = $rows->firstWhere(fn ($r) => $r->event_type === 'ARRIVED');
+        $this->assertEquals('Misrata', $arrived->city);
+        $this->assertEquals('LY',      $arrived->country);
+    }
+
+    public function test_job_marks_shipment_deleted_invisible_to_customer(): void
+    {
+        $payload = [
+            'event' => [
+                'id'   => 'shipsgo-evt-del-' . uniqid(),
+                'name' => 'OCEAN.SHIPMENTS.SHIPMENT_DELETED',
+            ],
+            'shipment' => [
+                'id'               => random_int(1, 10_000_000),
+                'reference'        => $this->shipmentRef,
+                'container_number' => $this->shipmentRef,
+            ],
+        ];
+
+        $delivery = WebhookDelivery::create([
+            'provider'           => 'shipsgo',
+            'external_event_id'  => $payload['event']['id'],
+            'event_type'         => $payload['event']['name'],
+            'payload'            => $payload,
+            'signature_verified' => true,
+            'received_at'        => now(),
+        ]);
+
+        (new ProcessShipsGoWebhook($delivery->id))->handle();
+
+        $row = TrackingEvent::query()
+            ->where('shipment_source_table', 'containers_sea')
+            ->where('shipment_source_id', $this->shipmentRowId)
+            ->where('event_type', 'SHIPMENT_DELETED')
+            ->first();
+
+        $this->assertNotNull($row);
+        $this->assertFalse((bool) $row->is_customer_visible,
+            'Delete events should be operator-only, not shown in the customer timeline');
+    }
+
     public function test_job_is_idempotent_on_replay(): void
     {
         $payload = $this->v2Envelope('OCEAN.SHIPMENTS.CONTAINER_DISCHARGED');

@@ -68,76 +68,158 @@ class ProcessShipsGoWebhook implements ShouldQueue
     {
         $payload = $delivery->payload;
 
-        // ShipsGo v2 webhook envelope shape:
-        //   { event: {id, name, triggered_by}, shipment: {id, reference,
-        //     container_number, booking_number, ...} }
-        // The "event_type" we record on tracking_events is the event.name
-        // (e.g. OCEAN.SHIPMENTS.CONTAINER_LOADED). Legacy multi-event shape
-        // ({events: [...]}) is still handled defensively.
-        $events = $this->extractEvents($payload);
-        if ($events === []) {
-            return 0;
-        }
-
+        // ShipsGo v2 webhook shape (confirmed against the dashboard at
+        // shipsgo.com/dashboard/integrations/webhooks — the only three
+        // subscribable ocean events are SHIPMENT_CREATED, SHIPMENT_UPDATED,
+        // SHIPMENT_DELETED). Each delivery carries:
+        //   {
+        //     event:    { id, name, triggered_by },
+        //     shipment: { id, reference, container_number, ..., containers: [
+        //       { number, events: [{ type, timestamp, location, ... }, ...] }
+        //     ]}
+        //   }
+        //
+        // The per-leg events (GATE_IN, LOADED, ARRIVED, DISCHARGED, ...)
+        // we surface to the customer live inside shipment.containers[].events[].
+        // The envelope-level event.name is the WEBHOOK type, not the
+        // tracking-event type — useful for ops dashboards but not what
+        // the customer wants to see in their timeline.
         $referenceId = $this->extractReferenceId($payload);
         if ($referenceId === null) {
             throw new \RuntimeException('ShipsGo webhook missing container_number / awb / reference');
         }
-
         [$sourceTable, $sourceId] = $this->resolveShipment($referenceId);
 
-        $written = 0;
-        foreach ($events as $i => $event) {
-            $clientEventId = $this->buildEventId($delivery, $event, $i);
-            $eventType = $this->extractEventType($event, $payload);
+        $envelopeEventName = (string) ($payload['event']['name'] ?? 'UNKNOWN');
 
-            try {
-                DB::transaction(function () use (
-                    $event, $payload, $sourceTable, $sourceId, $clientEventId, $eventType,
-                ) {
-                    TrackingEvent::create([
-                        'shipment_source_table' => $sourceTable,
-                        'shipment_source_id'    => $sourceId,
-                        'shipment_piece_id'     => null,
-                        'kind'                  => TrackingEventKind::INTERNATIONAL,
-                        'event_type'            => $eventType,
-                        'occurred_at'           => $this->parseTimestamp($event),
-                        'city'                  => $event['location']['city']    ?? $event['port'] ?? null,
-                        'country'               => $event['location']['country'] ?? null,
-                        'raw_payload'           => $event,
-                        'translation_key'       => 'tracking::events.' . strtoupper($eventType),
-                        'translation_params'    => [
-                            'city' => $event['location']['city'] ?? $event['port'] ?? '',
-                        ],
-                        'client_event_id'       => $clientEventId,
-                        'is_customer_visible'   => true,
-                    ]);
-                });
-                $written++;
-            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
-                // Duplicate — the idempotency guarantee working as intended.
-                continue;
-            }
+        // SHIPMENT_DELETED — mark the shipment as discarded by emitting one
+        // tracking row; no nested leg events to walk.
+        if (str_ends_with($envelopeEventName, '.SHIPMENT_DELETED')) {
+            return $this->writeOne(
+                sourceTable: $sourceTable,
+                sourceId   : $sourceId,
+                event      : $payload,
+                eventType  : 'SHIPMENT_DELETED',
+                clientEventId: $this->buildEventId($delivery, $payload, 0),
+                customerVisible: false,
+            ) ? 1 : 0;
         }
 
+        // SHIPMENT_CREATED / SHIPMENT_UPDATED — walk every container's
+        // events array, each becomes one TrackingEvent.
+        $legEvents = $this->extractLegEvents($payload);
+        if ($legEvents === []) {
+            // Fall back to the legacy single-event envelope (older deliveries
+            // or third-party simulations).
+            $legEvents = $this->extractLegacyEvents($payload);
+        }
+
+        $written = 0;
+        $idx = 0;
+        foreach ($legEvents as $legEvent) {
+            $eventType    = $this->extractEventType($legEvent, $payload);
+            $clientEventId = $this->buildEventId($delivery, $legEvent, $idx++);
+            if ($this->writeOne(
+                sourceTable: $sourceTable,
+                sourceId   : $sourceId,
+                event      : $legEvent,
+                eventType  : $eventType,
+                clientEventId: $clientEventId,
+                customerVisible: true,
+            )) {
+                $written++;
+            }
+        }
         return $written;
     }
 
-    /** @return array<int, array<string, mixed>> */
-    private function extractEvents(array $payload): array
+    /**
+     * Insert one tracking_events row. Returns true on success, false on
+     * unique-constraint violation (= idempotent dedup, expected).
+     *
+     * @param  array<string, mixed>  $event
+     */
+    private function writeOne(
+        string $sourceTable,
+        int $sourceId,
+        array $event,
+        string $eventType,
+        string $clientEventId,
+        bool $customerVisible,
+    ): bool {
+        try {
+            DB::transaction(function () use (
+                $event, $sourceTable, $sourceId, $clientEventId, $eventType, $customerVisible,
+            ) {
+                TrackingEvent::create([
+                    'shipment_source_table' => $sourceTable,
+                    'shipment_source_id'    => $sourceId,
+                    'shipment_piece_id'     => null,
+                    'kind'                  => TrackingEventKind::INTERNATIONAL,
+                    'event_type'            => $eventType,
+                    'occurred_at'           => $this->parseTimestamp($event),
+                    'city'                  => $event['location']['city']    ?? $event['port'] ?? null,
+                    'country'               => $event['location']['country'] ?? null,
+                    'raw_payload'           => $event,
+                    'translation_key'       => 'tracking::events.' . strtoupper($eventType),
+                    'translation_params'    => [
+                        'city' => $event['location']['city'] ?? $event['port'] ?? '',
+                    ],
+                    'client_event_id'       => $clientEventId,
+                    'is_customer_visible'   => $customerVisible,
+                ]);
+            });
+            return true;
+        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+            return false;
+        }
+    }
+
+    /**
+     * v2 nested-events extractor. Flattens shipment.containers[*].events[*]
+     * into a single list, tagging each event with the container number so
+     * downstream consumers can attribute events to a specific container
+     * (relevant for shipments that have more than one container).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function extractLegEvents(array $payload): array
     {
-        // v2 envelope: top-level 'event' is a single event-meta object;
-        // shipment-level events are embedded under 'shipment.events' when
-        // the webhook is event-update flavored, OR the envelope itself
-        // IS the event for create/discard webhooks.
+        $containers = $payload['shipment']['containers'] ?? null;
+        if (! is_array($containers) || $containers === []) {
+            return [];
+        }
+        $out = [];
+        foreach ($containers as $container) {
+            if (! is_array($container)) continue;
+            $containerNumber = $container['number'] ?? null;
+            $events = $container['events'] ?? null;
+            if (! is_array($events)) continue;
+            foreach ($events as $event) {
+                if (! is_array($event)) continue;
+                // Stamp the container number onto the event so writeOne()'s
+                // raw_payload retains attribution.
+                $event['_container_number'] = $containerNumber;
+                $out[] = $event;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Legacy / simulation fallback: payloads that put events at
+     * shipment.events[] or events[] or as a single envelope event.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function extractLegacyEvents(array $payload): array
+    {
         if (isset($payload['shipment']['events']) && is_array($payload['shipment']['events'])) {
             return array_values($payload['shipment']['events']);
         }
         if (isset($payload['events']) && is_array($payload['events'])) {
             return array_values($payload['events']);
         }
-        // Single-event envelope (create / discard / status-change) — treat
-        // the envelope itself as one event row.
         if (isset($payload['event']) || isset($payload['type'])) {
             return [$payload];
         }
@@ -146,15 +228,13 @@ class ProcessShipsGoWebhook implements ShouldQueue
 
     private function extractEventType(array $event, array $envelope): string
     {
-        // v2 event-meta lives at envelope.event.name when the event row
-        // is the envelope. Per-row events under shipment.events carry
-        // their own 'name' or 'event' field. Skip values that are arrays
-        // — that's the envelope's event-meta object, not the event name.
+        // v2 per-leg event uses 'type' (e.g. GATE_IN, LOADED, DISCHARGED).
+        // Legacy / envelope-as-event uses 'event.name'. Skip arrays — that's
+        // the envelope's event-meta object, not a string event type.
         foreach ([
-            $event['name'] ?? null,
-            // event['event'] may be a string (legacy) OR an array (v2 envelope) — only accept strings.
-            is_string($event['event'] ?? null) ? $event['event'] : null,
             $event['type'] ?? null,
+            $event['name'] ?? null,
+            is_string($event['event'] ?? null) ? $event['event'] : null,
             $envelope['event']['name'] ?? null,
         ] as $candidate) {
             if (is_string($candidate) && $candidate !== '') {
