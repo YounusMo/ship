@@ -35,6 +35,19 @@ Thumbs.db
 # Playwright MCP telemetry (per-run screenshots, snapshots, console logs)
 .playwright-mcp/
 
+# Debug screenshots saved at the repo root during browser smoke tests.
+# Real product screenshots live in system/resources/ or are committed
+# deliberately — this rule only ignores repo-root saves.
+/*.png
+
+# Vite dev-server marker file. Created by `npm run dev` and removed
+# on shutdown — never useful to commit.
+system/public/hot
+
+# Laravel storage symlink — created by `php artisan storage:link`,
+# points at storage/app/public/. Recreated on every deploy.
+system/public/storage
+
 # User-uploaded content directories — track structure not contents. The
 # patterns are anchored to system/public/ where the photos actually live;
 # the previous unanchored patterns matched nothing and let uploads leak

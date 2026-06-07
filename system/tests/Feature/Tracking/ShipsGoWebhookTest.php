@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Tracking;
 
+use App\Modules\Tracking\Jobs\DispatchShipmentEventNotificationJob;
 use App\Modules\Tracking\Jobs\ProcessShipsGoWebhook;
 use App\Modules\Tracking\Models\TrackingEvent;
 use App\Modules\Tracking\Models\WebhookDelivery;
@@ -83,7 +84,8 @@ class ShipsGoWebhookTest extends TestCase
 
     public function test_rejects_invalid_signature(): void
     {
-        $body = json_encode($this->v2Envelope('OCEAN.SHIPMENTS.CONTAINER_GATE_IN'));
+        $payload = $this->v2Envelope('OCEAN.SHIPMENTS.CONTAINER_GATE_IN');
+        $body    = json_encode($payload);
 
         $resp = $this->postJson(
             '/api/v1/webhooks/shipsgo',
@@ -92,7 +94,12 @@ class ShipsGoWebhookTest extends TestCase
         );
 
         $resp->assertStatus(401);
-        $this->assertSame(0, WebhookDelivery::query()->count());
+        // Scope by this test's event id — the shared mysql table may already
+        // hold rows from earlier (non-test) traffic.
+        $this->assertSame(
+            0,
+            WebhookDelivery::query()->where('external_event_id', $payload['event']['id'])->count(),
+        );
     }
 
     public function test_accepts_valid_signature_and_dispatches_job(): void
@@ -119,7 +126,10 @@ class ShipsGoWebhookTest extends TestCase
         );
 
         $resp->assertStatus(200);
-        $this->assertSame(1, WebhookDelivery::query()->count());
+        $this->assertSame(
+            1,
+            WebhookDelivery::query()->where('external_event_id', $payload['event']['id'])->count(),
+        );
         Bus::assertDispatched(ProcessShipsGoWebhook::class);
     }
 
@@ -146,7 +156,10 @@ class ShipsGoWebhookTest extends TestCase
         $second->assertStatus(200);
         $second->assertJsonFragment(['deduped' => true]);
 
-        $this->assertSame(1, WebhookDelivery::query()->count());
+        $this->assertSame(
+            1,
+            WebhookDelivery::query()->where('external_event_id', $payload['event']['id'])->count(),
+        );
         Bus::assertDispatchedTimes(ProcessShipsGoWebhook::class, 1);
     }
 
@@ -278,6 +291,56 @@ class ShipsGoWebhookTest extends TestCase
         $this->assertNotNull($row);
         $this->assertFalse((bool) $row->is_customer_visible,
             'Delete events should be operator-only, not shown in the customer timeline');
+    }
+
+    public function test_customer_visible_event_dispatches_fanout_job_after_commit(): void
+    {
+        Bus::fake([DispatchShipmentEventNotificationJob::class]);
+
+        $payload = $this->v2Envelope('OCEAN.SHIPMENTS.CONTAINER_LOADED');
+        $payload['location']  = ['city' => 'Shanghai', 'country' => 'CN'];
+        $payload['timestamp'] = '2026-05-22T08:00:00Z';
+
+        $delivery = WebhookDelivery::create([
+            'provider'           => 'shipsgo',
+            'external_event_id'  => $payload['event']['id'],
+            'event_type'         => $payload['event']['name'],
+            'payload'            => $payload,
+            'signature_verified' => true,
+            'received_at'        => now(),
+        ]);
+
+        (new ProcessShipsGoWebhook($delivery->id))->handle();
+
+        // One fan-out dispatched for the freshly-inserted event.
+        Bus::assertDispatchedTimes(DispatchShipmentEventNotificationJob::class, 1);
+
+        // Replay must not re-dispatch: dedup hits return false from writeOne()
+        // and skip the dispatch path entirely.
+        $delivery->update(['processed_at' => null]);
+        (new ProcessShipsGoWebhook($delivery->id))->handle();
+        Bus::assertDispatchedTimes(DispatchShipmentEventNotificationJob::class, 1);
+    }
+
+    public function test_shipment_deleted_event_does_not_dispatch_fanout(): void
+    {
+        Bus::fake([DispatchShipmentEventNotificationJob::class]);
+
+        $payload = $this->v2Envelope('OCEAN.SHIPMENTS.SHIPMENT_DELETED');
+        $delivery = WebhookDelivery::create([
+            'provider'           => 'shipsgo',
+            'external_event_id'  => $payload['event']['id'],
+            'event_type'         => $payload['event']['name'],
+            'payload'            => $payload,
+            'signature_verified' => true,
+            'received_at'        => now(),
+        ]);
+
+        (new ProcessShipsGoWebhook($delivery->id))->handle();
+
+        // SHIPMENT_DELETED writes an event but with is_customer_visible=false,
+        // so the fan-out dispatch is skipped.
+        Bus::assertNotDispatched(DispatchShipmentEventNotificationJob::class);
     }
 
     public function test_job_is_idempotent_on_replay(): void
