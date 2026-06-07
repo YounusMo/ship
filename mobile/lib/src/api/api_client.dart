@@ -1,7 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 
 import 'api_exceptions.dart';
 
@@ -29,17 +28,16 @@ class ApiClient {
       validateStatus: (_) => true,
     ));
 
-    // Disk-backed cache for GET responses. Survives cold starts, so the
-    // dashboard renders the last balances even when the phone has no
-    // network. Initialized lazily because path_provider returns a Future;
-    // until then, requests go straight through.
-    //
-    // The token interceptor sits behind the cache so a logged-out cache
-    // hit still attaches no Authorization header. clearToken() flushes
-    // the whole store on logout to prevent the next user on this device
-    // from reading the previous client's data.
+    // In-memory cache for GET responses. dio_cache_interceptor 3.5+ no
+    // longer ships a file-backed store in the base package; switching to
+    // dio_cache_interceptor_db_store would pull in sqflite which crashed
+    // on cold start during prior testing. Memory-only is acceptable:
+    // dashboard reads re-fetch on launch, which costs one round-trip but
+    // avoids the stale-on-disk hazard entirely. clearToken() flushes the
+    // whole store on logout so the next user on this device can't read
+    // the previous client's data.
     _cacheOptions = CacheOptions(
-      store: MemCacheStore(maxSize: 5 * 1024 * 1024), // bootstrap value
+      store: MemCacheStore(maxSize: 5 * 1024 * 1024),
       policy: CachePolicy.request,
       hitCacheOnErrorExcept: const <int>[401, 403],
       maxStale: const Duration(minutes: 5),
@@ -47,7 +45,6 @@ class ApiClient {
       allowPostMethod: false,
     );
     _dio.interceptors.add(DioCacheInterceptor(options: _cacheOptions));
-    _upgradeToDiskCache();
 
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
@@ -59,11 +56,31 @@ class ApiClient {
         }
         return handler.next(options);
       },
-      onResponse: (response, handler) {
+      onResponse: (response, handler) async {
         final code = response.statusCode ?? 0;
         if (code >= 200 && code < 300) {
           return handler.next(response);
         }
+
+        // 401 on a non-auth call — try to refresh the token once. If it
+        // works, retry the original request. If it doesn't, fall through
+        // to the normal error path which the router treats as a logout.
+        if (code == 401 && _shouldAttemptRefresh(response.requestOptions)) {
+          final ok = await _refreshOnce();
+          if (ok) {
+            try {
+              final retry = await _dio.fetch<dynamic>(
+                response.requestOptions..headers['Authorization'] = 'Bearer $_token',
+              );
+              return handler.resolve(retry);
+            } catch (_) {
+              // Fall through to error path with original 401.
+            }
+          } else {
+            await _onAuthFailed?.call();
+          }
+        }
+
         return handler.reject(DioException(
           requestOptions: response.requestOptions,
           response: response,
@@ -80,29 +97,70 @@ class ApiClient {
     ));
   }
 
+  bool _shouldAttemptRefresh(RequestOptions opts) {
+    // Don't refresh on the refresh / login endpoints themselves —
+    // otherwise a failing refresh recurses forever.
+    final path = opts.path;
+    if (path.contains('/auth/refresh') || path.contains('/auth/login')) {
+      return false;
+    }
+    if (_token == null) return false;
+    if (_onTokenRefreshed == null) return false;
+    return true;
+  }
+
+  /// Issue exactly one refresh request at a time. Concurrent callers
+  /// share the same Future.
+  Future<bool> _refreshOnce() {
+    return _refreshInFlight ??= _doRefresh().whenComplete(() => _refreshInFlight = null);
+  }
+
+  Future<bool> _doRefresh() async {
+    if (_token == null) return false;
+    try {
+      // Use a bare Dio instance so this call doesn't recurse back into
+      // the 401 handler on the main client.
+      final bare = Dio(BaseOptions(
+        baseUrl: _baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $_token',
+        },
+        validateStatus: (_) => true,
+      ));
+      final r = await bare.post<dynamic>('/api/auth/refresh');
+      if (r.statusCode == 200 && r.data is Map && (r.data as Map)['token'] is String) {
+        final newToken = (r.data as Map)['token'] as String;
+        _token = newToken;
+        await _onTokenRefreshed?.call(newToken);
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   static final ApiClient instance = ApiClient._();
   late final Dio _dio;
   late CacheOptions _cacheOptions;
   String? _token;
 
-  /// Swap the bootstrap MemCacheStore for a disk-backed DbCacheStore so
-  /// future requests use it. Failures (e.g. sandboxed environments where
-  /// path_provider can't resolve a writable directory) fall back to the
-  /// in-memory store silently — better degraded perf than a crash.
-  Future<void> _upgradeToDiskCache() async {
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      _cacheOptions = _cacheOptions.copyWith(
-        store: FileCacheStore('${dir.path}/shipflow_cache'),
-      );
-      // Replace the interceptor in place. The old MemCacheStore garbage
-      // collects on its own once nothing references it.
-      _dio.interceptors.removeWhere((i) => i is DioCacheInterceptor);
-      _dio.interceptors.insert(0, DioCacheInterceptor(options: _cacheOptions));
-    } catch (e) {
-      debugPrint('[api] disk cache upgrade failed, keeping in-memory: $e');
-    }
-  }
+  /// Set once at auth setup. Called when a 401 triggers a successful
+  /// `/api/auth/refresh` — the auth provider persists the new token to
+  /// secure storage so it survives a process restart.
+  Future<void> Function(String newToken)? _onTokenRefreshed;
+
+  /// Set once at auth setup. Called when refresh itself fails (token
+  /// genuinely expired or revoked). The auth provider clears state and
+  /// the router sends the user to /login.
+  Future<void> Function()? _onAuthFailed;
+
+  /// Concurrency lock: when many requests fire 401 at once we want a
+  /// single in-flight refresh, not N.
+  Future<bool>? _refreshInFlight;
 
   Dio get dio => _dio;
 
@@ -112,6 +170,16 @@ class ApiClient {
     // Flush the cache so the next user on this device can't read the
     // previous client's data from a stale entry.
     _cacheOptions.store?.clean(staleOnly: false);
+  }
+
+  /// Wire the two callbacks the auth provider needs. Call once during
+  /// app startup, after the provider exists.
+  void wireRefreshCallbacks({
+    required Future<void> Function(String newToken) onTokenRefreshed,
+    required Future<void> Function() onAuthFailed,
+  }) {
+    _onTokenRefreshed = onTokenRefreshed;
+    _onAuthFailed     = onAuthFailed;
   }
 
   /// Base URL is build-time configurable via:

@@ -17,6 +17,21 @@ class AuthNotifier extends AsyncNotifier<Client?> {
 
   @override
   Future<Client?> build() async {
+    // Wire token-refresh + auth-fail callbacks into the ApiClient
+    // exactly once. The interceptor in ApiClient calls these on 401
+    // — see `wireRefreshCallbacks` and gap #4 in docs/GAPS.md.
+    ApiClient.instance.wireRefreshCallbacks(
+      onTokenRefreshed: (newToken) async {
+        await _storage.write(key: _tokenKey, value: newToken);
+      },
+      onAuthFailed: () async {
+        await _storage.delete(key: _tokenKey);
+        await _storage.delete(key: _clientKey);
+        ApiClient.instance.clearToken();
+        state = const AsyncValue.data(null);
+      },
+    );
+
     final token = await _storage.read(key: _tokenKey);
     if (token == null) return null;
 

@@ -28,4 +28,8 @@ class AuthSignedIn extends AuthState {
   AuthSignedIn withActiveBranch(int? branchId) => AuthSignedIn(
     token: token, employee: employee, activeBranchId: branchId,
   );
+
+  AuthSignedIn withToken(String newToken) => AuthSignedIn(
+    token: newToken, employee: employee, activeBranchId: activeBranchId,
+  );
 }

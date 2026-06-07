@@ -24,8 +24,39 @@ final secureStorageProvider = Provider<FlutterSecureStorage>(
   (ref) => const FlutterSecureStorage(),
 );
 
-/// Configurable at runtime via SettingsScreen.
-final apiBaseUrlProvider = StateProvider<String>((ref) => _kDefaultApiBase);
+/// Build-time default key. Persisted overrides live under this key in
+/// secure storage so a custom value survives app restarts.
+const String _kApiBaseUrlStorageKey = 'api_base_url';
+
+/// Hydrates the API base URL from secure storage on first read. Returns
+/// the build-time default if storage has no entry yet. Backed by an
+/// AsyncNotifier rather than StateProvider so SettingsScreen can persist
+/// changes via the same code path that hydrates them.
+final apiBaseUrlProvider = AsyncNotifierProvider<ApiBaseUrlController, String>(
+  ApiBaseUrlController.new,
+);
+
+class ApiBaseUrlController extends AsyncNotifier<String> {
+  @override
+  Future<String> build() async {
+    final storage = ref.watch(secureStorageProvider);
+    final stored  = await storage.read(key: _kApiBaseUrlStorageKey);
+    if (stored != null && stored.isNotEmpty) return stored;
+    return _kDefaultApiBase;
+  }
+
+  Future<void> setBaseUrl(String value) async {
+    final trimmed = value.trim();
+    final storage = ref.read(secureStorageProvider);
+    if (trimmed.isEmpty) {
+      await storage.delete(key: _kApiBaseUrlStorageKey);
+      state = const AsyncValue.data(_kDefaultApiBase);
+      return;
+    }
+    await storage.write(key: _kApiBaseUrlStorageKey, value: trimmed);
+    state = AsyncValue.data(trimmed);
+  }
+}
 
 /// The current auth state. The router watches this.
 final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(
@@ -70,8 +101,30 @@ class AuthController extends AsyncNotifier<AuthState> {
   }
 
   ApiService _service(String? token) {
-    final base = ref.read(apiBaseUrlProvider);
-    return ApiService(ApiClient(baseUrl: base, tokenProvider: () => token));
+    final base = ref.read(apiBaseUrlProvider).value ?? _kDefaultApiBase;
+    return ApiService(ApiClient(
+      baseUrl: base,
+      tokenProvider: () => token,
+      onTokenRefreshed: (newToken) async {
+        // Persist the rotated token. On the next signed-in build we
+        // pick it up from secure storage. We also patch the live auth
+        // state so the in-flight session keeps working without bouncing
+        // back through `build`.
+        final storage = ref.read(secureStorageProvider);
+        await storage.write(key: 'auth_token', value: newToken);
+        final cur = state.value;
+        if (cur is AuthSignedIn) {
+          state = AsyncValue.data(cur.withToken(newToken));
+        }
+      },
+      onAuthFailed: () async {
+        // Refresh itself failed — token is genuinely expired/revoked.
+        // Clear storage and bounce to signed-out so the router shows /login.
+        final storage = ref.read(secureStorageProvider);
+        await storage.deleteAll();
+        state = const AsyncValue.data(AuthSignedOut());
+      },
+    ));
   }
 
   Future<void> signIn({required String email, required String password}) async {
@@ -100,6 +153,16 @@ class AuthController extends AsyncNotifier<AuthState> {
     });
   }
 
+  /// Replace the in-memory token with a freshly-rotated one (called by
+  /// the api client's 401-refresh interceptor). Storage write already
+  /// happened in the interceptor's onTokenRefreshed callback.
+  void adoptRefreshedToken(String newToken) {
+    final cur = state.value;
+    if (cur is AuthSignedIn) {
+      state = AsyncValue.data(cur.withToken(newToken));
+    }
+  }
+
   Future<void> setActiveBranch(int? branchId) async {
     final cur = state.value;
     if (cur is! AuthSignedIn) return;
@@ -125,11 +188,24 @@ class AuthController extends AsyncNotifier<AuthState> {
 
 /// The ApiService configured with the current auth token + base URL.
 /// Re-created whenever auth state changes so the bearer header stays fresh.
+/// Also wires refresh callbacks back into the auth controller so a 401
+/// → /auth/refresh → retry happens transparently. See gap #4.
 final apiServiceProvider = Provider<ApiService>((ref) {
-  final base = ref.watch(apiBaseUrlProvider);
+  final base = ref.watch(apiBaseUrlProvider).value ?? _kDefaultApiBase;
   final auth = ref.watch(authControllerProvider).value;
   final token = auth is AuthSignedIn ? auth.token : null;
-  return ApiService(ApiClient(baseUrl: base, tokenProvider: () => token));
+  return ApiService(ApiClient(
+    baseUrl: base,
+    tokenProvider: () => token,
+    onTokenRefreshed: (newToken) async {
+      final storage = ref.read(secureStorageProvider);
+      await storage.write(key: 'auth_token', value: newToken);
+      ref.read(authControllerProvider.notifier).adoptRefreshedToken(newToken);
+    },
+    onAuthFailed: () async {
+      await ref.read(authControllerProvider.notifier).signOut();
+    },
+  ));
 });
 
 /// Single shared OutboxStore instance.

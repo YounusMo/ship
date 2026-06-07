@@ -4,13 +4,29 @@ import 'api_exceptions.dart';
 /// One Dio instance, configured with the configured base URL and the
 /// current bearer token. The token is supplied by an external lambda so
 /// the client can be rebuilt cheaply when auth state changes.
+///
+/// On a 401 the interceptor calls `POST /api/v1/employee/auth/refresh`
+/// exactly once. On success the new token is fed back via
+/// `onTokenRefreshed` (auth_state persists it) and the original request
+/// is retried transparently. On failure `onAuthFailed` is called so the
+/// router redirects the user to /login. See gap #4 in docs/GAPS.md.
 class ApiClient {
   ApiClient({
-    required String baseUrl,
-    required String? Function() tokenProvider,
-  }) : dio = _build(baseUrl, tokenProvider);
+    required this.baseUrl,
+    required this.tokenProvider,
+    this.onTokenRefreshed,
+    this.onAuthFailed,
+  }) : dio = _build(baseUrl, tokenProvider) {
+    _attachRefreshInterceptor();
+  }
 
+  final String baseUrl;
+  final String? Function() tokenProvider;
+  final Future<void> Function(String newToken)? onTokenRefreshed;
+  final Future<void> Function()? onAuthFailed;
   final Dio dio;
+
+  Future<bool>? _refreshInFlight;
 
   static Dio _build(String baseUrl, String? Function() tokenProvider) {
     final dio = Dio(BaseOptions(
@@ -33,6 +49,69 @@ class ApiClient {
     ));
 
     return dio;
+  }
+
+  void _attachRefreshInterceptor() {
+    dio.interceptors.add(InterceptorsWrapper(
+      onResponse: (response, handler) async {
+        if (response.statusCode != 401) return handler.next(response);
+
+        final opts = response.requestOptions;
+        final path = opts.path;
+        // Don't refresh on the refresh/login endpoints themselves.
+        if (path.contains('/auth/refresh') || path.contains('/auth/login')) {
+          return handler.next(response);
+        }
+        if (tokenProvider() == null || onTokenRefreshed == null) {
+          return handler.next(response);
+        }
+
+        final ok = await _refreshOnce();
+        if (!ok) {
+          await onAuthFailed?.call();
+          return handler.next(response);
+        }
+
+        try {
+          final t = tokenProvider();
+          if (t != null) opts.headers['Authorization'] = 'Bearer $t';
+          final retry = await dio.fetch<dynamic>(opts);
+          return handler.resolve(retry);
+        } catch (_) {
+          return handler.next(response);
+        }
+      },
+    ));
+  }
+
+  Future<bool> _refreshOnce() {
+    return _refreshInFlight ??= _doRefresh().whenComplete(() => _refreshInFlight = null);
+  }
+
+  Future<bool> _doRefresh() async {
+    final t = tokenProvider();
+    if (t == null) return false;
+    try {
+      final bare = Dio(BaseOptions(
+        baseUrl       : baseUrl,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        headers       : <String, dynamic>{
+          'Accept'       : 'application/json',
+          'Authorization': 'Bearer $t',
+        },
+        validateStatus: (_) => true,
+      ));
+      final r = await bare.post<dynamic>('/api/v1/employee/auth/refresh');
+      if (r.statusCode == 200 && r.data is Map && (r.data as Map)['token'] is String) {
+        final newToken = (r.data as Map)['token'] as String;
+        await onTokenRefreshed?.call(newToken);
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Maps a Dio response into a typed exception, OR returns the data
