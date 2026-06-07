@@ -21,6 +21,10 @@ cron_jobs/backups/*.sql
 cron_jobs/backups_zip/
 backups_sub/
 *.sql
+# Exception: the schema baseline is a tracked artifact CI loads before
+# migrate to provide a coherent starting point for tables created by
+# pre-Laravel SQL dumps rather than by migrations.
+!system/database/schema/baseline.sql
 
 # OS / editor junk
 .DS_Store

@@ -86,7 +86,15 @@ jobs:
           EOF
           php artisan key:generate --force
 
-      - name: Migrate
+      - name: Load baseline schema
+        # The legacy table `branches_transactions` (and a few others) was
+        # bootstrapped from a pre-Laravel SQL dump, not by a migration in
+        # `database/migrations/`. Loading a baseline dump first gives the
+        # later `artisan migrate` step a coherent starting point.
+        run: |
+          mysql -h 127.0.0.1 -uship_user -pStrongPassword123! ship_system < system/database/schema/baseline.sql
+
+      - name: Migrate (apply any migrations the baseline didn't include)
         run: php artisan migrate --force
 
       - name: Seed chart of accounts
