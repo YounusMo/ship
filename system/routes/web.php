@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\usersController;
 use App\Http\Controllers\settingsController;
 use App\Http\Controllers\dataController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\skyController;
 use App\Http\Controllers\suppliersController;
 use App\Http\Controllers\analyticsController;
 use App\Http\Controllers\customsBrokersController;
+use App\Http\Controllers\sourcingController;
 use App\Http\Controllers\profitsController;
 use App\Http\Controllers\matchingController;
 use App\Http\Controllers\oldBalanceArchiveController;
@@ -32,6 +35,40 @@ use App\Http\Controllers\shipmentStickersController;
 // controller no-ops when neither guard is authenticated, and a POST without
 // a valid CSRF token is rejected by Laravel's VerifyCsrfToken middleware.
 Route::post('/logout', [usersController::class,'logout']);
+
+// Staff password reset — gap #7. Throttle:login mirrors the login flow
+// so the reset endpoint can't be used to enumerate accounts via timing.
+Route::middleware('throttle:login')->group(function () {
+    Route::get('/password/request', [PasswordResetController::class, 'showRequestForm'])
+        ->name('password.request');
+    Route::post('/password/email', [PasswordResetController::class, 'sendResetLink'])
+        ->name('password.email');
+    Route::get('/password/reset/{token}', [PasswordResetController::class, 'showResetForm'])
+        ->name('password.reset');
+    Route::post('/password/reset', [PasswordResetController::class, 'reset'])
+        ->name('password.update');
+});
+
+// Two-factor auth — gap #6. The challenge routes are public (the
+// session holds the pending user). The enrollment routes require
+// chkAuthAdmin since you're enrolling your own account.
+Route::middleware('throttle:login')->group(function () {
+    Route::get('/two-factor/challenge', [TwoFactorController::class, 'showChallenge'])
+        ->name('two-factor.challenge');
+    Route::post('/two-factor/challenge', [TwoFactorController::class, 'verifyChallenge'])
+        ->name('two-factor.challenge.verify');
+});
+Route::middleware(['chkAuthAdmin'])->group(function () {
+    Route::get('/two-factor/enroll', [TwoFactorController::class, 'showEnrollment'])
+        ->name('two-factor.enroll');
+    Route::post('/two-factor/enroll', [TwoFactorController::class, 'confirmEnrollment'])
+        ->name('two-factor.enroll.confirm');
+    // Admin-only: clear another user's 2FA enrollment.
+    Route::middleware(['type:admin'])->post('/two-factor/admin/{id}/reset',
+        [TwoFactorController::class, 'adminReset'])
+        ->name('two-factor.admin.reset')
+        ->where('id', '[0-9]+');
+});
 
 Route::middleware(['chkAuthClient'])->group(function(){
 
@@ -120,12 +157,17 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
     Route::post('/restore_recs', [dataController::class,'restore_recs']);
     Route::post('/get_currencies', [dataController::class,'get_currencies']);
 
-    Route::post('/settings/save_general',[settingsController::class,'save_general']);
+    // Admin-only settings mutations. The full /settings prefix block
+    // further down also wears type:admin; these two stragglers are
+    // outside that block and have to be guarded here. See gap #3.
+    Route::middleware(['type:admin'])->group(function () {
+        Route::post('/settings/save_general',[settingsController::class,'save_general']);
 
-    Route::get('/settings', function () {
-        return view('pages.settings.index',[
-            'page' => 'settings'
-        ]);
+        Route::get('/settings', function () {
+            return view('pages.settings.index',[
+                'page' => 'settings'
+            ]);
+        });
     });
 
 
@@ -178,6 +220,8 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
         });
 
         Route::post('/load',[profitsController::class,'load']);
+        Route::get('/container/{type}/{id}', [profitsController::class, 'container'])
+            ->where(['type' => 'sky|sea', 'id' => '[0-9]+']);
     });
 
 
@@ -420,7 +464,116 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
 
     });
 
-    Route::prefix('users')->group(function(){
+    Route::prefix('sourcing')->group(function () {
+        Route::get('/',                  [sourcingController::class, 'index']);
+        Route::get('/dashboard',         [sourcingController::class, 'dashboard']);
+        Route::get('/board',             [sourcingController::class, 'board']);
+        Route::get('/commissions',       [sourcingController::class, 'commissionsReport']);
+        Route::get('/payments',          [sourcingController::class, 'openBalancesReport']);
+        Route::post('/load',             [sourcingController::class, 'load']);
+        Route::post('/create',           [sourcingController::class, 'create']);
+        Route::post('/update',           [sourcingController::class, 'update']);
+        Route::post('/cancel',           [sourcingController::class, 'cancel']);
+        Route::post('/fulfill',          [sourcingController::class, 'markFulfilled']);
+        Route::post('/quotes/add',       [sourcingController::class, 'addQuote']);
+        Route::post('/quotes/accept',    [sourcingController::class, 'acceptQuote']);
+
+        // Proforma: line items + photos + payment plan + settings.
+        Route::post('/items/add',                  [sourcingController::class, 'addItem']);
+        Route::post('/items/update',               [sourcingController::class, 'updateItem']);
+        Route::post('/items/delete',               [sourcingController::class, 'deleteItem']);
+        Route::post('/items/photos/upload',        [sourcingController::class, 'uploadItemPhotos']);
+        Route::post('/items/photos/delete',        [sourcingController::class, 'deleteItemPhoto']);
+        Route::post('/items/photos/set-primary',   [sourcingController::class, 'setPrimaryPhoto']);
+        Route::post('/proforma/settings',          [sourcingController::class, 'updateProformaSettings']);
+        Route::post('/proforma/payment-plan',      [sourcingController::class, 'generatePaymentPlan']);
+        Route::post('/proforma/payments/add',      [sourcingController::class, 'addPayment']);
+        Route::post('/proforma/payments/update',   [sourcingController::class, 'updatePayment']);
+        Route::post('/proforma/payments/delete',   [sourcingController::class, 'deletePayment']);
+        Route::post('/proforma/payments/mark-paid',[sourcingController::class, 'markInstallmentPaid']);
+
+        // Phase 2: PDF, send-link, on-behalf approval.
+        Route::get('/{id}/pdf',                    [sourcingController::class, 'proformaPdf'])->whereNumber('id');
+        Route::post('/{id}/send',                  [sourcingController::class, 'sendProforma'])->whereNumber('id');
+        Route::post('/{id}/approve-on-behalf',     [sourcingController::class, 'approveOnBehalf'])->whereNumber('id');
+
+        // Phase 3: handoff to freight container.
+        Route::get('/{id}/handoff/{kind}',         [sourcingController::class, 'handoffForm'])
+            ->where(['id' => '[0-9]+', 'kind' => 'sky|sea']);
+        Route::post('/{id}/handoff',               [sourcingController::class, 'handoffSubmit'])->whereNumber('id');
+
+        // Phase 4: profit dashboard, email PDF, activity timeline.
+        Route::get('/{id}/profit',                 [sourcingController::class, 'profitDashboard'])->whereNumber('id');
+        Route::post('/{id}/email',                 [sourcingController::class, 'emailToClient'])->whereNumber('id');
+
+        // Phase 5: clone + reminder.
+        Route::post('/{id}/clone',                 [sourcingController::class, 'cloneProforma'])->whereNumber('id');
+        Route::post('/{id}/reminder',              [sourcingController::class, 'sendReminder'])->whereNumber('id');
+
+        // Item status (per-item delivery tracking).
+        Route::post('/items/status',               [sourcingController::class, 'updateItemStatus']);
+
+        // Phase 6: documents + bulk export.
+        Route::post('/documents/upload',           [sourcingController::class, 'uploadDocuments']);
+        Route::post('/documents/delete',           [sourcingController::class, 'deleteDocument']);
+        Route::post('/documents/visibility',       [sourcingController::class, 'setDocumentVisibility']);
+        Route::post('/bulk-pdf',                   [sourcingController::class, 'bulkPdf']);
+
+        // Phase 7: change requests + container sync.
+        Route::post('/change-requests/respond',    [sourcingController::class, 'respondChangeRequest']);
+        Route::post('/{id}/sync-from-container',   [sourcingController::class, 'syncFromContainer'])->whereNumber('id');
+
+        // Phase 8: rotate share token.
+        Route::post('/{id}/rotate-token',          [sourcingController::class, 'rotateToken'])->whereNumber('id');
+
+        // Phase 9: soft-delete / restore / hard-delete.
+        Route::post('/{id}/trash',                 [sourcingController::class, 'trash'])->whereNumber('id');
+        Route::post('/{id}/restore',               [sourcingController::class, 'restore'])->whereNumber('id');
+        Route::post('/{id}/destroy',               [sourcingController::class, 'destroy'])->whereNumber('id');
+
+        // Phase 9: client portal token mint/rotate.
+        Route::post('/clients/{clientId}/portal-token', [sourcingController::class, 'mintClientPortalToken'])->whereNumber('clientId');
+
+        // Phase 10: board status quick-move + bulk actions + markup.
+        Route::post('/{id}/status',                [sourcingController::class, 'quickMoveStatus'])->whereNumber('id');
+        Route::post('/bulk/trash',                 [sourcingController::class, 'bulkTrash']);
+        Route::post('/bulk/restore',               [sourcingController::class, 'bulkRestore']);
+        Route::post('/{id}/apply-markup',          [sourcingController::class, 'applyMarkup'])->whereNumber('id');
+
+        // Phase 11: catalog + funnel + reminder run.
+        Route::get('/catalog',                     [sourcingController::class, 'catalogIndex']);
+        Route::get('/catalog/manage',              [sourcingController::class, 'catalogManage']);
+        Route::post('/catalog/save',               [sourcingController::class, 'catalogSave']);
+        Route::post('/catalog/delete',             [sourcingController::class, 'catalogDelete']);
+        Route::get('/funnel',                      [sourcingController::class, 'funnel']);
+        Route::post('/reminders/run',              [sourcingController::class, 'runReminders']);
+
+        // Phase 12: PO linkage + delivery commitments.
+        Route::get('/po-search',                   [sourcingController::class, 'poSearch']);
+        Route::post('/items/dates',                [sourcingController::class, 'updateItemDates']);
+        Route::post('/{id}/po-link',               [sourcingController::class, 'poLink'])->whereNumber('id');
+        Route::post('/{id}/po-unlink',             [sourcingController::class, 'poUnlink'])->whereNumber('id');
+
+        // Phase 13: versioning + diff.
+        Route::post('/{id}/snapshot',              [sourcingController::class, 'manualSnapshot'])->whereNumber('id');
+        Route::get('/{id}/versions/{versionNo}',   [sourcingController::class, 'versionPdf'])
+            ->where(['id' => '[0-9]+', 'versionNo' => '[0-9]+']);
+        Route::get('/{id}/diff',                   [sourcingController::class, 'diff'])->whereNumber('id');
+
+        // Phase 14: supplier reliability insights.
+        Route::get('/insights/suppliers',          [sourcingController::class, 'supplierInsights']);
+
+        // Phase 15: per-proforma health trend (JSON).
+        Route::get('/{id}/health-trend',           [sourcingController::class, 'healthTrend'])->whereNumber('id');
+
+        // /sourcing/{id} must come last — anything more specific above wins.
+        Route::get('/{id}',              [sourcingController::class, 'show'])->whereNumber('id');
+    });
+
+    // Admin-only: managing other users + changing their passwords.
+    // The inline check in usersController also enforces this; the
+    // middleware is the outer defense-in-depth layer. See gap #3.
+    Route::middleware(['type:admin'])->prefix('users')->group(function(){
 
         Route::get('/', function () {
             return view('pages.users.index',[
@@ -438,7 +591,8 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
         Route::post('/change_pass',[usersController::class,'change_pass']);
     });
 
-    Route::prefix('settings')->group(function(){
+    // Admin-only: system-wide settings (company info, FX defaults, etc).
+    Route::middleware(['type:admin'])->prefix('settings')->group(function(){
 
         Route::get('/', function () {
             return view('pages.settings.index',[
@@ -497,6 +651,7 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
         Route::get('/cash-counts',                [accountingController::class, 'cashCountIndex']);
         Route::post('/cash-counts',               [accountingController::class, 'cashCountStore']);
         Route::post('/cash-counts/{id}/adjust',   [accountingController::class, 'cashCountAdjust'])->where('id', '[0-9]+');
+        Route::get('/treasury-by-branch',         [accountingController::class, 'treasuryByBranch']);
 
         Route::get('/prepayments',                [accountingController::class, 'prepaymentsIndex']);
         Route::post('/prepayments/register',      [accountingController::class, 'prepaymentRegister']);
@@ -555,3 +710,15 @@ Route::prefix('auth')->group(function(){
 
 
 Route::get('/change_lang/{lang}',[usersController::class,'change_lang']);
+
+/* -----------------------------------------------------------------
+ *  Public proforma share — no login required. The share_token is the
+ *  capability: anyone with the link can view and approve. Tokens are
+ *  90 days; the controller returns 410 Gone after expiry.
+ * ----------------------------------------------------------------- */
+Route::get('/proforma/{token}',                  [sourcingController::class, 'publicProforma']);
+Route::get('/proforma/{token}/pdf',              [sourcingController::class, 'publicProformaPdf']);
+Route::post('/proforma/{token}/approve',         [sourcingController::class, 'publicApprove']);
+Route::post('/proforma/{token}/request-changes', [sourcingController::class, 'publicRequestChanges']);
+
+Route::get('/portal/{token}',                    [sourcingController::class, 'publicClientPortal']);

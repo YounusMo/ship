@@ -152,6 +152,14 @@ class usersController extends Controller
             ->first();
 
         if ($user && Hash::check($password, $user->password)) {
+            // If the user has confirmed 2FA, suspend login and redirect
+            // to the TOTP challenge. The actual Auth::login happens
+            // only after the challenge is satisfied. See gap #6.
+            if ($user->two_factor_secret !== null && $user->two_factor_confirmed_at !== null) {
+                $request->session()->put('2fa.user_id', $user->id);
+                return redirect()->route('two-factor.challenge');
+            }
+
             Auth::guard('web')->login($user);
             // Regenerate the session ID after every successful authentication.
             // Without this, a pre-login cookie (XSS on another tenant, shared

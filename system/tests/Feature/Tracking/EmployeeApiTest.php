@@ -225,13 +225,14 @@ class EmployeeApiTest extends TestCase
         $batch = app(StickerService::class)->issueBatch(1, $this->user->id);
         $stickerId = Sticker::query()->where('batch_id', $batch->id)->value('id');
 
-        // Skip the hub-receive entirely — first scan as DELIVERED is illegal.
-        // The unassigned-first-scan guard fires before the state machine,
-        // so this should return type=unassigned_first_scan with 422.
+        // Skip the hub-receive entirely — first scan as RECEIVED_AT_BRANCH
+        // is illegal. The unassigned-first-scan guard fires after the
+        // role check, so we pick an event the RECEIVER role IS allowed
+        // to submit (avoids the role gate masking the test signal).
         $r = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/employee/scan/submit', [
                 'sticker_id'        => $stickerId,
-                'event_type'        => 'DELIVERED_TO_CUSTOMER',
+                'event_type'        => 'RECEIVED_AT_BRANCH',
                 'branch_id'         => $this->hub->id,
                 'shipment_piece_id' => $this->pieceId,
             ]);

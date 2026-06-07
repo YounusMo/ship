@@ -12,6 +12,7 @@ use App\Modules\Tracking\Models\Sticker;
 use App\Modules\Tracking\Models\TrackingEvent;
 use App\Modules\Tracking\Services\InternalStateMachine;
 use App\Modules\Tracking\Services\InternalTrackingService;
+use App\Modules\Tracking\Services\RoleEventPolicy;
 use App\Modules\Tracking\Services\Stickers\StickerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,7 @@ class ScanController extends Controller
         private readonly InternalTrackingService $tracking,
         private readonly InternalStateMachine $stateMachine,
         private readonly StickerService $stickers,
+        private readonly RoleEventPolicy $rolePolicy,
     ) {
     }
 
@@ -46,6 +48,7 @@ class ScanController extends Controller
         $request->validate([
             'qr_payload' => 'nullable|string|max:500',
             'sticker_id' => 'nullable|string|size:26',
+            'branch_id'  => 'nullable|integer|min:1',
         ]);
 
         $stickerId = $this->extractStickerId(
@@ -74,11 +77,21 @@ class ScanController extends Controller
             ], 409);
         }
 
+        $branchIdHint = $request->input('branch_id') !== null
+            ? (int) $request->input('branch_id')
+            : null;
+        $userId = (int) $request->user()->id;
+
         if ($sticker->shipment_piece_id === null) {
+            $candidates = [InternalEventType::RECEIVED_AT_HUB];
+            $allowed = $branchIdHint !== null
+                ? $this->rolePolicy->filterForUserOnBranch($candidates, $userId, $branchIdHint)
+                : $candidates;
+
             return response()->json([
                 'type'    => 'unassigned',
                 'sticker' => $sticker,
-                'allowed_event_types' => [InternalEventType::RECEIVED_AT_HUB->value],
+                'allowed_event_types' => array_map(fn (InternalEventType $t) => $t->value, $allowed),
                 'message' => 'Sticker is fresh. Submit RECEIVED_AT_HUB to associate it with a shipment.',
             ]);
         }
@@ -97,6 +110,10 @@ class ScanController extends Controller
             : null;
 
         $allowed = $this->stateMachine->allowedNext($currentEventType);
+
+        if ($branchIdHint !== null) {
+            $allowed = $this->rolePolicy->filterForUserOnBranch($allowed, $userId, $branchIdHint);
+        }
 
         return response()->json([
             'type'    => 'assigned',
@@ -126,6 +143,29 @@ class ScanController extends Controller
                 'type'    => 'invalid_event_type',
                 'allowed' => array_map(fn ($c) => $c->value, InternalEventType::cases()),
             ], 422);
+        }
+
+        // Role gate. The branch scope ability is already enforced by
+        // EnforceBranchScope middleware (the token must carry branch:N).
+        // Here we additionally check the *role* on that branch is allowed
+        // to submit this specific event type. See docs/MANUAL.md §21.2.
+        $userId   = (int) $request->user()->id;
+        $branchId = (int) $request->input('branch_id');
+        $role     = $this->rolePolicy->roleOnBranch($userId, $branchId);
+        if ($role === null) {
+            return response()->json([
+                'type'      => 'no_active_role',
+                'message'   => 'You have no active assignment on this branch.',
+                'branch_id' => $branchId,
+            ], 403);
+        }
+        if (! $this->rolePolicy->allows($role, $eventType)) {
+            return response()->json([
+                'type'       => 'role_action_denied',
+                'message'    => 'Your role does not permit this event type.',
+                'role'       => $role->value,
+                'event_type' => $eventType->value,
+            ], 403);
         }
 
         $stickerId = (string) $request->input('sticker_id');

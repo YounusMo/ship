@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Tracking\Services\BranchService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -68,12 +69,14 @@ class AuthController extends Controller
 
         $abilities = array_merge(['employee'], $branchAbilities);
         $deviceName = (string) ($request->input('device') ?? 'employee-app');
-        $token = $user->createToken($deviceName, $abilities)->plainTextToken;
+        $expiresAt = now()->addMinutes(self::EMPLOYEE_TOKEN_TTL_MINUTES);
+        $token = $user->createToken($deviceName, $abilities, $expiresAt)->plainTextToken;
 
         return response()->json([
-            'type'  => 'success',
-            'token' => $token,
-            'user'  => [
+            'type'       => 'success',
+            'token'      => $token,
+            'expires_at' => $expiresAt->toIso8601String(),
+            'user'       => [
                 'id'    => $user->id,
                 'name'  => $user->name,
                 'email' => $user->email,
@@ -87,4 +90,63 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()?->delete();
         return response()->json(['type' => 'ok']);
     }
+
+    /**
+     * Revoke every token for the authenticated employee (all devices).
+     */
+    public function logoutAll(Request $request)
+    {
+        $user = $request->user();
+        if ($user === null) {
+            return response()->json(['type' => 'unauthenticated'], 401);
+        }
+        $deleted = $user->tokens()->delete();
+        return response()->json([
+            'type'    => 'ok',
+            'revoked' => (int) $deleted,
+        ]);
+    }
+
+    /**
+     * Rotate the current token. Returns a new token + expiry and revokes
+     * the old one. The new token re-reads branch_staff so abilities
+     * reflect any role / assignment changes since the original login.
+     */
+    public function refresh(Request $request)
+    {
+        $user = $request->user();
+        $current = $user?->currentAccessToken();
+        if ($user === null || $current === null) {
+            return response()->json(['type' => 'unauthenticated'], 401);
+        }
+
+        $branchAbilities = $this->branchService->abilitiesForUser($user->id);
+        if ($branchAbilities === []) {
+            // User has been removed from every branch — kill the session.
+            $user->tokens()->delete();
+            return response()->json([
+                'type'    => 'no_branch',
+                'message' => 'User has no active branch_staff assignment.',
+            ], 403);
+        }
+
+        $abilities = array_merge(['employee'], $branchAbilities);
+        $expiresAt = now()->addMinutes(self::EMPLOYEE_TOKEN_TTL_MINUTES);
+        $name = $current->name ?: 'employee-app';
+        $oldTokenId = (int) $current->id;
+        $token = $user->createToken($name, $abilities, $expiresAt)->plainTextToken;
+        // Revoke the old token row by id. Direct query-builder delete is
+        // safer than $current->delete() because $current was hydrated
+        // before createToken() and may carry a stale model state.
+        DB::table('personal_access_tokens')->where('id', $oldTokenId)->delete();
+
+        return response()->json([
+            'type'       => 'ok',
+            'token'      => $token,
+            'expires_at' => $expiresAt->toIso8601String(),
+            'abilities'  => $abilities,
+        ]);
+    }
+
+    private const EMPLOYEE_TOKEN_TTL_MINUTES = 60 * 24 * 7;  // 7 days
 }

@@ -34,7 +34,17 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // Stateless API authentication only. We intentionally do NOT consult
+    // the 'web' guard before bearer tokens — the mobile and employee apps
+    // never send a session cookie. Falling back to session-auth would
+    // let a logged-in web admin's session bleed into API calls (and in
+    // tests, a previously-issued web session keeps a request alive even
+    // after its bearer token has been revoked).
+    //
+    // The web admin / client portal use chkAuthAdmin / chkAuthClient
+    // middleware directly, not Sanctum, so this change does not affect
+    // them.
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -45,9 +55,14 @@ return [
     | considered expired. This will override any values set in the token's
     | "expires_at" attribute, but first-party sessions are not affected.
     |
+    | Default: 30 days (43200 minutes). Per-audience overrides live in the
+    | individual AuthControllers — the employee scan app uses a shorter
+    | 7-day window because staff use the app daily and we want a tighter
+    | window for revocation. See docs/GAPS.md gap #4.
+    |
     */
 
-    'expiration' => null,
+    'expiration' => env('SANCTUM_EXPIRATION_MINUTES', 60 * 24 * 30),
 
     /*
     |--------------------------------------------------------------------------

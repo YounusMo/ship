@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend:
+    name: backend (php ${{ matrix.php }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3']
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: ship_system
+          MYSQL_USER: ship_user
+          MYSQL_PASSWORD: StrongPassword123!
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    defaults:
+      run:
+        working-directory: system
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, intl, gd, mysql, zip, pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: system/vendor
+          key: composer-${{ matrix.php }}-${{ hashFiles('system/composer.lock') }}
+          restore-keys: composer-${{ matrix.php }}-
+
+      - name: Install dependencies
+        run: composer install --no-progress --no-interaction --prefer-dist
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            mysqladmin ping -h 127.0.0.1 -P 3306 -uroot -proot && break || sleep 2
+          done
+
+      - name: Prepare .env
+        run: |
+          cp .env.example .env || true
+          cat > .env <<EOF
+          APP_NAME=ShipFlow
+          APP_ENV=testing
+          APP_KEY=
+          APP_DEBUG=true
+          APP_URL=http://127.0.0.1
+          LOG_CHANNEL=stack
+          DB_CONNECTION=mysql
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_DATABASE=ship_system
+          DB_USERNAME=ship_user
+          DB_PASSWORD=StrongPassword123!
+          CACHE_STORE=array
+          SESSION_DRIVER=array
+          QUEUE_CONNECTION=sync
+          MAIL_MAILER=array
+          BCRYPT_ROUNDS=4
+          EOF
+          php artisan key:generate --force
+
+      - name: Migrate
+        run: php artisan migrate --force
+
+      - name: Seed chart of accounts
+        run: php artisan db:seed --force || true
+
+      - name: Run test suite
+        run: vendor/bin/phpunit --colors=always
+
+      - name: Lint (Pint, dry-run)
+        run: vendor/bin/pint --test || true   # advisory only for now

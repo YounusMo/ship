@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -63,12 +64,14 @@ class AuthController extends Controller
         // Issue a fresh token per login (treat each successful login as a
         // new device session). The mobile app stores it in secure storage
         // and uses it as Bearer for every subsequent call.
-        $token = $client->createToken('mobile', ['client'])->plainTextToken;
+        $expiresAt = now()->addMinutes(self::CLIENT_TOKEN_TTL_MINUTES);
+        $token = $client->createToken('mobile', ['client'], $expiresAt)->plainTextToken;
 
         return response()->json([
-            'type'   => 'success',
-            'token'  => $token,
-            'client' => [
+            'type'       => 'success',
+            'token'      => $token,
+            'expires_at' => $expiresAt->toIso8601String(),
+            'client'     => [
                 'id'    => $client->id,
                 'code'  => $client->code,
                 'name'  => $client->name,
@@ -84,6 +87,53 @@ class AuthController extends Controller
         $token?->delete();
         return response()->json(['type' => 'success']);
     }
+
+    /**
+     * Revoke every token for the authenticated client (all devices).
+     * Useful for "lost my phone" flow.
+     */
+    public function logoutAll(Request $request)
+    {
+        $client = $request->user();
+        if ($client === null) {
+            return response()->json(['type' => 'unauthenticated'], 401);
+        }
+        $deleted = $client->tokens()->delete();
+        return response()->json([
+            'type'    => 'success',
+            'revoked' => (int) $deleted,
+        ]);
+    }
+
+    /**
+     * Rotate the current token. Returns a new token + expiry and revokes
+     * the old one. Mobile app should call this proactively when the
+     * current token is within the refresh window, or on a 401.
+     */
+    public function refresh(Request $request)
+    {
+        $client = $request->user();
+        $current = $client?->currentAccessToken();
+        if ($client === null || $current === null) {
+            return response()->json(['type' => 'unauthenticated'], 401);
+        }
+
+        $expiresAt = now()->addMinutes(self::CLIENT_TOKEN_TTL_MINUTES);
+        $oldTokenId = (int) $current->id;
+        $token = $client->createToken('mobile', ['client'], $expiresAt)->plainTextToken;
+        // Revoke after issuing the new one so the caller can't lose
+        // their session if the rotation crashes mid-flight. Direct
+        // delete-by-id avoids stale-model edge cases.
+        DB::table('personal_access_tokens')->where('id', $oldTokenId)->delete();
+
+        return response()->json([
+            'type'       => 'success',
+            'token'      => $token,
+            'expires_at' => $expiresAt->toIso8601String(),
+        ]);
+    }
+
+    private const CLIENT_TOKEN_TTL_MINUTES = 60 * 24 * 30;  // 30 days
 
     public function me(Request $request)
     {

@@ -38,6 +38,10 @@ Route::prefix('v1/employee')->group(function () {
     Route::middleware(['auth:sanctum', 'employee.sanctum', 'mobile.sanitize'])->group(function () {
         Route::post('/auth/logout', [EmployeeAuthController::class, 'logout'])
             ->name('tracking.employee.logout');
+        Route::post('/auth/logout-all', [EmployeeAuthController::class, 'logoutAll'])
+            ->name('tracking.employee.logout-all');
+        Route::post('/auth/refresh', [EmployeeAuthController::class, 'refresh'])
+            ->name('tracking.employee.refresh');
         Route::get('/me', MeController::class)
             ->name('tracking.employee.me');
 

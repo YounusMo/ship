@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -35,5 +36,14 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(20)->by($request->ip()),
             ];
         });
+
+        // Force every generated URL onto https in production. The edge
+        // (Cloudflare / nginx) already terminates TLS and rewrites the
+        // protocol, but downstream `url()` / `route()` calls otherwise
+        // see the forwarded http scheme and emit mixed-content links.
+        // See docs/GAPS.md gap #18.
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
     }
 }

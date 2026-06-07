@@ -29,8 +29,10 @@ Route::post('/auth/login', [AuthController::class, 'login'])
 
 Route::middleware(['auth:sanctum', 'client.sanctum', 'mobile.sanitize'])->group(function () {
 
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
-    Route::get('/me',           [AuthController::class, 'me']);
+    Route::post('/auth/logout',     [AuthController::class, 'logout']);
+    Route::post('/auth/logout-all', [AuthController::class, 'logoutAll']);
+    Route::post('/auth/refresh',    [AuthController::class, 'refresh']);
+    Route::get('/me',               [AuthController::class, 'me']);
 
     Route::post('/devices/register', [DeviceController::class, 'register']);
     Route::post('/devices/revoke',   [DeviceController::class, 'revoke']);

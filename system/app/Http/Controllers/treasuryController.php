@@ -95,10 +95,6 @@ class treasuryController extends Controller
         }
     }
 
-    static public function save_treasury(){ // For Cron jobs
-        // \Log::info('Hello from Laravel 12!');
-    }
-
     /**
      * Future-proof helper. Writes a cash movement to BOTH treasury_transactions
      * and branches_transactions inside one DB transaction, and bumps the
