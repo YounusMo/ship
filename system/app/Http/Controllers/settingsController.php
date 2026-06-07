@@ -27,7 +27,7 @@ class settingsController extends Controller
         // see) or change the tax id, and only save2/update_exchange were
         // logged. The print PIN is handled separately below — we never log
         // the hash, only the fact that it rotated.
-        $tracked = ['timezone','email','company_name','address','phone','commercial_registry','tax_id','receipt_footer','tracking_prefix'];
+        $tracked = ['timezone','email','company_name','address','phone','commercial_registry','tax_id','receipt_footer','tracking_prefix','client_transactions_default_pending','proforma_email_subject','proforma_email_body','proforma_reminder_subject','proforma_reminder_body'];
         $before = [];
         foreach ($tracked as $k) {
             $before[$k] = $sett[$k] ?? null;
@@ -57,6 +57,23 @@ class settingsController extends Controller
             // container/trip. Blank submit -> preserve existing hash so
             // the field can be left empty in the form once set.
             'print_pin_hash'      => $sett['print_pin_hash'] ?? '',
+            // When true, every new client deposit/withdraw is created in
+            // status='pending' so an admin must explicitly approve it
+            // before the ledger moves. When false (default), the old
+            // direct-post behaviour applies. Stored as a real boolean so
+            // the JS doesn't have to interpret 'true'/'false' strings.
+            'client_transactions_default_pending' => filter_var(
+                $request->client_transactions_default_pending ?? ($sett['client_transactions_default_pending'] ?? false),
+                FILTER_VALIDATE_BOOLEAN
+            ),
+            // Proforma email templates. Operators can tweak the wording from
+            // /settings; the sourcing controllers use these as defaults and
+            // the same placeholder system ({link}, {number}, {client},
+            // {total}, {company}) still applies on the send side.
+            'proforma_email_subject'    => $request->proforma_email_subject    ?? ($sett['proforma_email_subject']    ?? ''),
+            'proforma_email_body'       => $request->proforma_email_body       ?? ($sett['proforma_email_body']       ?? ''),
+            'proforma_reminder_subject' => $request->proforma_reminder_subject ?? ($sett['proforma_reminder_subject'] ?? ''),
+            'proforma_reminder_body'    => $request->proforma_reminder_body    ?? ($sett['proforma_reminder_body']    ?? ''),
         ];
         // Cap at 5 chars regardless of what was submitted.
         $data['tracking_prefix'] = substr($data['tracking_prefix'], 0, 5);
@@ -137,6 +154,11 @@ class settingsController extends Controller
             'receipt_footer'      => $sett['receipt_footer'] ?? '',
             'tracking_prefix'     => $sett['tracking_prefix'] ?? '',
             'print_pin_hash'      => $sett['print_pin_hash'] ?? '',
+            'client_transactions_default_pending' => $sett['client_transactions_default_pending'] ?? false,
+            'proforma_email_subject'    => $sett['proforma_email_subject']    ?? '',
+            'proforma_email_body'       => $sett['proforma_email_body']       ?? '',
+            'proforma_reminder_subject' => $sett['proforma_reminder_subject'] ?? '',
+            'proforma_reminder_body'    => $sett['proforma_reminder_body']    ?? '',
             'currency_eur'        => floatval($request->currency_eur),
             'currency_den'        => floatval($request->currency_den),
             'currency_cny'        => floatval($request->currency_cny),
@@ -187,6 +209,11 @@ class settingsController extends Controller
             'receipt_footer'      => $sett['receipt_footer'] ?? '',
             'tracking_prefix'     => $sett['tracking_prefix'] ?? '',
             'print_pin_hash'      => $sett['print_pin_hash'] ?? '',
+            'client_transactions_default_pending' => $sett['client_transactions_default_pending'] ?? false,
+            'proforma_email_subject'    => $sett['proforma_email_subject']    ?? '',
+            'proforma_email_body'       => $sett['proforma_email_body']       ?? '',
+            'proforma_reminder_subject' => $sett['proforma_reminder_subject'] ?? '',
+            'proforma_reminder_body'    => $sett['proforma_reminder_body']    ?? '',
             'currency_eur'        => floatval($request->currency_eur),
             'currency_den'        => floatval($request->currency_den),
             'currency_cny'        => floatval($request->currency_cny),

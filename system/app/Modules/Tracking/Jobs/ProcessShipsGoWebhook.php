@@ -137,6 +137,12 @@ class ProcessShipsGoWebhook implements ShouldQueue
      * Insert one tracking_events row. Returns true on success, false on
      * unique-constraint violation (= idempotent dedup, expected).
      *
+     * Side-effect: on a fresh insert with is_customer_visible = true,
+     * dispatches DispatchShipmentEventNotificationJob to fan out an FCM
+     * push to every customer with a shipment in the same container.
+     * Dispatched *after* the transaction commits so a rolled-back insert
+     * never triggers a phantom notification.
+     *
      * @param  array<string, mixed>  $event
      */
     private function writeOne(
@@ -147,11 +153,12 @@ class ProcessShipsGoWebhook implements ShouldQueue
         string $clientEventId,
         bool $customerVisible,
     ): bool {
+        $created = null;
         try {
             DB::transaction(function () use (
-                $event, $sourceTable, $sourceId, $clientEventId, $eventType, $customerVisible,
+                $event, $sourceTable, $sourceId, $clientEventId, $eventType, $customerVisible, &$created,
             ) {
-                TrackingEvent::create([
+                $created = TrackingEvent::create([
                     'shipment_source_table' => $sourceTable,
                     'shipment_source_id'    => $sourceId,
                     'shipment_piece_id'     => null,
@@ -169,10 +176,14 @@ class ProcessShipsGoWebhook implements ShouldQueue
                     'is_customer_visible'   => $customerVisible,
                 ]);
             });
-            return true;
         } catch (\Illuminate\Database\UniqueConstraintViolationException) {
             return false;
         }
+
+        if ($created instanceof TrackingEvent && $customerVisible) {
+            DispatchShipmentEventNotificationJob::dispatch($created->id)->afterCommit();
+        }
+        return true;
     }
 
     /**

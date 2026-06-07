@@ -1081,15 +1081,19 @@ class skyController extends Controller
         $clientsController = new clientsController();
         $branchesController = new branchesController();
         $treasuryController = new treasuryController();
-        
+
         $last_auto_id = $dataController->tr_code;
-                    
+
         $last_auto_id_ = DB::table('clients_transactions')->select('auto_id')->orderBy('auto_id','DESC')->limit(1)->first();
         $auto_id = $last_auto_id_ ? $last_auto_id_->auto_id +1 : $last_auto_id;
-        
+
         $remaining_balance = $clientsController->calc_balance($client_id,'usd',true);
 
         $transaction_number = 'exp_custom_withdraw'.date('Ymd').$client_id;
+
+        // Capture container fields BEFORE json_encode — the journal posting
+        // below needs them as raw values, not as a serialized blob.
+        $containerId = isset($container_data['container_id']) ? (int) $container_data['container_id'] : 0;
 
         $container_data = json_encode($container_data);
 
@@ -1112,7 +1116,7 @@ class skyController extends Controller
         ]);
 
         $clientsController->update_balance($client_id);
-        
+
         if($branch){
             DB::table('branches_transactions')->insert([
                 'transaction_number' => $transaction_number,
@@ -1133,6 +1137,35 @@ class skyController extends Controller
 
             $treasuryController->insert($transaction_number,'exp_custom_withdraw','minus',$auto_id,$container_data,($client_price + $commission),'usd',0,$branch,null,$client_id);
         }
+
+        // Double-entry journal: shipping a piece from the client's wallet.
+        //   Dr 2000 Client deposits  (we owe them less)
+        //   Cr 4110 Air freight revenue
+        // Posted only when there is something to recognise. cost_object lets
+        // per-flight P&L reports slice this revenue against the carrier and
+        // broker costs posted (also cost-object-tagged) elsewhere.
+        $revenue = (float) $client_price + (float) $commission;
+        if ($revenue > 0 && $containerId > 0) {
+            (new \App\Http\Controllers\journalController())->record([
+                'entry_date'         => date('Y-m-d'),
+                'kind'               => 'sky_freight_revenue',
+                'description'        => 'Air freight ' . number_format($revenue, 2) . ' USD — container #' . $containerId,
+                'source_table'       => 'clients_transactions',
+                'source_id'          => $auto_id,
+                'transaction_number' => $transaction_number,
+                'branch_id'          => is_numeric($branch) ? (int) $branch : null,
+                'cost_object_type'   => 'container_sky',
+                'cost_object_id'     => $containerId,
+                'lines'              => [
+                    ['account_code' => '2000', 'dr' => $revenue, 'cr' => 0, 'currency' => 'usd',
+                     'counterparty_type' => 'client', 'counterparty_id' => (int) $client_id,
+                     'description' => 'Client wallet draw — air freight'],
+                    ['account_code' => '4110', 'dr' => 0, 'cr' => $revenue, 'currency' => 'usd',
+                     'counterparty_type' => 'client', 'counterparty_id' => (int) $client_id,
+                     'description' => 'Air freight revenue'],
+                ],
+            ]);
+        }
     }
 
     public function client_deposit($client_id,$client_price,$cost,$commission,$container_data,$branch){
@@ -1140,15 +1173,18 @@ class skyController extends Controller
         $dataController      = new dataController();
         $clientsController   = new clientsController();
         $branchesController  = new branchesController();
-        
+
         $last_auto_id = $dataController->tr_code;
-                    
+
         $last_auto_id_ = DB::table('clients_transactions')->select('auto_id')->orderBy('auto_id','DESC')->limit(1)->first();
         $auto_id = $last_auto_id_ ? $last_auto_id_->auto_id +1 : $last_auto_id;
-        
+
         $remaining_balance = $clientsController->calc_balance($client_id,'usd',true);
 
         $transaction_number = 'exp_custom_deposit'.date('Ymd').$client_id;
+
+        // Same as client_withd — capture container_id before serialization.
+        $containerId = isset($container_data['container_id']) ? (int) $container_data['container_id'] : 0;
 
         $container_data = json_encode($container_data);
 
@@ -1190,6 +1226,37 @@ class skyController extends Controller
         $branchesController->update_balance($branch);
 
         $treasuryController->insert($transaction_number,'exp_custom_deposit','plus',$auto_id,$container_data,$client_price + $commission,'usd',0,$branch,null,$client_id);
+
+        // Double-entry journal: cash collected at the counter for shipping a
+        // piece (the "pay now" path — pay2 in the UI). Same revenue line as
+        // client_withd; the difference is the cash side hits 1000 instead
+        // of the client wallet.
+        //   Dr 1000 Cash on hand
+        //   Cr 4110 Air freight revenue
+        $revenue = (float) $client_price + (float) $commission;
+        if ($revenue > 0 && $containerId > 0) {
+            (new \App\Http\Controllers\journalController())->record([
+                'entry_date'         => date('Y-m-d'),
+                'kind'               => 'sky_freight_revenue',
+                'description'        => 'Air freight ' . number_format($revenue, 2) . ' USD — container #' . $containerId,
+                'source_table'       => 'clients_transactions',
+                'source_id'          => $auto_id,
+                'transaction_number' => $transaction_number,
+                'branch_id'          => is_numeric($branch) ? (int) $branch : null,
+                'cost_object_type'   => 'container_sky',
+                'cost_object_id'     => $containerId,
+                'lines'              => [
+                    ['account_code' => '1000', 'dr' => $revenue, 'cr' => 0, 'currency' => 'usd',
+                     'counterparty_type' => 'client', 'counterparty_id' => (int) $client_id,
+                     'branch_id' => is_numeric($branch) ? (int) $branch : null,
+                     'description' => 'Cash collected — air freight'],
+                    ['account_code' => '4110', 'dr' => 0, 'cr' => $revenue, 'currency' => 'usd',
+                     'counterparty_type' => 'client', 'counterparty_id' => (int) $client_id,
+                     'branch_id' => is_numeric($branch) ? (int) $branch : null,
+                     'description' => 'Air freight revenue'],
+                ],
+            ]);
+        }
     }
 
     public function show_custom_container(Request $request){

@@ -223,6 +223,12 @@ class clientsReportsController extends Controller
                             if($get->commission > 0){
                                 $treasuryController->insert($get->transaction_number,'deposit_commission','plus',$get->auto_id,json_encode(['type'=>'commission']),$get->commission,$get->currency,0,$get->branch,$get->notes,$get->client_id,0);
                             }
+
+                            // Mirror the journal posting done by clientsController::deposit
+                            // when a row is created with status='approved'. Without this, a
+                            // pending-then-approved deposit would never reach the ledger and
+                            // the trial balance would silently drift from the entity tables.
+                            $this->postClientCashJournal('deposit', $get, $valueFloat);
                         }
                     }
 
@@ -234,6 +240,10 @@ class clientsReportsController extends Controller
                             if($get->commission > 0){
                                 $treasuryController->insert($get->transaction_number,'withdraw_commission','plus',$get->auto_id,json_encode(['type'=>'commission']),$get->commission,$get->currency,0,$get->branch,$get->notes,$get->client_id,0);
                             }
+
+                            // Same as deposit above — keep the ledger in lockstep
+                            // with the entity tables on pending → approved.
+                            $this->postClientCashJournal('withdraw', $get, $valueFloat);
                         }
                     }
 
@@ -292,6 +302,85 @@ class clientsReportsController extends Controller
             ]);
             return response()->json(['type' => 'error'],500);
         }
+    }
+
+    /**
+     * Post the same double-entry the live deposit/withdraw flows post when
+     * a row starts life as status='approved'. Used by approveReject so that
+     * pending → approved transitions land in the ledger too.
+     *
+     *   deposit:    Dr 1000 (value+commission)  Cr 2000 (value)  Cr 4000 (commission)
+     *   withdraw:   Dr 2000 (value+commission)  Cr 1000 (value)  Cr 4000 (commission)
+     *
+     * commission_reason on the original row rides through to the
+     * journal_lines.description so the accountant can trace any fee.
+     */
+    private function postClientCashJournal(string $kind, $get, float $valueFloat): void
+    {
+        $commissionAmount = (float) ($get->commission ?? 0);
+        $commissionReason = trim((string) ($get->commission_reason ?? ''));
+        $currency         = $get->currency;
+        $branchId         = $get->branch ? (int) $get->branch : null;
+        $clientId         = (int) $get->client_id;
+
+        if ($kind === 'deposit') {
+            $totalCashIn = $valueFloat + $commissionAmount;
+            $lines = [
+                ['account_code' => '1000', 'dr' => $totalCashIn, 'cr' => 0, 'currency' => $currency,
+                 'counterparty_type' => 'client', 'counterparty_id' => $clientId, 'branch_id' => $branchId,
+                 'description' => $commissionAmount > 0
+                    ? 'Deposit ' . $valueFloat . ' + commission ' . $commissionAmount
+                    : 'Deposit'],
+                ['account_code' => '2000', 'dr' => 0, 'cr' => $valueFloat, 'currency' => $currency,
+                 'counterparty_type' => 'client', 'counterparty_id' => $clientId, 'branch_id' => $branchId,
+                 'description' => 'Credited to client wallet'],
+            ];
+            $entryKind = 'client_deposit';
+            $desc      = 'Client deposit (approved from pending) ' . $valueFloat
+                . ($commissionAmount > 0 ? ' + commission ' . $commissionAmount : '')
+                . ' ' . strtoupper($currency);
+        } else { // withdraw
+            $totalDebit = $valueFloat + $commissionAmount;
+            $lines = [
+                ['account_code' => '2000', 'dr' => $totalDebit, 'cr' => 0, 'currency' => $currency,
+                 'counterparty_type' => 'client', 'counterparty_id' => $clientId, 'branch_id' => $branchId,
+                 'description' => $commissionAmount > 0
+                    ? 'Withdraw ' . $valueFloat . ' + commission ' . $commissionAmount
+                    : 'Withdraw'],
+                ['account_code' => '1000', 'dr' => 0, 'cr' => $valueFloat, 'currency' => $currency,
+                 'counterparty_type' => 'client', 'counterparty_id' => $clientId, 'branch_id' => $branchId,
+                 'description' => 'Cash paid to client'],
+            ];
+            $entryKind = 'client_withdraw';
+            $desc      = 'Client withdraw (approved from pending) ' . $valueFloat
+                . ($commissionAmount > 0 ? ' + commission ' . $commissionAmount : '')
+                . ' ' . strtoupper($currency);
+        }
+
+        if ($commissionAmount > 0) {
+            $lines[] = [
+                'account_code' => '4000', 'dr' => 0, 'cr' => $commissionAmount, 'currency' => $currency,
+                'counterparty_type' => 'client', 'counterparty_id' => $clientId, 'branch_id' => $branchId,
+                'description' => $commissionReason !== ''
+                    ? 'Commission — ' . mb_substr($commissionReason, 0, 180)
+                    : 'Commission (no reason supplied)',
+            ];
+        }
+
+        // entry_date follows the source row's created_date so a pending row
+        // approved in a later month still lands in the correct period (the
+        // assertPeriodOpen($get->created_date) above is what guarantees the
+        // period is still open for that date).
+        (new \App\Http\Controllers\journalController())->record([
+            'entry_date'         => $get->created_date,
+            'kind'               => $entryKind,
+            'description'        => $desc,
+            'source_table'       => 'clients_transactions',
+            'source_id'          => $get->id,
+            'transaction_number' => $get->transaction_number,
+            'branch_id'          => $branchId,
+            'lines'              => $lines,
+        ]);
     }
 
     public function exp(Request $request){

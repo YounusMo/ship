@@ -324,6 +324,16 @@ class customsBrokersController extends Controller
                 // Double-entry journal: broker deposit (we pay them).
                 //   Dr 1300 Prepaid to customs brokers   (asset ↑)
                 //   Cr 1000 Cash on hand                 (asset ↓)
+                //
+                // Cost-object: when the deposit was pinned to a container,
+                // tag it so per-container profit reports see the customs
+                // expense as part of that container's economics.
+                $costObjectType = null;
+                $costObjectId   = null;
+                if (!empty($container_id) && (int) $container_id > 0 && in_array($sky_sea, ['sky', 'sea'], true)) {
+                    $costObjectType = 'container_' . $sky_sea;
+                    $costObjectId   = (int) $container_id;
+                }
                 (new \App\Http\Controllers\journalController())->record([
                     'entry_date'         => date('Y-m-d'),
                     'kind'               => 'broker_deposit',
@@ -332,6 +342,8 @@ class customsBrokersController extends Controller
                     'source_id'          => $auto_id,
                     'transaction_number' => $transaction_number,
                     'branch_id'          => is_numeric($branch) ? (int) $branch : null,
+                    'cost_object_type'   => $costObjectType,
+                    'cost_object_id'     => $costObjectId,
                     'lines'              => [
                         ['account_code' => '1300', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
                          'counterparty_type' => 'customs_broker', 'counterparty_id' => (int) $broker_id],

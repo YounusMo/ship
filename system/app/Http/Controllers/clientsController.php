@@ -764,6 +764,7 @@ class clientsController extends Controller
                             'status'       => $status,
                             'currency'     => $currency,
                             'commission'   => $commission,
+                            'commission_reason' => mb_substr((string) $request->commission_reason, 0, 191) ?: null,
                             'auto_id'      => $auto_id,
                             'type'         => $type,
                             'data'         => $data,
@@ -834,27 +835,55 @@ class clientsController extends Controller
                             'notes'              => $notes,
                         ]);
 
-                        // Double-entry journal: client deposit
-                        //   Dr 1000 Cash on hand      (asset ↑)
-                        //   Cr 2000 Client deposits   (liability ↑)
-                        // We only post when status='approved' so a future
-                        // pending-deposit flow doesn't pollute the trial
-                        // balance with un-effective rows.
+                        // Double-entry journal: client deposit + optional commission.
+                        //
+                        // No commission:
+                        //   Dr 1000 Cash on hand     $value
+                        //   Cr 2000 Client deposits  $value
+                        //
+                        // With commission $c:
+                        //   Dr 1000 Cash on hand     $value+$c  (cash actually received)
+                        //   Cr 2000 Client deposits  $value     (credited to wallet)
+                        //   Cr 4000 Commission rev   $c         (we kept as fee)
+                        //
+                        // commission_reason lands on the Cr 4000 line so an
+                        // accountant can trace any fee from journal_lines alone.
                         if ($status === 'approved') {
+                            $commissionAmount = (float) $commission;
+                            $commissionReason = trim((string) $request->commission_reason);
+                            $totalCashIn      = (float) $value + $commissionAmount;
+
+                            $journalLines = [
+                                ['account_code' => '1000', 'dr' => $totalCashIn, 'cr' => 0, 'currency' => $currency,
+                                 'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch,
+                                 'description' => $commissionAmount > 0
+                                    ? 'Deposit ' . $value . ' + commission ' . $commissionAmount
+                                    : 'Deposit'],
+                                ['account_code' => '2000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
+                                 'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch,
+                                 'description' => 'Credited to client wallet'],
+                            ];
+                            if ($commissionAmount > 0) {
+                                $journalLines[] = [
+                                    'account_code' => '4000', 'dr' => 0, 'cr' => $commissionAmount, 'currency' => $currency,
+                                    'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch,
+                                    'description' => $commissionReason !== ''
+                                        ? 'Commission — ' . mb_substr($commissionReason, 0, 180)
+                                        : 'Commission (no reason supplied)',
+                                ];
+                            }
+
                             (new \App\Http\Controllers\journalController())->record([
                                 'entry_date'         => date('Y-m-d'),
                                 'kind'               => 'client_deposit',
-                                'description'        => 'Client deposit ' . $value . ' ' . strtoupper($currency),
+                                'description'        => 'Client deposit ' . $value
+                                    . ($commissionAmount > 0 ? ' + commission ' . $commissionAmount : '')
+                                    . ' ' . strtoupper($currency),
                                 'source_table'       => 'clients_transactions',
                                 'source_id'          => $deposit_row_id,
                                 'transaction_number' => $transaction_number,
                                 'branch_id'          => (int) $branch,
-                                'lines'              => [
-                                    ['account_code' => '1000', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
-                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
-                                    ['account_code' => '2000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
-                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
-                                ],
+                                'lines'              => $journalLines,
                             ]);
 
                             // Mobile push + in-app feed. DB::afterCommit defers
@@ -994,6 +1023,7 @@ class clientsController extends Controller
                             'status'       => $status,
                             'auto_id'      => $auto_id,
                             'commission'   => $commission,
+                            'commission_reason' => mb_substr((string) $request->commission_reason, 0, 191) ?: null,
                             'remaining_balance' => $remaining_balance - $value - $commission,
                             'type'         => $type,
                             'data'         => $data,
@@ -1067,24 +1097,56 @@ class clientsController extends Controller
                             'notes'              => $notes,
                         ]);
 
-                        // Double-entry journal: client withdraw
-                        //   Dr 2000 Client deposits   (liability ↓)
-                        //   Cr 1000 Cash on hand      (asset ↓)
+                        // Double-entry journal: client withdraw + optional commission.
+                        //
+                        // No commission:
+                        //   Dr 2000 Client deposits  $value     (liability ↓)
+                        //   Cr 1000 Cash on hand     $value     (asset ↓)
+                        //
+                        // With commission $c (e.g. 100 + 10 fee):
+                        //   Dr 2000 Client deposits  $value+$c  (wallet drawn by total)
+                        //   Cr 1000 Cash on hand     $value     (cash actually paid out)
+                        //   Cr 4000 Commission rev   $c         (the fee we kept)
+                        //
+                        // The Cr 4000 line carries the operator's commission_reason
+                        // as its description so the accountant can trace what each
+                        // fee is for straight from journal_lines.description.
                         if ($status === 'approved') {
+                            $commissionAmount = (float) $commission;
+                            $commissionReason = trim((string) $request->commission_reason);
+                            $totalDebit       = (float) $value + $commissionAmount;
+
+                            $journalLines = [
+                                ['account_code' => '2000', 'dr' => $totalDebit, 'cr' => 0, 'currency' => $currency,
+                                 'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch,
+                                 'description' => $commissionAmount > 0
+                                    ? 'Withdraw ' . $value . ' + commission ' . $commissionAmount
+                                    : 'Withdraw'],
+                                ['account_code' => '1000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
+                                 'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch,
+                                 'description' => 'Cash paid to client'],
+                            ];
+                            if ($commissionAmount > 0) {
+                                $journalLines[] = [
+                                    'account_code' => '4000', 'dr' => 0, 'cr' => $commissionAmount, 'currency' => $currency,
+                                    'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch,
+                                    'description' => $commissionReason !== ''
+                                        ? 'Commission — ' . mb_substr($commissionReason, 0, 180)
+                                        : 'Commission (no reason supplied)',
+                                ];
+                            }
+
                             (new \App\Http\Controllers\journalController())->record([
                                 'entry_date'         => date('Y-m-d'),
                                 'kind'               => 'client_withdraw',
-                                'description'        => 'Client withdraw ' . $value . ' ' . strtoupper($currency),
+                                'description'        => 'Client withdraw ' . $value
+                                    . ($commissionAmount > 0 ? ' + commission ' . $commissionAmount : '')
+                                    . ' ' . strtoupper($currency),
                                 'source_table'       => 'clients_transactions',
                                 'source_id'          => $withdraw_row_id,
                                 'transaction_number' => $transaction_number,
                                 'branch_id'          => (int) $branch,
-                                'lines'              => [
-                                    ['account_code' => '2000', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
-                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
-                                    ['account_code' => '1000', 'dr' => 0, 'cr' => (float) $value, 'currency' => $currency,
-                                     'counterparty_type' => 'client', 'counterparty_id' => (int) $id, 'branch_id' => (int) $branch],
-                                ],
+                                'lines'              => $journalLines,
                             ]);
 
                             $clientForNotify = \App\Models\Client::find($id);

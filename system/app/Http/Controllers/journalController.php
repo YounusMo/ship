@@ -117,6 +117,13 @@ class journalController extends Controller
                     'description'       => mb_substr((string) ($line['description'] ?? ''), 0, 500),
                     'counterparty_type' => $line['counterparty_type'] ?? null,
                     'counterparty_id'   => $line['counterparty_id'] ?? null,
+                    // Cost-object dimension: which deliverable (flight,
+                    // container, PO, sourcing request, shipment, …) this
+                    // line is attached to. Falls back to an entry-level
+                    // default so callers can set it once on the whole
+                    // entry instead of repeating it per line.
+                    'cost_object_type'  => $line['cost_object_type'] ?? ($entry['cost_object_type'] ?? null),
+                    'cost_object_id'    => $line['cost_object_id']   ?? ($entry['cost_object_id']   ?? null),
                     'branch_id'         => $line['branch_id'] ?? ($entry['branch_id'] ?? null),
                     'created_at'        => date('Y-m-d H:i:s'),
                     'updated_at'        => date('Y-m-d H:i:s'),
@@ -142,7 +149,8 @@ class journalController extends Controller
 
         $reverseLines = [];
         foreach ($lines as $l) {
-            // Swap dr and cr to cancel.
+            // Swap dr and cr to cancel. Cost-object tag is preserved so a
+            // per-flight or per-container slice sees both halves cancel.
             $reverseLines[] = [
                 'account_code'      => $l->account_code,
                 'dr'                => (float) $l->cr,
@@ -150,6 +158,8 @@ class journalController extends Controller
                 'currency'          => $l->currency,
                 'counterparty_type' => $l->counterparty_type,
                 'counterparty_id'   => $l->counterparty_id,
+                'cost_object_type'  => $l->cost_object_type ?? null,
+                'cost_object_id'    => $l->cost_object_id ?? null,
                 'branch_id'         => $l->branch_id,
                 'description'       => 'Reverses #' . $orig->id,
             ];
@@ -233,14 +243,50 @@ class journalController extends Controller
         return $this->pivotByCode($rows);
     }
 
+    /**
+     * Activity per account_code for a specific cost-object (flight,
+     * container, purchase_order, sourcing_request, shipment, ...).
+     * Optional date window; both ends inclusive when supplied.
+     *
+     * Returns the same shape as activityBetween(): [code => [ccy => net]].
+     * Callers convert to natural direction using the per-account
+     * normal_balance, exactly like the P&L report.
+     */
+    public function activityForCostObject(string $type, int $id, ?string $from = null, ?string $to = null): array
+    {
+        $q = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
+            ->where('journal_lines.cost_object_type', $type)
+            ->where('journal_lines.cost_object_id', $id)
+            ->select(
+                'journal_lines.account_code',
+                'journal_lines.currency',
+                DB::raw('SUM(journal_lines.dr) - SUM(journal_lines.cr) as signed_net')
+            )
+            ->groupBy('journal_lines.account_code', 'journal_lines.currency');
+
+        if ($from) $q->where('journal_entries.entry_date', '>=', $from);
+        if ($to)   $q->where('journal_entries.entry_date', '<=', $to);
+
+        return $this->pivotByCode($q->get());
+    }
+
     private function pivotByCode($rows): array
     {
         $out = [];
         foreach ($rows as $r) {
-            if (!in_array($r->currency, $this->currencies, true)) continue;
+            // The Purchases module writes 'USD' uppercase while everything
+            // else uses lowercase. Normalize here so reports can read both
+            // without each caller having to remember which convention the
+            // source used.
+            $ccy = strtolower((string) $r->currency);
+            if (!in_array($ccy, $this->currencies, true)) continue;
             $out[$r->account_code] = $out[$r->account_code]
                 ?? array_fill_keys($this->currencies, 0.0);
-            $out[$r->account_code][$r->currency] = (float) $r->signed_net;
+            // Multiple rows can land on the same (account, currency) when
+            // two source systems disagree on case — accumulate, don't
+            // overwrite, or one side silently disappears from the totals.
+            $out[$r->account_code][$ccy] += (float) $r->signed_net;
         }
         return $out;
     }

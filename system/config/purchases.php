@@ -57,7 +57,12 @@ return [
         'goods_in_warehouse'    => env('ACCOUNT_GOODS_IN_WAREHOUSE',    '1400'), // new (purchases)
         'goods_in_shipment'     => env('ACCOUNT_GOODS_IN_SHIPMENT',     '1500'), // new (purchases)
         'customer_liability'    => env('ACCOUNT_CUSTOMER_LIABILITY',    '2000'), // same account as customer_wallets
-        'commission_revenue'    => env('ACCOUNT_COMMISSION_REVENUE',    '4000'), // existing: Commission revenue
+        // 4010 = Purchase commission revenue, a sub-account of 4000
+        // (Commission revenue) added 2026-05-26 to isolate the purchase-side
+        // commission stream from sourcing commissions (4020) and any future
+        // commission categories. Override to 4000 in .env if you need the
+        // legacy aggregate behaviour during transition.
+        'commission_revenue'    => env('ACCOUNT_COMMISSION_REVENUE',    '4010'),
         'fx_gains'              => env('ACCOUNT_FX_GAINS',              '4200'), // new (purchases)
         'cogs'                  => env('ACCOUNT_COGS',                  '5400'), // new (purchases)
         'fx_losses'             => env('ACCOUNT_FX_LOSSES',             '5200'), // existing: FX gain/loss

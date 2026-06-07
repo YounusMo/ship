@@ -1383,15 +1383,25 @@ class seaController extends Controller
         $clientsController = new clientsController();
         $branchesController = new branchesController();
         $treasuryController = new treasuryController();
-        
+
         $last_auto_id = $dataController->tr_code;
-                    
+
         $last_auto_id_ = DB::table('clients_transactions')->select('auto_id')->orderBy('auto_id','DESC')->limit(1)->first();
         $auto_id = $last_auto_id_ ? $last_auto_id_->auto_id +1 : $last_auto_id;
-        
+
         $remaining_balance = $clientsController->calc_balance($client_id,'usd',true);
 
         $transaction_number = 'exp_custom_withdraw'.date('Ymd').$client_id;
+
+        // Capture container id + decide LCL vs FCL revenue account before
+        // the array gets serialized below. FCL containers (type='full' in
+        // containers_sea) credit 4130; everything else credits 4120 LCL.
+        $containerId   = isset($container_data['container_id']) ? (int) $container_data['container_id'] : 0;
+        $revenueAccount = '4120'; // LCL default
+        if ($containerId > 0) {
+            $type = DB::table('containers_sea')->where('id', $containerId)->value('type');
+            if ($type === 'full') $revenueAccount = '4130';
+        }
 
         $container_data = json_encode($container_data);
 
@@ -1435,6 +1445,33 @@ class seaController extends Controller
 
             // $treasuryController->insert($transaction_number,'exp_custom_withdraw','minus',$auto_id,$container_data,($client_price + $commission),'usd',0,$branch,null,$client_id);
         }
+
+        // Double-entry journal: shipping a piece via sea from the client's
+        // wallet.
+        //   Dr 2000 Client deposits          (we owe them less)
+        //   Cr 4120 or 4130 Sea freight rev  (LCL vs FCL — see above)
+        $revenue = (float) $client_price + (float) $commission;
+        if ($revenue > 0 && $containerId > 0) {
+            (new \App\Http\Controllers\journalController())->record([
+                'entry_date'         => date('Y-m-d'),
+                'kind'               => 'sea_freight_revenue',
+                'description'        => 'Sea freight ' . number_format($revenue, 2) . ' USD — container #' . $containerId,
+                'source_table'       => 'clients_transactions',
+                'source_id'          => $auto_id,
+                'transaction_number' => $transaction_number,
+                'branch_id'          => is_numeric($branch) ? (int) $branch : null,
+                'cost_object_type'   => 'container_sea',
+                'cost_object_id'     => $containerId,
+                'lines'              => [
+                    ['account_code' => '2000', 'dr' => $revenue, 'cr' => 0, 'currency' => 'usd',
+                     'counterparty_type' => 'client', 'counterparty_id' => (int) $client_id,
+                     'description' => 'Client wallet draw — sea freight'],
+                    ['account_code' => $revenueAccount, 'dr' => 0, 'cr' => $revenue, 'currency' => 'usd',
+                     'counterparty_type' => 'client', 'counterparty_id' => (int) $client_id,
+                     'description' => 'Sea freight revenue'],
+                ],
+            ]);
+        }
     }
 
     public function client_deposit($client_id,$client_price,$cost,$commission,$container_data,$branch){
@@ -1442,15 +1479,23 @@ class seaController extends Controller
         $dataController      = new dataController();
         $clientsController   = new clientsController();
         $branchesController  = new branchesController();
-        
+
         $last_auto_id = $dataController->tr_code;
-                    
+
         $last_auto_id_ = DB::table('clients_transactions')->select('auto_id')->orderBy('auto_id','DESC')->limit(1)->first();
         $auto_id = $last_auto_id_ ? $last_auto_id_->auto_id +1 : $last_auto_id;
-        
+
         $remaining_balance = $clientsController->calc_balance($client_id,'usd',true);
 
         $transaction_number = 'exp_custom_deposit'.date('Ymd').$client_id;
+
+        // Same routing as client_withd — capture id + decide LCL vs FCL.
+        $containerId   = isset($container_data['container_id']) ? (int) $container_data['container_id'] : 0;
+        $revenueAccount = '4120';
+        if ($containerId > 0) {
+            $type = DB::table('containers_sea')->where('id', $containerId)->value('type');
+            if ($type === 'full') $revenueAccount = '4130';
+        }
 
         $container_data = json_encode($container_data);
 
@@ -1492,6 +1537,34 @@ class seaController extends Controller
         $branchesController->update_balance($branch);
 
         $treasuryController->insert($transaction_number,'exp_custom_deposit','plus',$auto_id,$container_data,($client_price + $commission),'usd',0,$branch,null,$client_id);
+
+        // Double-entry journal: cash collected at the counter for sea freight.
+        //   Dr 1000 Cash on hand
+        //   Cr 4120 or 4130 Sea freight revenue (LCL vs FCL)
+        $revenue = (float) $client_price + (float) $commission;
+        if ($revenue > 0 && $containerId > 0) {
+            (new \App\Http\Controllers\journalController())->record([
+                'entry_date'         => date('Y-m-d'),
+                'kind'               => 'sea_freight_revenue',
+                'description'        => 'Sea freight ' . number_format($revenue, 2) . ' USD — container #' . $containerId,
+                'source_table'       => 'clients_transactions',
+                'source_id'          => $auto_id,
+                'transaction_number' => $transaction_number,
+                'branch_id'          => is_numeric($branch) ? (int) $branch : null,
+                'cost_object_type'   => 'container_sea',
+                'cost_object_id'     => $containerId,
+                'lines'              => [
+                    ['account_code' => '1000', 'dr' => $revenue, 'cr' => 0, 'currency' => 'usd',
+                     'counterparty_type' => 'client', 'counterparty_id' => (int) $client_id,
+                     'branch_id' => is_numeric($branch) ? (int) $branch : null,
+                     'description' => 'Cash collected — sea freight'],
+                    ['account_code' => $revenueAccount, 'dr' => 0, 'cr' => $revenue, 'currency' => 'usd',
+                     'counterparty_type' => 'client', 'counterparty_id' => (int) $client_id,
+                     'branch_id' => is_numeric($branch) ? (int) $branch : null,
+                     'description' => 'Sea freight revenue'],
+                ],
+            ]);
+        }
     }
 
     public function show_custom_container(Request $request){

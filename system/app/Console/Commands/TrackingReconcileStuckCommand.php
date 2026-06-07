@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Models\User;
 use App\Modules\Tracking\Enums\CustodyEventType;
+use App\Modules\Tracking\Notifications\StuckShipmentReminderNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 /**
  *   php artisan tracking:reconcile-stuck [--days=7]
@@ -24,9 +27,10 @@ class TrackingReconcileStuckCommand extends Command
 {
     protected $signature = 'tracking:reconcile-stuck
                             {--days=7 : Pieces with no custody change in this many days are flagged}
-                            {--limit=200 : Cap on rows returned}';
+                            {--limit=200 : Cap on rows returned}
+                            {--notify : Send StuckShipmentReminderNotification to admin / branch_admin users}';
 
-    protected $description = 'List shipment pieces whose latest custody event is older than --days.';
+    protected $description = 'List shipment pieces whose latest custody event is older than --days. Optionally notifies ops.';
 
     public function handle(): int
     {
@@ -74,6 +78,41 @@ class TrackingReconcileStuckCommand extends Command
                 (string) $r->occurred_at,
             ])->all(),
         );
+
+        if ($this->option('notify')) {
+            $admins = User::query()
+                ->whereIn('type', ['admin', 'branch_admin'])
+                ->where(function ($q) {
+                    $q->whereNull('not_active')->orWhere('not_active', '!=', 'true');
+                })
+                ->where(function ($q) {
+                    $q->whereNull('deleted')->orWhere('deleted', '!=', 'true');
+                })
+                ->get();
+
+            if ($admins->isEmpty()) {
+                $this->warn('No active admin / branch_admin users to notify.');
+            } else {
+                $stuckPayload = $rows->map(fn ($r) => [
+                    'custody_id' => (int) $r->id,
+                    'source'     => "{$r->shipment_source_table}#{$r->shipment_source_id}",
+                    'piece_id'   => $r->shipment_piece_id !== null ? (int) $r->shipment_piece_id : null,
+                    'state'      => $r->event_type,
+                    'branch_id'  => $r->to_branch_id !== null ? (int) $r->to_branch_id : null,
+                    'since'      => (string) $r->occurred_at,
+                ])->all();
+
+                Notification::send(
+                    $admins,
+                    new StuckShipmentReminderNotification(
+                        stuckPieces : $stuckPayload,
+                        cutoffDays  : (int) $this->option('days'),
+                        cutoffAt    : $cutoff->toIso8601String(),
+                    ),
+                );
+                $this->info("Notified {$admins->count()} admin user(s).");
+            }
+        }
 
         return self::SUCCESS;
     }

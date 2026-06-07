@@ -525,6 +525,7 @@ class accountingController extends Controller
      */
     private function entityAging(string $txTable, string $entityTable, string $fkColumn, string $entityKind, Request $request)
     {
+        $lang = new langController();
         $today = date('Y-m-d');
         $entities = DB::table($entityTable)
             ->where('deleted', 0)
@@ -548,7 +549,7 @@ class accountingController extends Controller
             }
         }
 
-        $buckets = ['current' => '0-30 days', 'b31_60' => '31-60', 'b61_90' => '61-90', 'b91_180' => '91-180', 'b180_plus' => '180+'];
+        $buckets = ['current' => $lang->write('aging.bucket.current'), 'b31_60' => $lang->write('aging.bucket.31_60'), 'b61_90' => $lang->write('aging.bucket.61_90'), 'b91_180' => $lang->write('aging.bucket.91_180'), 'b180_plus' => $lang->write('aging.bucket.180_plus')];
         $prepaid    = ['rows' => [], 'totals' => []];
         $payable    = ['rows' => [], 'totals' => []];
         foreach ($this->currencies as $c) {
@@ -935,6 +936,7 @@ class accountingController extends Controller
     public function arAging(Request $request)
     {
         $this->requireAdmin();
+        $lang = new langController();
         $today = date('Y-m-d');
         $clients = DB::table('clients')
             ->where('deleted', 0)
@@ -958,7 +960,7 @@ class accountingController extends Controller
             }
         }
 
-        $buckets = ['current' => '0-30 days', 'b31_60' => '31-60', 'b61_90' => '61-90', 'b91_180' => '91-180', 'b180_plus' => '180+'];
+        $buckets = ['current' => $lang->write('aging.bucket.current'), 'b31_60' => $lang->write('aging.bucket.31_60'), 'b61_90' => $lang->write('aging.bucket.61_90'), 'b91_180' => $lang->write('aging.bucket.91_180'), 'b180_plus' => $lang->write('aging.bucket.180_plus')];
 
         $receivables = ['rows' => [], 'totals' => []];
         $deposits    = ['rows' => [], 'totals' => []];
@@ -1504,6 +1506,91 @@ class accountingController extends Controller
             'data'    => $dataController,
             'section' => 'accounting',
             'page'    => 'owners_ledger',
+        ]);
+    }
+
+    /* ============================================================
+     *  Treasury by branch (HTML)
+     *  GET /accounting/treasury-by-branch
+     *
+     *  Cross-tab of every branch's cash balance per currency, with:
+     *   - branches.balance_* as the live treasury figure
+     *   - the most recent cash_counts row per (branch, currency) so the
+     *     user can see when each pile was last reconciled and any drift
+     *   - a USD-equivalent column using the live FX table, so the owner
+     *     can answer "كل فرع كم عنده فلوس؟" with one number per branch
+     *   - a totals row across all branches
+     * ============================================================ */
+    public function treasuryByBranch(Request $request)
+    {
+        $this->requireAdmin();
+
+        $dataController = new dataController();
+        $rates          = $dataController->currency_exchange_rates;   // foreign per 1 USD
+
+        $branches = DB::table('branches')->where('deleted', 0)->orderBy('id')->get();
+
+        // Pull the most recent cash_count per (branch_id, currency) in one query.
+        // We need the LATEST id per (branch_id, currency) — MySQL prior to 8.0
+        // can't do window functions cleanly, so we lean on a self-join via
+        // grouped max(id).
+        $latestIds = DB::table('cash_counts')
+            ->select('branch_id', 'currency', DB::raw('MAX(id) as latest_id'))
+            ->groupBy('branch_id', 'currency')
+            ->pluck('latest_id');
+
+        $latestCounts = DB::table('cash_counts')
+            ->whereIn('id', $latestIds)
+            ->get()
+            ->keyBy(function ($r) { return $r->branch_id . '|' . $r->currency; });
+
+        $totals = array_fill_keys($this->currencies, 0.0);
+        $totalsUsd = 0.0;
+        $rows = [];
+
+        foreach ($branches as $b) {
+            $balances    = [];
+            $countInfo   = [];
+            $branchUsd   = 0.0;
+
+            foreach ($this->currencies as $c) {
+                $bal = (float) ($b->{'balance_' . $c} ?? 0);
+                $balances[$c] = $bal;
+                $totals[$c] += $bal;
+
+                $usdEq = $c === 'usd'
+                    ? $bal
+                    : (!empty($rates[$c]) && (float) $rates[$c] > 0 ? $bal / (float) $rates[$c] : 0.0);
+                $branchUsd += $usdEq;
+
+                $key = $b->id . '|' . $c;
+                $cc  = $latestCounts->get($key);
+                $countInfo[$c] = $cc ? [
+                    'count_date' => $cc->count_date,
+                    'variance'   => (float) $cc->variance,
+                ] : null;
+            }
+            $totalsUsd += $branchUsd;
+
+            $rows[] = [
+                'branch'      => $b,
+                'balances'    => $balances,
+                'countInfo'   => $countInfo,
+                'branch_usd'  => $branchUsd,
+            ];
+        }
+
+        $lang = new langController();
+        return view('pages.accounting.treasury_by_branch', [
+            'rows'         => $rows,
+            'currencies'   => $this->currencies,
+            'totals'       => $totals,
+            'totals_usd'   => $totalsUsd,
+            'rates'        => $rates,
+            'lang'         => $lang,
+            'data'         => $dataController,
+            'section'      => 'accounting',
+            'page'         => 'treasury_by_branch',
         ]);
     }
 

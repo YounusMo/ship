@@ -40,6 +40,14 @@ class TrackingServiceProvider extends ServiceProvider
             'tracking',
         );
 
-        // Translations land in Phase 5 alongside the customer-facing API.
+        // Register the `tracking::` translation namespace. Files live at
+        // lang/{locale}/tracking/events.php and resolve via:
+        //   trans('tracking::events.GATE_IN', ['city' => 'Shanghai'], 'en')
+        // UnifiedTimelineService uses this to localize customer-facing
+        // timelines on the backend so mobile apps don't need translations.
+        $this->loadTranslationsFrom(
+            base_path('lang/tracking'),
+            'tracking',
+        );
     }
 }

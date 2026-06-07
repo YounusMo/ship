@@ -74,6 +74,8 @@ class AccountingIntegrationService
             sourceId: $order->id,
             counterpartyType: 'buyer',
             counterpartyId: $buyer->id,
+            costObjectType: 'purchase_order',
+            costObjectId: $order->id,
             lines: [
                 ['account_code' => $this->code('purchases_in_transit'), 'dr' => $usdAmount, 'cr' => '0',        'description' => "Order {$order->order_number}"],
                 ['account_code' => $this->code('buyer_float'),          'dr' => '0',        'cr' => $usdAmount, 'description' => "Buyer {$buyer->code} float"],
@@ -94,6 +96,8 @@ class AccountingIntegrationService
             sourceId: $order->id,
             counterpartyType: 'buyer',
             counterpartyId: $buyer->id,
+            costObjectType: 'purchase_order',
+            costObjectId: $order->id,
             lines: [
                 ['account_code' => $this->code('buyer_float'),          'dr' => $usdAmount, 'cr' => '0'],
                 ['account_code' => $this->code('purchases_in_transit'), 'dr' => '0',        'cr' => $usdAmount],
@@ -108,6 +112,8 @@ class AccountingIntegrationService
             description: "Goods received in warehouse for order {$order->order_number}",
             sourceTable: 'purchase_orders',
             sourceId: $order->id,
+            costObjectType: 'purchase_order',
+            costObjectId: $order->id,
             lines: [
                 ['account_code' => $this->code('goods_in_warehouse'),   'dr' => $usdAmount, 'cr' => '0'],
                 ['account_code' => $this->code('purchases_in_transit'), 'dr' => '0',        'cr' => $usdAmount],
@@ -122,6 +128,8 @@ class AccountingIntegrationService
             description: "Order {$order->order_number} added to shipment",
             sourceTable: 'purchase_orders',
             sourceId: $order->id,
+            costObjectType: 'purchase_order',
+            costObjectId: $order->id,
             lines: [
                 ['account_code' => $this->code('goods_in_shipment'),  'dr' => $usdAmount, 'cr' => '0'],
                 ['account_code' => $this->code('goods_in_warehouse'), 'dr' => '0',        'cr' => $usdAmount],
@@ -180,6 +188,8 @@ class AccountingIntegrationService
             description: "Order {$order->order_number} delivered",
             sourceTable: 'purchase_orders',
             sourceId: $order->id,
+            costObjectType: 'purchase_order',
+            costObjectId: $order->id,
             lines: $lines,
         );
     }
@@ -222,6 +232,8 @@ class AccountingIntegrationService
         ?int $sourceId = null,
         ?string $counterpartyType = null,
         ?int $counterpartyId = null,
+        ?string $costObjectType = null,
+        ?int $costObjectId = null,
     ): int {
         $totals = [];
         foreach ($lines as $i => $line) {
@@ -244,7 +256,8 @@ class AccountingIntegrationService
 
         DB::transaction(function () use (
             $kind, $description, $lines, $sourceTable, $sourceId,
-            $counterpartyType, $counterpartyId, $userId, $userName, &$entryId,
+            $counterpartyType, $counterpartyId, $costObjectType, $costObjectId,
+            $userId, $userName, &$entryId,
         ) {
             $entryId = DB::table('journal_entries')->insertGetId([
                 'entry_date'          => date('Y-m-d'),
@@ -278,6 +291,12 @@ class AccountingIntegrationService
                     'description'       => mb_substr((string) ($line['description'] ?? ''), 0, 500),
                     'counterparty_type' => $line['counterparty_type'] ?? $counterpartyType,
                     'counterparty_id'   => $line['counterparty_id'] ?? $counterpartyId,
+                    // Cost-object: per-call override on the line wins, else
+                    // fall back to the entry-level value passed by the
+                    // posting method. Lets per-line cost-object splits land
+                    // here without changing the public API of every post*.
+                    'cost_object_type'  => $line['cost_object_type'] ?? $costObjectType,
+                    'cost_object_id'    => $line['cost_object_id']   ?? $costObjectId,
                     'branch_id'         => $line['branch_id'] ?? null,
                     'created_at'        => date('Y-m-d H:i:s'),
                     'updated_at'        => date('Y-m-d H:i:s'),

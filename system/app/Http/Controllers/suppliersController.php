@@ -321,6 +321,18 @@ class suppliersController extends Controller
                 // No try/catch: a failure here rolls back the supplier insert,
                 // balance updates, and treasury row above, keeping the ledger
                 // and the journal in lockstep.
+                //
+                // Cost-object: when the operator pinned this deposit to a
+                // specific container (sky/sea), tag both lines so per-flight
+                // / per-container profit slicing in the ledger picks up this
+                // expense. Unpinned deposits stay NULL — they're operating
+                // float that isn't attributable to a single deliverable.
+                $costObjectType = null;
+                $costObjectId   = null;
+                if (!empty($container_id) && (int) $container_id > 0 && in_array($sky_sea, ['sky', 'sea'], true)) {
+                    $costObjectType = 'container_' . $sky_sea;
+                    $costObjectId   = (int) $container_id;
+                }
                 (new \App\Http\Controllers\journalController())->record([
                     'entry_date'         => date('Y-m-d'),
                     'kind'               => 'supplier_deposit',
@@ -329,6 +341,8 @@ class suppliersController extends Controller
                     'source_id'          => $auto_id,
                     'transaction_number' => $transaction_number,
                     'branch_id'          => is_numeric($branch) ? (int) $branch : null,
+                    'cost_object_type'   => $costObjectType,
+                    'cost_object_id'     => $costObjectId,
                     'lines'              => [
                         ['account_code' => '1200', 'dr' => (float) $value, 'cr' => 0, 'currency' => $currency,
                          'counterparty_type' => 'supplier', 'counterparty_id' => (int) $supplier_id],
