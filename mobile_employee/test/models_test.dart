@@ -41,7 +41,7 @@ void main() {
     test('assigned shape', () {
       final r = StickerResolveResult.fromJson({
         'type': 'assigned',
-        'sticker': {'id': '01HZZ' + 'X' * 21},
+        'sticker': {'id': '01HZZ${'X' * 21}'},
         'piece':   {'id': 5, 'source_table': 'store_out_sea', 'source_id': 100},
         'current_event_type': 'RECEIVED_AT_HUB',
         'allowed_event_types': ['IN_TRANSIT_INTERNAL', 'RETURNED_TO_HUB'],
@@ -56,7 +56,7 @@ void main() {
     test('unassigned shape', () {
       final r = StickerResolveResult.fromJson({
         'type': 'unassigned',
-        'sticker': {'id': '01HZZ' + 'X' * 21},
+        'sticker': {'id': '01HZZ${'X' * 21}'},
         'allowed_event_types': ['RECEIVED_AT_HUB'],
       });
       expect(r, isA<StickerResolveUnassigned>());
@@ -84,7 +84,7 @@ void main() {
         shipmentPieceId: 42,
         toBranchId: null,
         notes: 'arrived dusty',
-        clientEventId: 'ULID-X-' + ('A' * 19),
+        clientEventId: 'ULID-X-${'A' * 19}',
       );
       final json = p.toJson();
       expect(json.containsKey('to_branch_id'), isFalse);

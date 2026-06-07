@@ -19,7 +19,7 @@ class ApiService {
     final resp = await _dio.post('/api/v1/employee/auth/login', data: <String, dynamic>{
       'email'    : email,
       'password' : password,
-      if (device != null) 'device' : device,
+      'device'   : ?device,
     });
     return ApiClient.jsonOr(ApiClient.defaultErrorMapper, resp);
   }
@@ -36,8 +36,8 @@ class ApiService {
 
   Future<StickerResolveResult> scanResolve({String? stickerId, String? qrPayload}) async {
     final resp = await _dio.post('/api/v1/employee/scan/resolve', data: <String, dynamic>{
-      if (stickerId != null) 'sticker_id' : stickerId,
-      if (qrPayload != null) 'qr_payload' : qrPayload,
+      'sticker_id' : ?stickerId,
+      'qr_payload' : ?qrPayload,
     });
     // 404 unknown_sticker should still flow as a typed result, not an exception.
     final status = resp.statusCode ?? 0;

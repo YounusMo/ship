@@ -28,6 +28,11 @@ class HomeScreen extends ConsumerWidget {
         title: Text(l.appTitle),
         actions: <Widget>[
           IconButton(
+            tooltip: l.settingsTitle,
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+          ),
+          IconButton(
             tooltip: l.homeLogout,
             icon: const Icon(Icons.logout),
             onPressed: () async {

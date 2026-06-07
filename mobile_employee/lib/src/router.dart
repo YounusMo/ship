@@ -8,6 +8,7 @@ import 'screens/login_screen.dart';
 import 'screens/queue_screen.dart';
 import 'screens/scan_review_screen.dart';
 import 'screens/scanner_screen.dart';
+import 'screens/settings_screen.dart';
 import 'state/auth_state.dart';
 import 'state/providers.dart';
 
@@ -46,6 +47,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, st) => QueueScreen(branchId: int.parse(st.pathParameters['branchId']!)),
       ),
       GoRoute(path: '/activity', builder: (_, _) => const ActivityScreen()),
+      GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
     ],
   );
 });

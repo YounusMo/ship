@@ -35,16 +35,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
       // Router rebuild handles the redirect.
     } on ApiAuthException catch (_) {
+      if (!mounted) return;
       setState(() => _error = AppLocalizations.of(context)!.loginFailedBadCreds);
     } on ApiForbiddenException catch (e) {
+      if (!mounted) return;
       final l = AppLocalizations.of(context)!;
       setState(() => _error = e.wireType == 'no_branch'
           ? l.loginFailedNoBranch
           : l.loginFailedGeneric(e.message));
     } on ApiRateLimitedException catch (e) {
+      if (!mounted) return;
       setState(() => _error = AppLocalizations.of(context)!
           .loginFailedRate(e.retryAfterSeconds));
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = AppLocalizations.of(context)!.loginFailedGeneric('$e'));
     } finally {
       if (mounted) setState(() => _submitting = false);

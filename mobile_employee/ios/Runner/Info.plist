@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Shipflow Employee uses the camera to scan shipment barcodes and stickers at hand-off points.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Shipflow Employee saves proof-of-delivery photos to your library.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

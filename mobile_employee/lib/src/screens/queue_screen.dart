@@ -55,7 +55,7 @@ class _QueueScreenState extends ConsumerState<QueueScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(8),
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (_, i) {
               final r = rows[i];
               return ListTile(

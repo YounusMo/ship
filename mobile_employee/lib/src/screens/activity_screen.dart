@@ -49,7 +49,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
           final fmt = DateFormat('yyyy-MM-dd HH:mm');
           return ListView.separated(
             itemCount: rows.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (_, i) {
               final r = rows[i];
               return ListTile(
