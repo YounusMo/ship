@@ -91,9 +91,16 @@ jobs:
         # bootstrapped from a pre-Laravel SQL dump, not by a migration in
         # `database/migrations/`. Loading a baseline dump first gives the
         # later `artisan migrate` step a coherent starting point.
+        #
+        # FK checks are disabled during the load because mysqldump emits
+        # tables in alphabetical order, which doesn't satisfy FK ordering.
         # (The step runs from system/ per defaults.run.working-directory.)
         run: |
-          mysql -h 127.0.0.1 -uship_user -pStrongPassword123! ship_system < database/schema/baseline.sql
+          mysql -h 127.0.0.1 -uship_user -pStrongPassword123! ship_system <<EOF
+          SET FOREIGN_KEY_CHECKS=0;
+          SOURCE database/schema/baseline.sql;
+          SET FOREIGN_KEY_CHECKS=1;
+          EOF
 
       - name: Migrate (apply any migrations the baseline didn't include)
         run: php artisan migrate --force
