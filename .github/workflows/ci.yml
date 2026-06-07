@@ -56,6 +56,18 @@ jobs:
       - name: Install dependencies
         run: composer install --no-progress --no-interaction --prefer-dist
 
+      - name: Prepare Laravel storage directories
+        # Fresh checkout has storage/ but not the runtime subdirs Laravel
+        # writes to. Create them so Blade view compilation and the cache
+        # store can write without failing the request.
+        run: |
+          mkdir -p storage/framework/cache/data
+          mkdir -p storage/framework/sessions
+          mkdir -p storage/framework/views
+          mkdir -p storage/framework/testing
+          mkdir -p storage/logs
+          chmod -R 0777 storage bootstrap/cache
+
       - name: Wait for MySQL
         run: |
           for i in {1..30}; do
