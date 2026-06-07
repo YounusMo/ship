@@ -76,7 +76,7 @@ body, html {
 
 .content {
   flex: 1;
-  margin-top: 50px;
+  margin-top: 60px;
   padding: 20px;
   margin-left: 250px;
   width: 100%;
@@ -121,6 +121,7 @@ body, html {
   background-color: #fcfcfc;
   overflow: scroll;
   height: 100vh;
+  padding-top: 60px;
   z-index: 999 !important;
   position: fixed;
   border-right: 1px solid #efefef;

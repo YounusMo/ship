@@ -55,23 +55,30 @@
           <input type="number" class="form-control inp req money" data-name='value' style="font-size:18px;font-weight:600;font-variant-numeric:tabular-nums;">
         </div>
 
-        <div class="mb-3 d-none">
-          <label for="">{{$lang->write('Commission')}} :</label>
-          <input type="number" class="form-control inp req money" data-name='commission' value="0">
+        <div class="row g-3 mb-3">
+          <div class="col-6">
+            <label class="form-label">{{$lang->write('Currency')}}</label>
+            <select class="form-select inp req" data-name='currency'>
+              <option value="">{{$lang->write('Select')}}</option>
+              @foreach ($currencies as $item)
+                  <option value="{{$item['code']}}">{{$item['text']}}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="col-6">
+            <label class="form-label">{{$lang->write('Commission')}}</label>
+            <input type="number" class="form-control inp money" data-name='commission' value="0" placeholder="0">
+          </div>
+        </div>
+
+        <div class="mb-3 commission_reason_row" style="display:none;">
+          <label for="" class="form-label">{{$lang->write('Commission reason')}} <span class="text-danger">*</span></label>
+          <input type="text" class="form-control inp" data-name='commission_reason' maxlength="191" placeholder="{{$lang->write('Why this commission, e.g. wire-transfer fee, FX margin, processing')}}">
+          <small class="text-muted">{{$lang->write('Shown on the journal entry so the accountant can trace what this commission is for.')}}</small>
         </div>
 
         <div class="mb-3">
-          <label for="">{{$lang->write('Currency')}} :</label>
-          <select class="form-select inp req" data-name='currency'>
-            <option value="">{{$lang->write('Select')}}</option>
-            @foreach ($currencies as $item)
-                <option value="{{$item['code']}}">{{$item['text']}}</option>
-            @endforeach
-          </select>
-        </div>
-
-        <div class="mb-3">
-          <label for="">{{$lang->write('Old balance')}}?</label>
+          <label class="form-label">{{$lang->write('Against old balance?')}}</label>
           <select class="form-select inp req old_balance" data-name='old_balance'>
             <option value="">{{$lang->write('Select')}}</option>
             <option value="true">{{$lang->write('Yes')}}</option>
@@ -81,17 +88,15 @@
 
         <div class="mb-3 branch_selector d-none">
           <input type="hidden" class="_total_tras" value="0">
-          <div class="row">
-            <div class="col-6">
-              <label for="">{{$lang->write('Treasury')}} :</label>
-            </div>
-            <div class="col-6 text-end"><small class="total_tras_res"></small></div>
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label mb-0">{{$lang->write('Treasury')}}</label>
+            <small class="total_tras_res text-muted"></small>
           </div>
           {!! $dataController->sys_selector('branch',$branches) !!}
         </div>
-        
+
         <div class="mb-3">
-          <label for="">{{$lang->write('Purpose')}} :</label>
+          <label class="form-label">{{$lang->write('Purpose')}}</label>
           <select class="form-select inp req" data-name="purpose">
             <option value="">{{$lang->write('Select')}}</option>
             @foreach ($purposes as $code => $label)
@@ -101,7 +106,7 @@
         </div>
 
         <div class="mb-3">
-          <label for="">{{$lang->write('Notes')}} :</label>
+          <label class="form-label">{{$lang->write('Notes')}}</label>
           <textarea rows="3" class="form-control inp" data-name="notes" placeholder="{{$lang->write('Optional context — only if the purpose above is not enough')}}"></textarea>
         </div>
       </div>

@@ -74,7 +74,11 @@
             {{ $lang->write('Welcome back') }}{{ $user->name ? ', '.$user->name : '' }}
         </h1>
         <div class="page-subtitle">
-            {{ date('l, j F Y') }}
+            @php
+                $userLang  = auth()->user()->lang ?? 'en';
+                $dateSep   = $userLang === 'ar' ? '، ' : ', ';
+            @endphp
+            {{ \Carbon\Carbon::now()->locale($userLang)->isoFormat('dddd' . $dateSep . 'D MMMM Y') }}
             @if ($isBranchAdmin)
                 &middot; {{ $lang->write('Branch view') }}: {{ $lang->branch($user->branch) }}
             @endif
@@ -190,7 +194,7 @@
                     <tr>
                         <td><small class="text-muted">{{ $row->created_at }}</small></td>
                         <td>{{ $userNames[$row->user_id] ?? '—' }}</td>
-                        <td><span class="badge-finance">{{ $row->action }}</span></td>
+                        <td><span class="badge-finance">{{ $lang->write('audit.action.' . $row->action) }}</span></td>
                         <td>
                             <span class="text-muted">{{ $row->target_table }}</span>
                             @if ($row->target_id)

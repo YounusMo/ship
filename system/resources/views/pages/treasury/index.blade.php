@@ -114,7 +114,7 @@
             </div>
             @foreach ($currencies as $item)
                 <div class="kpi-tile" style="padding:var(--space-4);">
-                    <div class="kpi-label">{{ strtoupper($item['code']) }}</div>
+                    <div class="kpi-label">{{ $item['text'] ?? strtoupper($item['code']) }}</div>
                     <div class="kpi-value" style="font-size:var(--fs-xl);">0.00 <span class="text-muted" style="font-size:var(--fs-md);">{{ $item['symbol'] }}</span></div>
                 </div>
             @endforeach

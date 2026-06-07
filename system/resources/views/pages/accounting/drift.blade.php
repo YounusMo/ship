@@ -70,7 +70,7 @@
                     <span class="badge bg-light text-muted" title="{{ $lang->write('No derivation key — not auto-derived from entity tables') }}">{{ $lang->write('manual') }}</span>
                 @endif
             </td>
-            <td><small class="text-muted">{{ ucfirst($r['type']) }} ({{ $r['normal'] }})</small></td>
+            <td><small class="text-muted">{{ $lang->write('account.type.' . $r['type']) }} ({{ $lang->write('account.normal.' . $r['normal']) }})</small></td>
             @foreach ($currencies as $c)
                 @php $d = $r['drift'][$c]; @endphp
                 <td class="text-end {{ abs($r['journal'][$c]) < 0.0001 ? 'text-muted' : '' }}">

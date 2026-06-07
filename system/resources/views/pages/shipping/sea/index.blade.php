@@ -41,6 +41,34 @@
         <input type="hidden" class="start_table" value="containers">
     @endif
 
+    @php
+        $fromProforma = request('from_proforma');
+        $fromProformaRow = $fromProforma ? DB::table('sourcing_requests')->where('id', $fromProforma)->first() : null;
+    @endphp
+    @if ($fromProformaRow)
+        <div class="alert alert-info d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ $lang->write('New shipment from proforma') }}</strong>
+                <code>{{ $fromProformaRow->request_number }}</code>
+                @if ($fromProformaRow->title)
+                    · <span class="text-muted">{{ $fromProformaRow->title }}</span>
+                @endif
+            </div>
+            <div>
+                @if ($fromProformaRow->freight_container_id)
+                    <span class="badge bg-success">{{ $lang->write('Already linked to container') }} #{{ $fromProformaRow->freight_container_id }}</span>
+                @else
+                    <a href="{{ url('/sourcing/' . $fromProformaRow->id . '/handoff/sea') }}" class="btn btn-sm btn-primary">
+                        {{ $lang->write('Open handoff form') }}
+                    </a>
+                @endif
+                <a href="{{ url('/sourcing/' . $fromProformaRow->id) }}" class="btn btn-sm btn-outline-secondary">
+                    {{ $lang->write('Back to proforma') }}
+                </a>
+            </div>
+        </div>
+    @endif
+
     <div class="page-header">
         <div>
             <h1 class="page-title">

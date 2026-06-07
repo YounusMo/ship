@@ -25,7 +25,7 @@
             $delta = $plus - $minus;
         @endphp
         <div class="kpi-tile" style="padding:var(--space-4);">
-            <div class="kpi-label">{{ strtoupper($item['code']) }}</div>
+            <div class="kpi-label">{{ $item['text'] ?? strtoupper($item['code']) }}</div>
             <div class="kpi-value {{ $delta >= 0 ? 'text-success' : 'text-danger' }}" style="font-size:var(--fs-xl);">
                 {{ $dataController->numberFormat($delta) }}
                 <span class="text-muted" style="font-size:var(--fs-md);font-weight:500;">{{ $item['symbol'] }}</span>

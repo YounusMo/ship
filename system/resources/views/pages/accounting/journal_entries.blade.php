@@ -49,7 +49,7 @@
         <tr>
             <td class="text-muted">{{ $e->id }}</td>
             <td>{{ $e->entry_date }}</td>
-            <td><span class="badge bg-secondary">{{ $e->kind }}</span></td>
+            <td><span class="badge bg-secondary">{{ $lang->write('journal.kind.' . $e->kind) }}</span></td>
             <td class="small">{{ $e->description }}</td>
             <td>
                 @if ($e->status === 'reversed')

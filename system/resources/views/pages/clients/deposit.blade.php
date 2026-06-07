@@ -69,6 +69,12 @@
           </div>
         </div>
 
+        <div class="mb-3 commission_reason_row" style="display:none;">
+          <label for="" class="form-label">{{$lang->write('Commission reason')}} <span class="text-danger">*</span></label>
+          <input type="text" class="form-control inp" data-name='commission_reason' maxlength="191" placeholder="{{$lang->write('Why this commission, e.g. wire-transfer fee, FX margin, processing')}}">
+          <small class="text-muted">{{$lang->write('Shown on the journal entry so the accountant can trace what this commission is for.')}}</small>
+        </div>
+
         <div class="mb-3 branch_selector">
           <input type="hidden" class="_total_tras" value="0">
           <div class="d-flex justify-content-between align-items-center mb-1">

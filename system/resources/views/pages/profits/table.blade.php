@@ -573,7 +573,9 @@
                 </tr>
                 @foreach ($data_in_sky as $item)
                     <tr class='d-none tab' data-tab='sky' style='background: #ececec;'>
-                        <td style="{{auth()->user()->lang === 'ar' ? 'padding-right' : 'padding-left'}}: 20px">{{$item['container_number']}}</td>
+                        <td style="{{auth()->user()->lang === 'ar' ? 'padding-right' : 'padding-left'}}: 20px">
+                            <a href="{{url('/profits/container/sky/' . $item['container_id'])}}" title="{{$lang->write('Ledger view')}}">{{$item['container_number']}}</a>
+                        </td>
                         <td class="text-center center">{{$dataController->NumberFormat($item['total_usd'])}} $</td>
                     </tr>
                 @endforeach
@@ -595,7 +597,9 @@
                 </tr>
                 @foreach ($data_in_sea as $item)
                     <tr class='d-none tab' data-tab='sea' style='background: #ececec;'>
-                        <td style="{{auth()->user()->lang === 'ar' ? 'padding-right' : 'padding-left'}}: 20px">{{$item['container_number']}}</td>
+                        <td style="{{auth()->user()->lang === 'ar' ? 'padding-right' : 'padding-left'}}: 20px">
+                            <a href="{{url('/profits/container/sea/' . $item['container_id'])}}" title="{{$lang->write('Ledger view')}}">{{$item['container_number']}}</a>
+                        </td>
                         <td class="text-center center">{{$dataController->NumberFormat($item['total_usd'])}} $</td>
                     </tr>
                 @endforeach
@@ -701,7 +705,9 @@
                 </tr>
                 @foreach ($data_out_sea as $item)
                     <tr class='d-none tab' data-tab='sea2' style='background: #ececec;'>
-                        <td style="{{auth()->user()->lang === 'ar' ? 'padding-right' : 'padding-left'}}: 20px">{{$item['container_number']}}</td>
+                        <td style="{{auth()->user()->lang === 'ar' ? 'padding-right' : 'padding-left'}}: 20px">
+                            <a href="{{url('/profits/container/sea/' . $item['container_id'])}}" title="{{$lang->write('Ledger view')}}">{{$item['container_number']}}</a>
+                        </td>
                         <td class="text-center center">{{$dataController->NumberFormat($item['total_usd'])}} $</td>
                     </tr>
                 @endforeach
@@ -746,7 +752,9 @@
                 </tr>
                 @foreach ($data_out_sky as $item)
                     <tr class='d-none tab' data-tab='sky2' style='background: #ececec;'>
-                        <td style="{{auth()->user()->lang === 'ar' ? 'padding-right' : 'padding-left'}}: 20px">{{$item['container_number']}}</td>
+                        <td style="{{auth()->user()->lang === 'ar' ? 'padding-right' : 'padding-left'}}: 20px">
+                            <a href="{{url('/profits/container/sky/' . $item['container_id'])}}" title="{{$lang->write('Ledger view')}}">{{$item['container_number']}}</a>
+                        </td>
                         <td class="text-center center">{{$dataController->NumberFormat($item['total_usd'])}} $</td>
                     </tr>
                 @endforeach

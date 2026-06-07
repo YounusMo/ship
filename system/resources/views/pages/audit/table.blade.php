@@ -6,7 +6,7 @@
 <div class="filter-options" style="display:none">
     <select data-fill="action">
         @foreach ($actions as $a)
-            <option value="{{ $a }}">{{ $a }}</option>
+            <option value="{{ $a }}">{{ $lang->write('audit.action.' . $a) }}</option>
         @endforeach
     </select>
     <select data-fill="target_table">
@@ -40,7 +40,7 @@
                         <small class="text-muted d-block">{{ $row->user_type }}</small>
                     @endif
                 </td>
-                <td><span class="badge bg-secondary">{{ $row->action }}</span></td>
+                <td><span class="badge bg-secondary">{{ $lang->write('audit.action.' . $row->action) }}</span></td>
                 <td>
                     {{ $row->target_table }}
                     @if ($row->target_id)

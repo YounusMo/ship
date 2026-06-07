@@ -1,9 +1,11 @@
 @php
     use App\Http\Controllers\dataController;
     use App\Http\Controllers\langController;
+    use App\Http\Controllers\settingsController;
 
     $lang = new langController();
     $dataController = new dataController();
+    $sysSettings    = (new settingsController())->get();
 
     $currencies = $dataController->currencies;
 
@@ -19,6 +21,12 @@
 @endphp
 @extends('layout')
 @section('content')
+
+    {{-- Expose the workflow setting to the clients JS. When this is "true",
+         deposit() / withdraw() send status='pending'; admins then approve
+         via the existing pending workflow. Toggle lives in /settings. --}}
+    <input type="hidden" id="client_txn_default_pending"
+           value="{{ !empty($sysSettings['client_transactions_default_pending']) ? 'true' : 'false' }}">
 
     @include('pages.clients.new')
     @include('pages.clients.deposit')
@@ -76,7 +84,7 @@
         @foreach ($currencies as $item)
             @php $b = $bl[$item['code']] ?? [0,0,0]; @endphp
             <div class="kpi-tile">
-                <div class="kpi-label">{{ strtoupper($item['code']) }} {{ $lang->write('net') }}</div>
+                <div class="kpi-label">{{ $item['text'] ?? strtoupper($item['code']) }} {{ $lang->write('net') }}</div>
                 <div class="kpi-value {{ $b[2] >= 0 ? 'text-success' : 'text-danger' }}">
                     {{ $dataController->numberFormat($b[2]) }}
                 </div>

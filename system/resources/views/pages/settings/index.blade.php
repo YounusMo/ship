@@ -205,6 +205,55 @@
                     </div>
 
                     <div class="col-12">
+                        <div class="divider-labeled">{{ $lang->write('Client transactions workflow') }}</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch" style="padding-inline-start:2.5em;">
+                            <input class="form-check-input" type="checkbox" role="switch"
+                                   id="client_transactions_default_pending"
+                                   name="client_transactions_default_pending"
+                                   value="1"
+                                   {{ !empty($settings['client_transactions_default_pending']) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="client_transactions_default_pending">
+                                <strong>{{ $lang->write('Require approval for client deposits and withdraws') }}</strong>
+                            </label>
+                        </div>
+                        <small class="text-muted d-block" style="margin-inline-start:3.5em;">
+                            {{ $lang->write('When ON, every new client deposit / withdraw is created as PENDING — an admin must approve it before it touches the ledger or the client balance. When OFF, transactions post immediately.') }}
+                        </small>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="divider-labeled">{{ $lang->write('Proforma email templates') }}</div>
+                    </div>
+                    <div class="col-12">
+                        <small class="text-muted d-block mb-2">
+                            {{ $lang->write('Used when sending or reminding a client about a proforma. Placeholders:') }}
+                            <code>{link}</code> ·
+                            <code>{number}</code> ·
+                            <code>{client}</code> ·
+                            <code>{total}</code> ·
+                            <code>{company}</code>
+                        </small>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">{{ $lang->write('Send subject') }}</label>
+                        <input type="text" class="form-control" name="proforma_email_subject" maxlength="191" value="{{ $settings['proforma_email_subject'] ?? '' }}">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">{{ $lang->write('Reminder subject') }}</label>
+                        <input type="text" class="form-control" name="proforma_reminder_subject" maxlength="191" value="{{ $settings['proforma_reminder_subject'] ?? '' }}">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">{{ $lang->write('Send body') }}</label>
+                        <textarea class="form-control" name="proforma_email_body" rows="6" maxlength="5000">{{ $settings['proforma_email_body'] ?? '' }}</textarea>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">{{ $lang->write('Reminder body') }}</label>
+                        <textarea class="form-control" name="proforma_reminder_body" rows="6" maxlength="5000">{{ $settings['proforma_reminder_body'] ?? '' }}</textarea>
+                    </div>
+
+                    <div class="col-12">
                         <div class="divider-labeled">{{ $lang->write('Tracking stickers') }}</div>
                     </div>
                     <div class="col-md-6">

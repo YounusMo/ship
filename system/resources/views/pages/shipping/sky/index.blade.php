@@ -41,6 +41,41 @@
         <input type="hidden" class="start_table" value="containers">
     @endif
 
+    @php
+        // When the operator clicked "Send to air freight" on a proforma we
+        // land here with ?from_proforma={id}. Surface a banner that links
+        // straight to the dedicated handoff form rather than making them
+        // navigate the rest of the index page.
+        $fromProforma = request('from_proforma');
+        $fromProformaRow = null;
+        if ($fromProforma) {
+            $fromProformaRow = DB::table('sourcing_requests')->where('id', $fromProforma)->first();
+        }
+    @endphp
+    @if ($fromProformaRow)
+        <div class="alert alert-info d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ $lang->write('New shipment from proforma') }}</strong>
+                <code>{{ $fromProformaRow->request_number }}</code>
+                @if ($fromProformaRow->title)
+                    · <span class="text-muted">{{ $fromProformaRow->title }}</span>
+                @endif
+            </div>
+            <div>
+                @if ($fromProformaRow->freight_container_id)
+                    <span class="badge bg-success">{{ $lang->write('Already linked to container') }} #{{ $fromProformaRow->freight_container_id }}</span>
+                @else
+                    <a href="{{ url('/sourcing/' . $fromProformaRow->id . '/handoff/sky') }}" class="btn btn-sm btn-primary">
+                        {{ $lang->write('Open handoff form') }}
+                    </a>
+                @endif
+                <a href="{{ url('/sourcing/' . $fromProformaRow->id) }}" class="btn btn-sm btn-outline-secondary">
+                    {{ $lang->write('Back to proforma') }}
+                </a>
+            </div>
+        </div>
+    @endif
+
     <div class="page-header">
         <div>
             <h1 class="page-title">

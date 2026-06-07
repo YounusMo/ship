@@ -613,7 +613,16 @@ function edit(id_){
     })
 }
 //---------------------------------------------------------------------------------------
+// Pull the workflow setting once. When true, all new client deposit /
+// withdraw transactions are created as PENDING — an admin must approve
+// them via /clients/pending before they affect balances or the ledger.
+// Toggle lives in /settings (Client transactions workflow section).
+function _defaultClientTxnStatus(){
+    return $('#client_txn_default_pending').val() === 'true' ? 'pending' : 'approved';
+}
+
 function deposit(){
+    const status = _defaultClientTxnStatus();
     var formData = new FormData();
 
     const token = $('meta[name="csrf-token"]').attr('content');
@@ -625,6 +634,7 @@ function deposit(){
     const purpose = $('#deposit .inp[data-name="purpose"]').val();
     const transactionNumber = $('#deposit .inp[data-name="transaction_number"]').val();
     const commission = $('#deposit .inp[data-name="commission"]').val();
+    const commissionReason = $('#deposit .inp[data-name="commission_reason"]').val();
 
     formData.append('_token', token);
     formData.append('id', id);
@@ -634,15 +644,16 @@ function deposit(){
     formData.append('notes', notes);
     formData.append('purpose', purpose);
     formData.append('commission', commission);
+    formData.append('commission_reason', commissionReason || '');
     formData.append('transaction_number', transactionNumber);
-    // Direct admin deposit/withdraw — treat as approved so the treasury row
-    // and branch balance update immediately. The pending workflow still
-    // exists for the explicit approve flow (approveReject), if you want to
-    // bring it back later make this configurable per role.
-    formData.append('status', 'approved');
+    formData.append('status', status);
 
     if(!currency || !value || !branch || !purpose){
         showErr(langContent['Insert required data'])
+        return;
+    }
+    if(parseFloat(commission || 0) > 0 && !(commissionReason || '').trim()){
+        showErr(langContent['Commission reason is required when commission > 0'] || 'Commission reason is required when commission > 0')
         return;
     }
     showLoader()
@@ -840,6 +851,7 @@ function transfer(){
 }
 //---------------------------------------------------------------------------------------
 function withdraw(){
+    const status = _defaultClientTxnStatus();
     var formData = new FormData();
 
     const token = $('meta[name="csrf-token"]').attr('content');
@@ -850,6 +862,7 @@ function withdraw(){
     const notes = $('#withdraw .inp[data-name="notes"]').val();
     const purpose = $('#withdraw .inp[data-name="purpose"]').val();
     const commission = $('#withdraw .inp[data-name="commission"]').val();
+    const commissionReason = $('#withdraw .inp[data-name="commission_reason"]').val();
     const old_balance = $('#withdraw .inp[data-name="old_balance"]').val();
     const transactionNumber = $('#withdraw .inp[data-name="transaction_number"]').val();
 
@@ -862,15 +875,16 @@ function withdraw(){
     formData.append('purpose', purpose);
     formData.append('old_balance', old_balance);
     formData.append('commission',commission);
+    formData.append('commission_reason', commissionReason || '');
     formData.append('transaction_number', transactionNumber);
-    // Direct admin deposit/withdraw — treat as approved so the treasury row
-    // and branch balance update immediately. The pending workflow still
-    // exists for the explicit approve flow (approveReject), if you want to
-    // bring it back later make this configurable per role.
-    formData.append('status', 'approved');
+    formData.append('status', status);
 
     if(!currency || !value || !old_balance || !purpose){
         showErr(langContent['Insert required data'])
+        return;
+    }
+    if(parseFloat(commission || 0) > 0 && !(commissionReason || '').trim()){
+        showErr(langContent['Commission reason is required when commission > 0'] || 'Commission reason is required when commission > 0')
         return;
     }
 
@@ -1418,5 +1432,21 @@ $('.money').on('change keyup',function(){
     let val = $(this).val()
     val = parseInt(val.replace(/[^0-9]/g, '')) || 0;
     $(this).val(val);
+});
+//---------------------------------------------------------------------------------------
+// Commission-reason visibility: only ask for a reason when the operator
+// has actually entered a non-zero commission. Empty / 0 commission hides
+// the reason row so the modal doesn't nag for a justification that isn't
+// needed. Bound on the document because the modals are rendered inside
+// the table's ajax_elements container and may re-render on /load.
+$(document).on('input change', '#deposit .inp[data-name="commission"], #withdraw .inp[data-name="commission"]', function(){
+    const v = parseFloat($(this).val() || 0);
+    const row = $(this).closest('.modal').find('.commission_reason_row');
+    if (v > 0) {
+        row.show();
+    } else {
+        row.hide();
+        row.find('.inp[data-name="commission_reason"]').val('');
+    }
 });
 //---------------------------------------------------------------------------------------

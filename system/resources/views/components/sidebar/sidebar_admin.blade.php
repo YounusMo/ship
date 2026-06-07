@@ -148,6 +148,30 @@
             </a>
         </li>
 
+        <li class="{{$page === 'sourcing' || $page === 'sourcing_commissions' ? 'active' : ''}}">
+            <a href="{{url('/sourcing')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                </svg>
+                {{$lang->write('Sourcing requests')}}
+            </a>
+        </li>
+
+        @if (auth()->user()->type === 'admin')
+        <li class="{{$page === 'sourcing_insights' ? 'active' : ''}}">
+            <a href="{{url('/sourcing/insights/suppliers')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v18h18"></path>
+                    <polyline points="7 14 11 10 14 13 20 7"></polyline>
+                </svg>
+                {{$lang->write('Supplier reliability')}}
+            </a>
+        </li>
+        @endif
+
         <hr>
 
         @if (auth()->user()->type === 'admin')
@@ -253,6 +277,12 @@
             <a href="{{url('/accounting/cash-counts')}}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
                 {{$lang->write('Cash Count')}}
+            </a>
+        </li>
+        <li class="{{$page === 'treasury_by_branch' ? 'active' : ''}}">
+            <a href="{{url('/accounting/treasury-by-branch')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5l7 5v13"/><path d="M9 21v-6h6v6"/><path d="M9 12h.01M15 12h.01"/></svg>
+                {{$lang->write('Treasury by branch')}}
             </a>
         </li>
         <li class="{{$page === 'fx_history' ? 'active' : ''}}">
