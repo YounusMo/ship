@@ -48,6 +48,16 @@ system/public/hot
 # points at storage/app/public/. Recreated on every deploy.
 system/public/storage
 
+# Environment files — contain secrets. .env.example IS tracked (it's
+# the template); .env and any per-environment variants are not.
+# NOTE: previously-tracked system/.env stays in git HISTORY even after
+# untracking; rotate APP_KEY and any DB / API credentials that appeared
+# in past commits.
+.env
+.env.*
+!.env.example
+!*.env.example
+
 # User-uploaded content directories — track structure not contents. The
 # patterns are anchored to system/public/ where the photos actually live;
 # the previous unanchored patterns matched nothing and let uploads leak
