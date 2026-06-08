@@ -11,6 +11,7 @@ when you have dashboard access to the provider.
 |--------|-----------|-------|
 | `APP_KEY` | 2026-06-07 | `php artisan key:generate --force`. No encrypted columns, no signed URLs in the app — only effect is that active session cookies invalidate (you log back in once). |
 | `DB_PASSWORD` (local MySQL) | 2026-06-07 | New 32-char base64 password; `ALTER USER 'ship_user'@'localhost'` + `.env` updated. App reconnects cleanly, all 135 tests green. |
+| `SHIPSGO_API_KEY` | 2026-06-08 | New 36-char UUID-format token; `.env` updated, config cache cleared. Validated by `curl -H "X-Shipsgo-User-Token: ..." https://api.shipsgo.com/v2/ocean/shipments/0000000000` returning `404 NOT_FOUND` (which is the auth-OK response). Old key should now be revoked in the ShipsGo dashboard. |
 
 The old `.env` is preserved at `system/.env.bak-<timestamp>` as a one-time snapshot. Delete once you're confident the rotation is good (a day or two of running is plenty).
 
@@ -144,7 +145,7 @@ Stamp each row as you complete it.
 | APP_KEY | local | ✅ rotated | 2026-06-07 | `phpunit` green |
 | DB_PASSWORD | local MySQL | ✅ rotated | 2026-06-07 | `phpunit` green |
 | MAIL_PASSWORD | Mailtrap | pending | — | trigger password-reset email |
-| SHIPSGO_API_KEY | ShipsGo | pending | — | `php artisan tracking:shipsgo-smoke` |
+| SHIPSGO_API_KEY | ShipsGo | ✅ rotated | 2026-06-08 | API probe → `404 NOT_FOUND` (auth OK) |
 | SHIPSGO_WEBHOOK_SECRET | ShipsGo | pending (deploy-time) | — | replay webhook from dashboard |
 | AUDIT_ADMIN_PASSWORD | local MySQL | not yet needed | — | requires production deploy first |
 | FCM service-account JSON | Firebase | pending (deploy-time) | — | send test push from `notifications:test` |
