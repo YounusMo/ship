@@ -15,25 +15,55 @@
     <script>
         window.sourcingPrefilter = @json($prefilter);
     </script>
-    <div class="alert alert-info d-flex align-items-center justify-content-between" style="margin-bottom: 1rem;">
-        <div>
-            <strong>{{ $lang->write('Filtered to client') }}:</strong>
-            #{{ $prefilter['client_code'] }} — {{ $prefilter['client_name'] }}
+    @if(!empty($prefilter['client_id']))
+        <div class="alert alert-info d-flex align-items-center justify-content-between" style="margin-bottom: 1rem;">
+            <div>
+                <strong>{{ $lang->write('Filtered to client') }}:</strong>
+                #{{ $prefilter['client_code'] }} — {{ $prefilter['client_name'] }}
+            </div>
+            <a href="{{ url('/sourcing' . (($view ?? 'all') !== 'all' ? '?view=' . $view : '')) }}" class="btn btn-sm btn-outline-secondary">
+                {{ $lang->write('Clear filter') }}
+            </a>
         </div>
-        <a href="{{ url('/sourcing') }}" class="btn btn-sm btn-outline-secondary">
-            {{ $lang->write('Clear filter') }}
-        </a>
-    </div>
+    @endif
 @endif
+
+@php
+    $currentView = $view ?? 'all';
+    $headerTitle = $currentView === 'proformas'
+        ? $lang->write('Proformas')
+        : ($currentView === 'requests'
+            ? $lang->write('Sourcing requests')
+            : $lang->write('All sourcing & proformas'));
+    $headerSub = $currentView === 'proformas'
+        ? $lang->write('Quoted commercial documents — sent / accepted / fulfilled')
+        : ($currentView === 'requests'
+            ? $lang->write('Discovery stage — open or being searched')
+            : $lang->write('Combined view across every status'));
+@endphp
 
 <div class="page-header">
     <div>
         <h1 class="page-title">
-            {{ $lang->write('Sourcing requests') }}
+            {{ $headerTitle }}
             <span class="table_counter text-muted" style="font-size:var(--fs-lg);font-weight:500;margin-inline-start:8px;">0</span>
         </h1>
         <div class="page-subtitle">
-            {{ $lang->write('Find-goods requests with commission tracking') }}
+            {{ $headerSub }}
+        </div>
+        <div style="margin-top:.5rem;display:flex;gap:.4rem;">
+            <a href="{{ url('/sourcing?view=requests') }}"
+               class="btn btn-sm {{ $currentView === 'requests' ? 'btn-primary' : 'btn-outline-secondary' }}">
+                {{ $lang->write('Sourcing requests') }}
+            </a>
+            <a href="{{ url('/sourcing?view=proformas') }}"
+               class="btn btn-sm {{ $currentView === 'proformas' ? 'btn-primary' : 'btn-outline-secondary' }}">
+                {{ $lang->write('Proformas') }}
+            </a>
+            <a href="{{ url('/sourcing') }}"
+               class="btn btn-sm {{ $currentView === 'all' ? 'btn-primary' : 'btn-outline-secondary' }}">
+                {{ $lang->write('All') }}
+            </a>
         </div>
     </div>
     <div class="page-actions">

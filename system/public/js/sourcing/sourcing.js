@@ -12,9 +12,14 @@ function load() {
 
     // Optional pre-filter set by the server when the page was opened
     // via /sourcing?client_id=N (e.g. the "View proformas" button on
-    // the clients page).
-    if (window.sourcingPrefilter && window.sourcingPrefilter.client_id) {
-        formData.append('client_id', window.sourcingPrefilter.client_id);
+    // the clients page) or via /sourcing?view=requests|proformas.
+    if (window.sourcingPrefilter) {
+        if (window.sourcingPrefilter.client_id) {
+            formData.append('client_id', window.sourcingPrefilter.client_id);
+        }
+        if (window.sourcingPrefilter.view && window.sourcingPrefilter.view !== 'all') {
+            formData.append('view', window.sourcingPrefilter.view);
+        }
     }
 
     tableLoader('show', '.main-table');

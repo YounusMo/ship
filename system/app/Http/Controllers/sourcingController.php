@@ -23,6 +23,17 @@ class sourcingController extends Controller
 {
     private const STATUSES = ['open', 'searching', 'quoted', 'accepted', 'fulfilled', 'canceled'];
 
+    // The lifecycle has two distinct phases the operator sees as two
+    // separate concepts in the UI:
+    //   - REQUEST  — "find me product X" — early discovery
+    //   - PROFORMA — formal quote / commercial doc — after pricing
+    // One DB table, two views. The "view" query param at /sourcing
+    // splits them; the sidebar surfaces each as its own entry.
+    private const VIEW_STATUSES = [
+        'requests'  => ['open', 'searching'],
+        'proformas' => ['quoted', 'accepted', 'fulfilled'],
+    ];
+
     /* ------------------------------------------------------------
      *  Index — shell + status filter (admin only).
      * ------------------------------------------------------------ */
@@ -31,12 +42,23 @@ class sourcingController extends Controller
         $this->requireAdminOrBranchAdmin();
         $lang = new langController();
 
+        // Two-phase view: ?view=requests OR ?view=proformas. Anything
+        // else (including no param) shows all rows like before — keeps
+        // backwards compat with deep links from elsewhere.
+        $view = $request->query('view', 'all');
+        if (! isset(self::VIEW_STATUSES[$view]) && $view !== 'all') {
+            $view = 'all';
+        }
+
         // Optional deep-link: /sourcing?client_id=N — when present, the
         // page boots with the table pre-filtered to that client. The
         // front-end JS reads window.sourcingPrefilter to apply it on
         // first load. See the "View proformas" button on the clients
         // page.
-        $prefilter = [];
+        $prefilter = ['view' => $view];
+        if ($view !== 'all') {
+            $prefilter['statuses'] = self::VIEW_STATUSES[$view];
+        }
         if ($cid = (int) $request->query('client_id', 0)) {
             $client = DB::table('clients')->where('id', $cid)->first(['id', 'code', 'name']);
             if ($client) {
@@ -49,7 +71,10 @@ class sourcingController extends Controller
         return view('pages.sourcing.index', [
             'lang'      => $lang,
             'section'   => 'sourcing',
-            'page'      => 'sourcing',
+            // Sidebar active-state matches the view: requests / proformas / sourcing.
+            'page'      => $view === 'requests' ? 'sourcing_requests'
+                          : ($view === 'proformas' ? 'sourcing_proformas' : 'sourcing'),
+            'view'      => $view,
             'prefilter' => $prefilter,
         ]);
     }
@@ -87,6 +112,14 @@ class sourcingController extends Controller
 
         if ($status && in_array($status, self::STATUSES, true)) {
             $q->where('sr.status', $status);
+        }
+
+        // View phase filter (requests vs proformas). When the page was
+        // booted in one of these views, the JS posts `view` along so
+        // the table is limited to the relevant statuses.
+        $view = $request->get('view');
+        if ($view && isset(self::VIEW_STATUSES[$view])) {
+            $q->whereIn('sr.status', self::VIEW_STATUSES[$view]);
         }
         if ($search !== '') {
             $q->where(function ($w) use ($search) {
