@@ -58,6 +58,13 @@ system/public/storage
 !.env.example
 !*.env.example
 
+# Authorized signature scan, uploaded via /settings → Authorized
+# signature. Real signatures are forgeable if leaked, so the binary
+# stays on the operator's host and never enters source control.
+# (An earlier commit pushed a 390-byte "John Doe" placeholder — that
+# stub is benign; only the real signature is sensitive.)
+system/public/images/signature.png
+
 # User-uploaded content directories — track structure not contents. The
 # patterns are anchored to system/public/ where the photos actually live;
 # the previous unanchored patterns matched nothing and let uploads leak

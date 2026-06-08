@@ -1322,5 +1322,8 @@
     "Health watch": "Health watch",
     "Lowest-scoring active proformas — act before they go silent.": "Lowest-scoring active proformas — act before they go silent.",
     "Score": "Score",
-    "Why": "Why"
+    "Why": "Why",
+    "Authorized signature (PNG)": "Authorized signature (PNG)",
+    "Remove signature": "Remove signature",
+    "Transparent PNG recommended. Displayed on every proforma above the authorized-signature line.": "Transparent PNG recommended. Displayed on every proforma above the authorized-signature line."
 }

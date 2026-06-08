@@ -1,21 +1,21 @@
 {
     "timezone": "Asia\/Hong_Kong",
-    "logo": "",
+    "currency_eur": 1.7,
+    "currency_den": 8.2,
+    "currency_cny": 6.9,
+    "email": "info@shipflow.com",
     "company_name": "SHIP FLOW",
     "address": "Guangzhou, China",
     "phone": "0086-15013009970",
-    "email": "info@shipflow.com",
     "commercial_registry": "0123-456",
     "tax_id": "LY-987654",
     "receipt_footer": "Thank you. This receipt is valid for accounting and tax purposes.",
+    "logo": "",
     "tracking_prefix": "SHIP",
     "print_pin_hash": "$2y$12$kniJxkbNjFBJaY5zz1hh7O3R\/PHx7U98q7BjeYqohq08C9IWyhyBi",
     "client_transactions_default_pending": false,
     "proforma_email_subject": "Proforma {number} from {company}",
-    "proforma_email_body": "Dear {client},\n\nPlease find your proforma {number} attached and available online at:\n{link}\n\nOnce reviewed, you can approve directly from the link above.\n\nTotal: {total}\n\nThank you,\n{company}",
+    "proforma_email_body": "Dear {client},\r\n\r\nPlease find your proforma {number} attached and available online at:\r\n{link}\r\n\r\nOnce reviewed, you can approve directly from the link above.\r\n\r\nTotal: {total}\r\n\r\nThank you,\r\n{company}",
     "proforma_reminder_subject": "Friendly reminder \u2014 Proforma {number}",
-    "proforma_reminder_body": "Dear {client},\n\nJust a friendly reminder that proforma {number} is awaiting your review:\n\n{link}\n\nIf you have any questions or would like to adjust anything, please reply to this email and we will be happy to help.\n\nThank you,\n{company}",
-    "currency_eur": 1.7,
-    "currency_den": 8.2,
-    "currency_cny": 6.9
+    "proforma_reminder_body": "Dear {client},\r\n\r\nJust a friendly reminder that proforma {number} is awaiting your review:\r\n\r\n{link}\r\n\r\nIf you have any questions or would like to adjust anything, please reply to this email and we will be happy to help.\r\n\r\nThank you,\r\n{company}"
 }
