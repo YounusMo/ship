@@ -35,7 +35,7 @@ CREATE TABLE `audit_log` (
   KEY `audit_log_user_id_created_at_index` (`user_id`,`created_at`),
   KEY `audit_log_action_created_at_index` (`action`,`created_at`),
   KEY `audit_log_created_at_index` (`created_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=243 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=257 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `branch_staff` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `branch_id` bigint unsigned NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE `branch_staff` (
   KEY `branch_staff_user_id_is_active_index` (`user_id`,`is_active`),
   CONSTRAINT `branch_staff_branch_id_foreign` FOREIGN KEY (`branch_id`) REFERENCES `tracking_branches` (`id`) ON DELETE CASCADE,
   CONSTRAINT `branch_staff_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=459 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=573 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `branches` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` text COLLATE utf8mb4_general_ci,
@@ -290,7 +290,7 @@ CREATE TABLE `clients` (
   `portal_token_issued_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `clients_portal_token_unique` (`portal_token`)
-) ENGINE=InnoDB AUTO_INCREMENT=347 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=422 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 CREATE TABLE `clients_transactions` (
   `id` int NOT NULL AUTO_INCREMENT,
   `client_id` text COLLATE utf8mb4_general_ci,
@@ -318,7 +318,7 @@ CREATE TABLE `clients_transactions` (
   `status` text COLLATE utf8mb4_general_ci,
   PRIMARY KEY (`id`),
   KEY `clients_transactions_calc_index` (`calc`)
-) ENGINE=InnoDB AUTO_INCREMENT=1019 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1020 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 CREATE TABLE `containers_sea` (
   `id` int NOT NULL AUTO_INCREMENT,
   `client_id` text COLLATE utf8mb4_general_ci,
@@ -354,7 +354,7 @@ CREATE TABLE `containers_sea` (
   `pay_branch_client` text COLLATE utf8mb4_general_ci,
   `pay_branch_supplier` text COLLATE utf8mb4_general_ci,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=439 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=526 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 CREATE TABLE `containers_sea_fees` (
   `id` int NOT NULL AUTO_INCREMENT,
   `container_id` text COLLATE utf8mb4_general_ci,
@@ -449,7 +449,7 @@ CREATE TABLE `custody_events` (
   CONSTRAINT `custody_events_shipment_piece_id_foreign` FOREIGN KEY (`shipment_piece_id`) REFERENCES `shipment_pieces` (`id`) ON DELETE SET NULL,
   CONSTRAINT `custody_events_to_branch_id_foreign` FOREIGN KEY (`to_branch_id`) REFERENCES `tracking_branches` (`id`) ON DELETE SET NULL,
   CONSTRAINT `custody_events_tracking_event_id_foreign` FOREIGN KEY (`tracking_event_id`) REFERENCES `tracking_events` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=467 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=559 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `customs_brokers` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` text COLLATE utf8mb4_general_ci,
@@ -506,7 +506,7 @@ CREATE TABLE `employee_action_logs` (
   KEY `employee_action_logs_branch_id_created_at_index` (`branch_id`,`created_at`),
   CONSTRAINT `employee_action_logs_branch_id_foreign` FOREIGN KEY (`branch_id`) REFERENCES `tracking_branches` (`id`) ON DELETE SET NULL,
   CONSTRAINT `employee_action_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=421 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=499 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `employee_devices` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `user_id` bigint unsigned NOT NULL,
@@ -586,7 +586,7 @@ CREATE TABLE `failed_jobs` (
   `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
-) ENGINE=InnoDB AUTO_INCREMENT=37 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `fx_rate_history` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `currency` varchar(8) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -624,7 +624,7 @@ CREATE TABLE `jobs` (
   `created_at` int unsigned NOT NULL,
   PRIMARY KEY (`id`),
   KEY `jobs_queue_index` (`queue`)
-) ENGINE=InnoDB AUTO_INCREMENT=57 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `journal_entries` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `entry_date` date NOT NULL,
@@ -653,7 +653,7 @@ CREATE TABLE `journal_entries` (
   KEY `journal_entries_reverses_entry_id_index` (`reverses_entry_id`),
   KEY `journal_entries_reversed_by_entry_id_index` (`reversed_by_entry_id`),
   KEY `journal_entries_status_index` (`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=79 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=88 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `journal_lines` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `entry_id` bigint unsigned NOT NULL,
@@ -681,7 +681,7 @@ CREATE TABLE `journal_lines` (
   KEY `journal_lines_counterparty_id_index` (`counterparty_id`),
   KEY `journal_lines_branch_id_index` (`branch_id`),
   KEY `journal_lines_cost_object_idx` (`cost_object_type`,`cost_object_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=163 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=181 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `migrations` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `migration` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -737,7 +737,7 @@ CREATE TABLE `personal_access_tokens` (
   UNIQUE KEY `personal_access_tokens_token_unique` (`token`),
   KEY `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`,`tokenable_id`),
   KEY `personal_access_tokens_expires_at_index` (`expires_at`)
-) ENGINE=InnoDB AUTO_INCREMENT=499 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=631 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `prepayment_applications` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `prepayment_id` bigint unsigned NOT NULL,
@@ -977,7 +977,7 @@ CREATE TABLE `receipts` (
   KEY `receipts_kind_index` (`kind`),
   KEY `receipts_transaction_number_index` (`transaction_number`),
   KEY `receipts_auto_id_index` (`auto_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `sessions` (
   `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `user_id` bigint unsigned DEFAULT NULL,
@@ -1008,7 +1008,7 @@ CREATE TABLE `shipment_pieces` (
   KEY `shipment_pieces_source_id_index` (`source_id`),
   KEY `shipment_pieces_client_id_index` (`client_id`),
   KEY `shipment_pieces_status_index` (`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=892 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1078 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `sourcing_deal_health_snapshots` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `sourcing_request_id` bigint unsigned NOT NULL,
@@ -1239,7 +1239,7 @@ CREATE TABLE `sticker_batches` (
   UNIQUE KEY `sticker_batches_batch_code_unique` (`batch_code`),
   KEY `sticker_batches_generated_by_user_id_foreign` (`generated_by_user_id`),
   CONSTRAINT `sticker_batches_generated_by_user_id_foreign` FOREIGN KEY (`generated_by_user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT
-) ENGINE=InnoDB AUTO_INCREMENT=447 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=549 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `stickers` (
   `id` char(26) COLLATE utf8mb4_unicode_ci NOT NULL,
   `batch_id` bigint unsigned NOT NULL,
@@ -1281,7 +1281,7 @@ CREATE TABLE `store_out_sea` (
   `exchange_rate` text COLLATE utf8mb4_general_ci,
   `canceled` text COLLATE utf8mb4_general_ci,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=145 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=185 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 CREATE TABLE `store_out_sky` (
   `id` int NOT NULL AUTO_INCREMENT,
   `in_id` text COLLATE utf8mb4_general_ci,
@@ -1417,7 +1417,7 @@ CREATE TABLE `tracking_branches` (
   UNIQUE KEY `tracking_branches_code_unique` (`code`),
   KEY `tracking_branches_role_index` (`role`),
   KEY `tracking_branches_is_active_index` (`is_active`)
-) ENGINE=InnoDB AUTO_INCREMENT=1054 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1276 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `tracking_events` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `shipment_source_table` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -1450,7 +1450,7 @@ CREATE TABLE `tracking_events` (
   CONSTRAINT `tracking_events_branch_id_foreign` FOREIGN KEY (`branch_id`) REFERENCES `tracking_branches` (`id`) ON DELETE SET NULL,
   CONSTRAINT `tracking_events_recorded_by_user_id_foreign` FOREIGN KEY (`recorded_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `tracking_events_shipment_piece_id_foreign` FOREIGN KEY (`shipment_piece_id`) REFERENCES `shipment_pieces` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=991 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1192 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `treasury_transactions` (
   `id` int NOT NULL AUTO_INCREMENT,
   `client_id` text COLLATE utf8mb4_general_ci,
@@ -1471,7 +1471,7 @@ CREATE TABLE `treasury_transactions` (
   `usd_value` text COLLATE utf8mb4_general_ci,
   `exchange_rate` text COLLATE utf8mb4_general_ci,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=798 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=799 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 CREATE TABLE `users` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `code` text COLLATE utf8mb4_unicode_ci,
@@ -1494,7 +1494,7 @@ CREATE TABLE `users` (
   `not_active` text COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`id`),
   UNIQUE KEY `users_email_unique` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=1099 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1395 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE `warehouses` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `code` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -1532,13 +1532,27 @@ CREATE TABLE `webhook_deliveries` (
   KEY `webhook_deliveries_provider_processed_at_index` (`provider`,`processed_at`),
   KEY `webhook_deliveries_provider_index` (`provider`),
   KEY `webhook_deliveries_event_type_index` (`event_type`)
-) ENGINE=InnoDB AUTO_INCREMENT=322 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=388 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 
--- migrations table data (so artisan migrate knows what's already applied)
+-- migrations table data
 
 
 INSERT INTO `migrations` VALUES (1,'0001_01_01_000000_create_users_table',1),(2,'0001_01_01_000001_create_cache_table',1),(3,'0001_01_01_000002_create_jobs_table',1),(4,'2025_07_24_083659_create_personal_access_tokens_table',1),(5,'2026_05_13_120000_drop_pass_txt_columns',2),(6,'2026_05_13_130000_create_audit_log_table',2),(7,'2026_05_13_140000_add_purpose_to_clients_transactions',2),(8,'2026_05_13_150000_add_purpose_to_other_transactions',2),(9,'2026_05_14_120000_add_calc_to_clients_transactions',3),(10,'2026_05_15_120000_create_receipts_table',4),(11,'2026_05_15_130000_create_chart_of_accounts_table',5),(12,'2026_05_15_140000_create_fx_rate_history_table',5),(13,'2026_05_15_150000_create_accounting_periods_table',5),(14,'2026_05_15_160000_create_cash_counts_table',5),(15,'2026_05_15_170000_create_prepayments_table',5),(16,'2026_05_15_180000_create_owners_table',5),(17,'2026_05_15_200000_create_journal_entries_table',6),(18,'2026_05_16_120000_create_shipment_pieces_table',7),(19,'2026_05_16_130000_add_payment_pending_to_store_out_tables',8),(20,'2026_05_20_120000_create_client_devices_table',9),(21,'2026_05_20_130000_create_notifications_table',9),(22,'2026_05_20_140000_add_notify_prefs_to_clients_table',10),(23,'2026_05_21_000001_create_warehouses_table',11),(24,'2026_05_21_000002_create_buyers_table',11),(25,'2026_05_21_000003_create_buyer_accounts_table',11),(26,'2026_05_21_000004_create_exchange_rate_configs_table',11),(27,'2026_05_21_000005_create_exchange_rates_table',11),(28,'2026_05_21_000006_create_purchase_orders_table',12),(29,'2026_05_21_000007_create_purchase_order_items_table',12),(30,'2026_05_21_000008_create_buyer_transactions_table',12),(31,'2026_05_21_000009_create_buyer_reconciliations_table',12),(32,'2026_05_21_000010_create_purchase_order_status_history_table',12),(33,'2026_05_21_000011_create_purchase_order_attachments_table',12),(34,'2026_05_21_000014_create_purchase_audit_logs_table',12),(35,'2026_05_22_120001_create_branches_table',13),(36,'2026_05_22_120002_create_branch_staff_table',13),(37,'2026_05_22_120003_create_tracking_events_table',13),(38,'2026_05_22_120004_create_custody_events_table',13),(39,'2026_05_22_120005_create_sticker_batches_table',13),(40,'2026_05_22_120006_create_stickers_table',13),(41,'2026_05_22_120007_create_webhook_deliveries_table',13),(42,'2026_05_22_120008_create_employee_action_logs_table',13),(43,'2026_05_22_120009_create_employee_devices_table',13),(44,'2026_05_22_120010_create_tracking_idempotency_keys_table',13),(45,'2026_05_22_180000_drop_unused_tracking_idempotency_keys_table',14),(46,'2026_05_26_120000_expand_chart_of_accounts',15),(47,'2026_05_26_120100_fix_coa_collisions',16),(48,'2026_05_26_130000_create_sourcing_requests_tables',17),(49,'2026_05_26_140000_add_cost_object_to_journal_lines',18),(50,'2026_05_26_150000_add_commission_reason_to_clients_transactions',19),(51,'2026_05_26_160000_extend_sourcing_requests_for_proforma',20),(52,'2026_05_26_160100_create_sourcing_request_items_tables',20),(53,'2026_05_28_120000_add_freight_link_to_sourcing_requests',21),(54,'2026_05_29_120000_add_client_view_tracking_to_sourcing_requests',22),(55,'2026_05_29_130000_add_status_to_sourcing_request_items',23),(56,'2026_05_29_140000_create_sourcing_request_documents',24),(57,'2026_05_29_150000_create_sourcing_request_change_requests',25),(58,'2026_05_29_160000_add_soft_delete_to_sourcing_requests',26),(59,'2026_05_29_170000_add_portal_token_to_clients',27),(60,'2026_05_29_180000_create_product_catalog',28),(61,'2026_05_29_190000_create_sourcing_request_purchase_orders',29),(62,'2026_05_30_120000_create_sourcing_request_versions',30),(63,'2026_06_05_120000_create_sourcing_deal_health_snapshots',31),(64,'2026_06_07_144808_add_two_factor_to_users_table',32);
+
+
+
+-- chart_of_accounts seed data
+
+
+INSERT INTO `chart_of_accounts` VALUES (1,'1000','Cash on hand','Cash on hand','现金','asset','debit',NULL,1,1,'cash_total','2026-05-15 03:43:40','2026-05-15 03:43:40'),(2,'1010','Bank','Bank','银行','asset','debit',NULL,1,1,NULL,'2026-05-15 03:43:40','2026-05-15 03:43:40'),(3,'1100','Accounts receivable - clients','Accounts receivable - clients','客户应收款','asset','debit',NULL,1,1,'ar_clients','2026-05-15 03:43:40','2026-05-15 03:43:40'),(4,'1200','Prepaid to suppliers','Prepaid to suppliers','供应商预付款','asset','debit',NULL,1,1,'ar_suppliers','2026-05-15 03:43:40','2026-05-15 03:43:40'),(5,'1300','Prepaid to customs brokers','Prepaid to customs brokers','报关行预付款','asset','debit',NULL,1,1,'ar_brokers','2026-05-15 03:43:40','2026-05-15 03:43:40'),(6,'2000','Client deposits (unearned)','Client deposits','客户存款','liability','credit',NULL,1,1,'client_deposits','2026-05-15 03:43:40','2026-05-15 03:43:40'),(7,'2100','Accounts payable - suppliers','Accounts payable - suppliers','供应商应付款','liability','credit',NULL,1,1,'ap_suppliers','2026-05-15 03:43:40','2026-05-15 03:43:40'),(8,'2200','Accounts payable - customs brokers','Accounts payable - customs brokers','报关行应付款','liability','credit',NULL,1,1,'ap_brokers','2026-05-15 03:43:40','2026-05-15 03:43:40'),(9,'3000','Owner\'s equity','Owner\'s equity','所有者权益','equity','credit',NULL,1,1,'owners_equity','2026-05-15 03:43:40','2026-05-15 03:43:40'),(10,'3100','Owner\'s drawings','Owner\'s drawings','所有者提款','equity','debit',NULL,1,1,'owner_drawings','2026-05-15 03:43:40','2026-05-15 03:43:40'),(11,'4000','Commission revenue','Commission revenue','佣金收入','revenue','credit',NULL,1,1,'commission_revenue','2026-05-15 03:43:40','2026-05-15 03:43:40'),(12,'4100','Shipping revenue','Shipping revenue','运输收入','revenue','credit',NULL,1,1,'shipping_revenue','2026-05-15 03:43:40','2026-05-15 03:43:40'),(13,'5000','Operating expenses','Operating expenses','运营费用','expense','debit',NULL,1,1,'operating_expenses','2026-05-15 03:43:40','2026-05-15 03:43:40'),(14,'5100','Owner\'s salary','Owner\'s salary','所有者工资','expense','debit',NULL,1,1,'owner_salary','2026-05-15 03:43:40','2026-05-15 03:43:40'),(15,'5200','FX gain/loss','FX gain/loss','汇兑损益','expense','debit',NULL,1,1,NULL,'2026-05-15 03:43:40','2026-05-15 03:43:40'),(16,'1250','عُهدة المشتريات (USD)','Buyer custody (USD)','采购托管','asset','debit',NULL,1,1,'buyer_custody','2026-05-21 06:43:54','2026-05-21 06:43:54'),(17,'1320','مشتريات تحت التسليم','Purchases in transit','在途采购','asset','debit',NULL,1,1,'purchases_in_transit','2026-05-21 06:43:54','2026-05-21 06:43:54'),(18,'1400','بضاعة في المستودع','Warehouse inventory','仓库存货','asset','debit',NULL,1,1,'warehouse_inventory','2026-05-21 06:43:54','2026-05-21 06:43:54'),(19,'1500','بضاعة في الشحن','Goods in shipment','在运货物','asset','debit',NULL,1,1,'goods_in_shipment','2026-05-21 06:43:54','2026-05-21 06:43:54'),(20,'4200','أرباح فروقات الصرف','FX gain','汇兑收益','revenue','credit',NULL,1,1,'fx_gain','2026-05-21 06:43:54','2026-05-21 06:43:54'),(21,'5400','تكلفة البضاعة المسلَّمة','COGS — delivered','已交付商品成本','expense','debit',NULL,1,1,'cogs_delivered','2026-05-21 06:43:54','2026-05-21 06:43:54'),(22,'1600','Prepaid expenses','Prepaid expenses','预付费用','asset','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(23,'2300','Accounts payable - carriers','Accounts payable - carriers','承运商应付款','liability','credit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(24,'2400','Accrued expenses','Accrued expenses','应计费用','liability','credit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(25,'3200','Partners\' current accounts','Partners\' current accounts','合伙人往来','equity','credit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(26,'3300','Partners\' drawings','Partners\' drawings','合伙人提款','equity','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(27,'4010','Purchase commission revenue','Purchase commission revenue','采购佣金收入','revenue','credit',11,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(28,'4020','Sourcing commission revenue','Sourcing commission revenue','寻货佣金收入','revenue','credit',11,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(29,'4110','Air freight revenue','Air freight revenue','空运收入','revenue','credit',12,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(30,'4120','LCL sea freight revenue','LCL sea freight revenue','海运拼箱收入','revenue','credit',12,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(31,'4130','FCL container revenue','FCL container revenue','海运整箱收入','revenue','credit',12,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(32,'4300','Packaging revenue','Packaging revenue','包装收入','revenue','credit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(34,'5300','Salaries','Salaries','工资','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(35,'5310','Rent','Rent','租金','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(36,'5320','Domestic freight','Domestic freight','国内运费','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(37,'5330','Customs clearance expense','Customs clearance expense','报关费','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(38,'5340','Loading and unloading','Loading and unloading','装卸费','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(39,'5350','Inter-city transport','Inter-city transport','城际运输','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(40,'5360','Port fees','Port fees','港口费','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(41,'5370','Warehouse fees','Warehouse fees','仓储费','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(42,'5380','Marketing and advertising','Marketing and advertising','市场营销','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(43,'5390','Wire transfer fees','Wire transfer fees','汇款手续费','expense','debit',NULL,1,1,NULL,'2026-05-26 02:41:51','2026-05-26 02:41:51'),(44,'1410','Employee custody','Employee custody','员工备用金','asset','debit',NULL,1,1,NULL,'2026-05-26 02:44:56','2026-05-26 02:44:56'),(45,'4210','Inspection revenue','Inspection revenue','验货收入','revenue','credit',NULL,1,1,NULL,'2026-05-26 02:44:56','2026-05-26 02:44:56'),(46,'5410','Administrative expenses','Administrative expenses','管理费用','expense','debit',NULL,1,1,NULL,'2026-05-26 02:44:56','2026-05-26 02:44:56');
+
+
+
+-- tracking_branches seed data
+
+
+INSERT INTO `tracking_branches` VALUES (298,'TRIPOLI_HUB','طرابلس - المركز الرئيسي','Tripoli HQ','HUB','LY','Tripoli',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(299,'MISRATA_HUB','مصراتة - المستودع','Misrata Hub','HUB','LY','Misrata',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(300,'BENGHAZI_HUB','بنغازي - المستودع','Benghazi Hub','HUB','LY','Benghazi',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(301,'TRIPOLI_TAJOURA','طرابلس - تاجوراء','Tripoli - Tajoura','SPOKE','LY','Tripoli',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(302,'TRIPOLI_JANZUR','طرابلس - جنزور','Tripoli - Janzur','SPOKE','LY','Tripoli',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(303,'ZAWIYA','الزاوية','Zawiya','SPOKE','LY','Zawiya',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(304,'ZUWARA','زوارة','Zuwara','SPOKE','LY','Zuwara',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(305,'GHARYAN','غريان','Gharyan','SPOKE','LY','Gharyan',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(306,'SIRTE','سرت','Sirte','SPOKE','LY','Sirte',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(307,'KHOMS','الخمس','Khoms','SPOKE','LY','Khoms',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(308,'ZLITEN','زليتن','Zliten','SPOKE','LY','Zliten',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(309,'BANI_WALID','بني وليد','Bani Walid','SPOKE','LY','Bani Walid',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(310,'AJDABIYA','أجدابيا','Ajdabiya','SPOKE','LY','Ajdabiya',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(311,'TOBRUK','طبرق','Tobruk','SPOKE','LY','Tobruk',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(312,'AL_BAYDA','البيضاء','Al Bayda','SPOKE','LY','Al Bayda',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(313,'DERNA','درنة','Derna','SPOKE','LY','Derna',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34'),(314,'SEBHA','سبها','Sebha','SPOKE','LY','Sebha',NULL,NULL,NULL,NULL,1,'2026-05-22 13:56:34','2026-05-22 13:57:34');
 
 
