@@ -27,11 +27,13 @@
     $statusInfo = $statusMap[$req->status] ?? ['label' => strtoupper($req->status ?? ''), 'bg' => '#6b7280'];
 
     // Brand accent — a deep navy that matches the admin theme.
-    $brand        = '#0f172a';   // slate-900
-    $brandAccent  = '#1e293b';   // slate-800
-    $brandSoft    = '#f1f5f9';   // slate-100
-    $muted        = '#64748b';   // slate-500
-    $border       = '#e2e8f0';   // slate-200
+    // Conservative palette — charcoal accent, neutral grays, thin
+    // borders. Looks like an accountancy document, not a marketing
+    // brochure.
+    $brand        = '#1f2937';   // gray-800
+    $brandSoft    = '#f9fafb';   // gray-50  (very light row tint)
+    $muted        = '#6b7280';   // gray-500
+    $border       = '#d1d5db';   // gray-300 (visible but quiet)
 @endphp
 <!DOCTYPE html>
 <html>
@@ -43,20 +45,20 @@
         @page { margin: 0; }
         body {
             font-family: dejavusans, sans-serif;
-            color: #0f172a;
-            font-size: 10.5pt;
-            line-height: 1.5;
+            color: #1f2937;
+            font-size: 9pt;
+            line-height: 1.35;
             margin: 0;
             padding: 0;
         }
-        .page { padding: 0 36px 36px; }
+        .page { padding: 0 32px 28px; }
 
         /* ----- brand band ----- */
         .brand-band {
             background: {{ $brand }};
-            color: #f8fafc;
-            padding: 22px 36px;
-            margin-bottom: 24px;
+            color: #f9fafb;
+            padding: 12px 32px 14px;
+            margin-bottom: 16px;
         }
         .brand-band .brand-row { display: table; width: 100%; }
         .brand-band .brand-left, .brand-band .brand-right {
@@ -65,164 +67,154 @@
         }
         .brand-band .brand-right { text-align: right; }
         .brand-band .company-name {
-            font-size: 16pt;
+            font-size: 12pt;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.2px;
         }
         .brand-band .company-meta {
-            font-size: 8.5pt;
-            color: #cbd5e1;
-            margin-top: 4px;
-            line-height: 1.5;
+            font-size: 7.5pt;
+            color: #d1d5db;
+            margin-top: 2px;
+            line-height: 1.35;
         }
         .brand-band .doc-label {
             display: inline-block;
-            background: #f8fafc;
-            color: {{ $brand }};
-            padding: 4px 14px;
-            font-size: 10pt;
-            font-weight: 700;
-            letter-spacing: 1.5px;
-            border-radius: 2px;
+            color: #f9fafb;
+            border: 1px solid #f9fafb;
+            padding: 2px 8px;
+            font-size: 7.5pt;
+            font-weight: 600;
+            letter-spacing: 0.6px;
         }
         .brand-band .doc-number {
-            font-size: 14pt;
+            font-size: 11pt;
             font-weight: 700;
-            margin-top: 8px;
+            margin-top: 4px;
         }
         .brand-band .doc-date {
-            font-size: 8.5pt;
-            color: #cbd5e1;
-            margin-top: 2px;
+            font-size: 7.5pt;
+            color: #d1d5db;
+            margin-top: 1px;
         }
 
-        /* ----- status pill ----- */
+        /* ----- status pill — inline, small, no shouty pill shape ----- */
         .status-pill {
             display: inline-block;
-            padding: 3px 12px;
-            border-radius: 999px;
-            font-size: 8pt;
+            padding: 1px 6px;
+            font-size: 7pt;
             font-weight: 700;
-            letter-spacing: 0.8px;
-            color: #fff;
+            letter-spacing: 0.4px;
+            color: #f9fafb;
             background: {{ $statusInfo['bg'] }};
-            margin-top: 6px;
+            margin-top: 4px;
+            border-radius: 2px;
         }
 
         /* ----- party cards (bill-to / subject) ----- */
-        .parties { display: table; width: 100%; margin-bottom: 22px; }
-        .parties .col { display: table-cell; vertical-align: top; width: 50%; padding: 0 6px; }
+        .parties { display: table; width: 100%; margin-bottom: 14px; }
+        .parties .col { display: table-cell; vertical-align: top; width: 50%; padding: 0 4px; }
         .parties .card {
             border: 1px solid {{ $border }};
-            border-radius: 6px;
-            padding: 14px 16px;
-            min-height: 100px;
+            padding: 8px 10px;
         }
         .parties .card-label {
-            font-size: 7.5pt;
+            font-size: 6.5pt;
             color: {{ $muted }};
-            letter-spacing: 1.2px;
+            letter-spacing: 0.6px;
             font-weight: 700;
-            margin-bottom: 6px;
+            margin-bottom: 2px;
         }
         .parties .card-name {
-            font-size: 11.5pt;
+            font-size: 10pt;
             font-weight: 700;
             color: {{ $brand }};
         }
         .parties .card-detail {
-            font-size: 9pt;
+            font-size: 8pt;
             color: {{ $muted }};
-            margin-top: 4px;
-            line-height: 1.6;
+            margin-top: 2px;
+            line-height: 1.4;
         }
 
         /* ----- items table ----- */
         .items {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             border: 1px solid {{ $border }};
-            border-radius: 6px;
-            overflow: hidden;
         }
         .items thead th {
             background: {{ $brand }};
-            color: #f8fafc;
-            font-size: 8pt;
+            color: #f9fafb;
+            font-size: 7pt;
             font-weight: 700;
-            letter-spacing: 1px;
-            padding: 10px 12px;
+            letter-spacing: 0.5px;
+            padding: 5px 8px;
             text-align: left;
             text-transform: uppercase;
         }
         .items thead th.right { text-align: right; }
         .items tbody td {
-            padding: 12px;
+            padding: 6px 8px;
             border-bottom: 1px solid {{ $border }};
             vertical-align: top;
+            font-size: 8.5pt;
         }
         .items tbody tr:nth-child(even) td { background: {{ $brandSoft }}; }
         .items tbody tr:last-child td { border-bottom: none; }
         .items .right { text-align: right; }
         .items .thumb {
-            width: 48px; height: 48px;
+            width: 32px; height: 32px;
             object-fit: cover;
-            border-radius: 4px;
             border: 1px solid {{ $border }};
         }
         .items .thumb-empty {
-            width: 48px; height: 48px;
-            border-radius: 4px;
+            width: 32px; height: 32px;
             background: {{ $brandSoft }};
             border: 1px dashed {{ $border }};
         }
         .items .item-name {
             font-weight: 700;
             color: {{ $brand }};
-            font-size: 10pt;
+            font-size: 8.5pt;
         }
         .items .item-meta {
             color: {{ $muted }};
-            font-size: 8.5pt;
-            margin-top: 3px;
+            font-size: 7.5pt;
+            margin-top: 1px;
         }
-        .items .ccy-suffix { color: {{ $muted }}; font-size: 8.5pt; margin-left: 3px; }
+        .items .ccy-suffix { color: {{ $muted }}; font-size: 7.5pt; margin-left: 2px; }
 
-        /* ----- totals block ----- */
-        .totals-wrap { display: table; width: 100%; margin-top: 16px; }
-        .totals-spacer { display: table-cell; width: 55%; }
-        .totals {
-            display: table-cell;
-            width: 45%;
-            border: 1px solid {{ $border }};
-            border-radius: 6px;
-            overflow: hidden;
-        }
+        /* ----- totals block — sits flush right, no big border ----- */
+        .totals-wrap { display: table; width: 100%; margin-top: 8px; }
+        .totals-spacer { display: table-cell; width: 58%; }
+        .totals { display: table-cell; width: 42%; }
         .totals table { width: 100%; border-collapse: collapse; }
-        .totals td { padding: 10px 14px; font-size: 10pt; }
+        .totals td { padding: 4px 8px; font-size: 8.5pt; }
         .totals .label { color: {{ $muted }}; }
         .totals .value { text-align: right; font-weight: 600; }
-        .totals .grand-row { background: {{ $brand }}; }
+        .totals .grand-row td {
+            border-top: 1.5px solid {{ $brand }};
+            padding-top: 6px;
+            padding-bottom: 4px;
+        }
         .totals .grand-row .label,
         .totals .grand-row .value {
-            color: #f8fafc;
-            font-size: 12pt;
+            color: {{ $brand }};
+            font-size: 10pt;
             font-weight: 700;
-            letter-spacing: 0.5px;
-            padding-top: 12px;
-            padding-bottom: 12px;
         }
 
         /* ----- section headers ----- */
         .section-h {
-            font-size: 11pt;
+            font-size: 8pt;
             font-weight: 700;
             color: {{ $brand }};
-            margin: 26px 0 10px;
-            padding-bottom: 6px;
-            border-bottom: 2px solid {{ $brand }};
-            letter-spacing: 0.3px;
+            margin: 16px 0 6px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid {{ $border }};
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
 
         /* ----- payment schedule ----- */
@@ -230,81 +222,81 @@
         .schedule thead th {
             background: {{ $brandSoft }};
             color: {{ $brand }};
-            font-size: 8.5pt;
+            font-size: 7pt;
             font-weight: 700;
-            letter-spacing: 0.8px;
-            padding: 8px 10px;
+            letter-spacing: 0.5px;
+            padding: 5px 8px;
             text-align: left;
             text-transform: uppercase;
-            border-bottom: 2px solid {{ $border }};
+            border-bottom: 1px solid {{ $border }};
         }
         .schedule thead th.right { text-align: right; }
         .schedule tbody td {
-            padding: 9px 10px;
+            padding: 5px 8px;
             border-bottom: 1px solid {{ $border }};
-            font-size: 9.5pt;
+            font-size: 8pt;
         }
         .schedule tbody tr:last-child td { border-bottom: none; }
         .schedule .right { text-align: right; }
         .badge {
             display: inline-block;
-            padding: 3px 9px;
-            border-radius: 999px;
-            font-size: 7.5pt;
+            padding: 1px 6px;
+            font-size: 6.5pt;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             text-transform: uppercase;
+            border-radius: 2px;
         }
-        .badge-paid       { background: #d1fae5; color: #047857; }
+        .badge-paid       { background: #d1fae5; color: #065f46; }
         .badge-partial    { background: #fef3c7; color: #92400e; }
         .badge-canceled   { background: #fee2e2; color: #991b1b; }
-        .badge-scheduled  { background: #e2e8f0; color: #475569; }
+        .badge-scheduled  { background: #e5e7eb; color: #374151; }
 
         /* ----- documents + terms ----- */
         .docs-list {
-            font-size: 9.5pt;
-            color: #334155;
-            padding-inline-start: 18px;
+            font-size: 8pt;
+            color: #374151;
+            padding-inline-start: 14px;
             margin: 0;
         }
-        .docs-list li { margin-bottom: 4px; }
+        .docs-list li { margin-bottom: 2px; }
         .terms-box {
-            font-size: 9.5pt;
-            color: #334155;
+            font-size: 8pt;
+            color: #374151;
             white-space: pre-wrap;
-            padding: 14px 18px;
+            padding: 8px 12px;
             background: {{ $brandSoft }};
-            border-left: 4px solid {{ $brand }};
-            border-radius: 0 4px 4px 0;
-            line-height: 1.6;
+            border-left: 2px solid {{ $brand }};
+            line-height: 1.4;
         }
 
         /* ----- signature block ----- */
-        .signatures { display: table; width: 100%; margin-top: 40px; }
+        .signatures { display: table; width: 100%; margin-top: 22px; }
         .signatures .sig {
             display: table-cell;
             width: 50%;
-            padding: 0 10px;
+            padding: 0 8px;
             vertical-align: bottom;
         }
         .signatures .sig-line {
-            border-top: 1.5px solid {{ $brand }};
-            padding-top: 6px;
-            font-size: 8.5pt;
+            border-top: 1px solid {{ $brand }};
+            padding-top: 3px;
+            font-size: 7pt;
             color: {{ $muted }};
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
             text-align: center;
+            text-transform: uppercase;
         }
 
         /* ----- footer ----- */
         .footer {
-            margin-top: 30px;
-            padding-top: 14px;
+            margin-top: 18px;
+            padding-top: 8px;
             border-top: 1px solid {{ $border }};
-            font-size: 8pt;
+            font-size: 7pt;
             color: {{ $muted }};
             text-align: center;
-            line-height: 1.6;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -523,11 +515,11 @@
         {{-- Signature block --}}
         <div class="signatures">
             <div class="sig">
-                <div style="height:30px;"></div>
+                <div style="height:18px;"></div>
                 <div class="sig-line">CLIENT APPROVAL</div>
             </div>
             <div class="sig">
-                <div style="height:30px;"></div>
+                <div style="height:18px;"></div>
                 <div class="sig-line">AUTHORIZED SIGNATURE</div>
             </div>
         </div>
