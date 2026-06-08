@@ -171,6 +171,26 @@
                         <label class="form-label">{{ $lang->write('Logo') }}</label>
                         <input type="file" class="form-control" name="logo" accept=".jpg,.png">
                     </div>
+                    <div class="col-12">
+                        <label class="form-label">{{ $lang->write('Authorized signature (PNG)') }}</label>
+                        @php $sigPath = \App\Http\Controllers\settingsController::signaturePath(); @endphp
+                        @if($sigPath)
+                            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:.5rem;">
+                                {{-- cache-bust on filemtime so a fresh upload shows immediately --}}
+                                <img src="{{ asset('images/signature.png') }}?v={{ filemtime($sigPath) }}"
+                                     alt="signature"
+                                     style="max-height:48px;max-width:180px;background:#fff;border:1px solid var(--bs-border-color);padding:4px;border-radius:4px;">
+                                <label style="font-size:.85rem;">
+                                    <input type="checkbox" name="signature_remove" value="1">
+                                    {{ $lang->write('Remove signature') }}
+                                </label>
+                            </div>
+                        @endif
+                        <input type="file" class="form-control" name="signature" accept=".png">
+                        <small class="text-muted">
+                            {{ $lang->write('Transparent PNG recommended. Displayed on every proforma above the authorized-signature line.') }}
+                        </small>
+                    </div>
                     <div class="col-md-6">
                         <label class="form-label">{{ $lang->write('Company name') }}</label>
                         <input type="text" class="form-control" value="{{ $settings['company_name'] }}" name="company_name">

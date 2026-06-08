@@ -95,6 +95,18 @@ class settingsController extends Controller
             $logo->move(public_path('images'),'logo.png');
         }
 
+        // Authorized signature image, rendered on every proforma PDF
+        // above the "AUTHORIZED SIGNATURE" line. Same convention as
+        // logo above — single fixed path on disk, replaced on each
+        // upload, so no schema/migration is needed.
+        $signature = $request->file('signature');
+        if ($signature) {
+            $signature->move(public_path('images'), 'signature.png');
+        }
+        if ($request->boolean('signature_remove')) {
+            @unlink(public_path('images/signature.png'));
+        }
+
         $data_json = json_encode($data,JSON_PRETTY_PRINT);
 
         file_put_contents($this->settings_file,$data_json);
@@ -303,6 +315,19 @@ class settingsController extends Controller
     public static function brandLogoPath(): ?string
     {
         $p = public_path('images/logo.png');
+        return is_file($p) && filesize($p) > 0 ? $p : null;
+    }
+
+    /**
+     * Authorized signature image, uploaded from the Settings page.
+     * Rendered above the "AUTHORIZED SIGNATURE" line on every
+     * proforma PDF (and any other document that wants it). Returns
+     * null if no signature has been uploaded — the PDF then falls
+     * back to a plain "AUTHORIZED SIGNATURE" stamp.
+     */
+    public static function signaturePath(): ?string
+    {
+        $p = public_path('images/signature.png');
         return is_file($p) && filesize($p) > 0 ? $p : null;
     }
 

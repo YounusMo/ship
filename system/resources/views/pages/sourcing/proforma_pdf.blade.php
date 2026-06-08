@@ -12,7 +12,8 @@
         return $disp === 'usd' ? $usd : $usd * (float) ($rates[$disp] ?? 1);
     };
 
-    $logoPath = \App\Http\Controllers\settingsController::brandLogoPath();
+    $logoPath      = \App\Http\Controllers\settingsController::brandLogoPath();
+    $signaturePath = \App\Http\Controllers\settingsController::signaturePath();
 
     // Status pill — small + neutral by default; only Approved gets a
     // colored accent. We don't want the whole top of the document to
@@ -65,9 +66,12 @@
             color: {{ $ink }};
             text-transform: uppercase;
         }
-        /* Logo capped per operator request: max 100px. Both axes
-           bounded so wide horizontal logos don't blow up vertically. */
-        .logo-box img { max-height: 50px; max-width: 100px; }
+        /* Logo: operator wants the brand mark prominent — around
+           20% of the printed page height (A4 portrait ≈ 1100px
+           usable, 20% ≈ 200px). Width is bumped to match. The
+           HTML width= attribute on the <img> below is what mpdf
+           actually honors; this is the upper safety cap. */
+        .logo-box img { max-height: 200px; max-width: 180px; }
         .logo-box .brand-text {
             font-size: 12pt;
             font-weight: 700;
@@ -89,8 +93,10 @@
 
         /* ---------- Bill-to + metadata ---------- */
         /* Bordered cells per operator request — looks like a data
-           grid rather than free-floating text. */
-        .info { width: 100%; margin-bottom: 14px; border-collapse: collapse; }
+           grid rather than free-floating text. 5× the original
+           margin-bottom (14 → 70px) leaves a clear visual break
+           before the items table. */
+        .info { width: 100%; margin-bottom: 70px; border-collapse: collapse; }
         .info .info-left,
         .info .info-right {
             vertical-align: top;
@@ -251,6 +257,10 @@
         .signature-row { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         .signature-spacer { width: 55%; border: none; }
         .signature { width: 45%; vertical-align: bottom; border: none; padding: 0; }
+        /* When the operator has uploaded a signature image, render
+           it just above the AUTHORIZED SIGNATURE line. The line
+           below shows through as the signature baseline. */
+        .signature-image { margin-bottom: -4px; min-height: 36px; }
         .signature-label {
             font-size: 7.5pt;
             color: {{ $muted }};
@@ -292,9 +302,10 @@
             </td>
             <td class="h-right">
                 @if ($logoPath)
-                    {{-- mpdf ignores CSS max-width on <img>; use HTML
-                         width= attribute which it always honors. --}}
-                    <img src="{{ $logoPath }}" width="100" style="max-height:50px;">
+                    {{-- Operator request: logo ≈ 20% of page height.
+                         mpdf ignores CSS max-width on <img>; use HTML
+                         width= which it always honors. --}}
+                    <img src="{{ $logoPath }}" width="180" style="max-height:200px;">
                 @else
                     <div class="brand-text">{{ $settings['company_name'] ?? 'Company' }}</div>
                 @endif
@@ -516,6 +527,14 @@
                 <td class="signature-spacer"></td>
                 <td class="signature">
                     <div class="signature-label">Issued by, signature:</div>
+                    @if ($signaturePath)
+                        {{-- Operator-uploaded signature from Settings →
+                             Authorized signature. mpdf honors width=
+                             attribute and auto-scales height. --}}
+                        <div class="signature-image">
+                            <img src="{{ $signaturePath }}" width="140" style="max-height:50px;">
+                        </div>
+                    @endif
                     <div class="signature-line">AUTHORIZED SIGNATURE</div>
                 </td>
             </tr>
