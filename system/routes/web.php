@@ -653,6 +653,13 @@ Route::middleware(['chkAuthAdmin'])->group(function(){
         Route::post('/cash-counts/{id}/adjust',   [accountingController::class, 'cashCountAdjust'])->where('id', '[0-9]+');
         Route::get('/treasury-by-branch',         [accountingController::class, 'treasuryByBranch']);
 
+        // Operator-asked reports — gap follow-up. The data already
+        // lives in journal_lines (counterparty / cost_object / branch);
+        // these are the missing view layers.
+        Route::get('/revenue-by-service',         [accountingController::class, 'revenueByService']);
+        Route::get('/revenue-by-branch',          [accountingController::class, 'revenueByBranch']);
+        Route::get('/expense-by-branch',          [accountingController::class, 'expenseByBranch']);
+
         Route::get('/prepayments',                [accountingController::class, 'prepaymentsIndex']);
         Route::post('/prepayments/register',      [accountingController::class, 'prepaymentRegister']);
         Route::post('/prepayments/{id}/apply',    [accountingController::class, 'prepaymentApply'])->where('id', '[0-9]+');

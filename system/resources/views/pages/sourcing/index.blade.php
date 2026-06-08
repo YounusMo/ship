@@ -11,6 +11,21 @@
 
 @include('pages.sourcing.new')
 
+@if(!empty($prefilter ?? null))
+    <script>
+        window.sourcingPrefilter = @json($prefilter);
+    </script>
+    <div class="alert alert-info d-flex align-items-center justify-content-between" style="margin-bottom: 1rem;">
+        <div>
+            <strong>{{ $lang->write('Filtered to client') }}:</strong>
+            #{{ $prefilter['client_code'] }} — {{ $prefilter['client_name'] }}
+        </div>
+        <a href="{{ url('/sourcing') }}" class="btn btn-sm btn-outline-secondary">
+            {{ $lang->write('Clear filter') }}
+        </a>
+    </div>
+@endif
+
 <div class="page-header">
     <div>
         <h1 class="page-title">

@@ -724,7 +724,7 @@ class clientsController extends Controller
                 $currency   = $request->currency;
                 $commission = !empty($request->commission) ? $request->commission : 0;
                 $branch     = $request->branch;
-                $status     = $request->status ?? 'approved';
+                $status     = $this->defaultClientTransactionStatus($request->status);
                 $notes      = $request->notes;
                 $id         = $request->id;
 
@@ -981,7 +981,7 @@ class clientsController extends Controller
                 $branch     = $request->branch;
                 $notes      = $request->notes;
                 $id         = $request->id;
-                $status     = $request->status ?? 'approved';
+                $status     = $this->defaultClientTransactionStatus($request->status);
 
                 $err = false;
 
@@ -1215,7 +1215,7 @@ class clientsController extends Controller
                 $branch     = $request->branch;
                 $notes      = $request->notes;
                 $id         = $request->id;
-                $status     = $request->status ?? 'approved';
+                $status     = $this->defaultClientTransactionStatus($request->status);
 
                 $err = false;
 

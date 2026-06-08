@@ -65,6 +65,21 @@
 
                         @if (in_array(auth()->user()->type , ['admin','branch_admin']))
                             @php
+                                $proforma_count = DB::table('sourcing_requests')
+                                    ->where('client_id', $item->id)
+                                    ->whereNull('deleted_at')
+                                    ->count();
+                            @endphp
+                            <a class="btn btn-info btn-sm" href="{{ url('/sourcing?client_id=' . $item->id) }}" title="{{ $lang->write('Open sourcing requests / proformas for this client') }}">
+                                {{ $lang->write('Proformas') }}
+                                @if ($proforma_count > 0)
+                                    <span class="badge bg-light text-dark">{{ $proforma_count }}</span>
+                                @endif
+                            </a>
+                        @endif
+
+                        @if (in_array(auth()->user()->type , ['admin','branch_admin']))
+                            @php
                                 $chk_pending = DB::table('clients_transactions')->where('status','pending')->where('client_id',$item->id)->count();
                             @endphp
                             @if ($chk_pending > 0)

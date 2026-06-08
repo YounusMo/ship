@@ -451,6 +451,42 @@ abstract class Controller
     }
 
     /**
+     * Resolve the default status for a new client cash movement based on
+     * the operator's policy. If the operator has flipped
+     * `client_transactions_default_pending` to true in /settings, every
+     * new deposit/withdraw/transfer starts in `pending` and an admin
+     * must explicitly approve it. Otherwise the historical default
+     * (`approved`) applies.
+     *
+     * The `$requested` argument lets the UI override the default
+     * explicitly — if a form explicitly POSTs `status=approved` or
+     * `status=pending`, that wins. Only when the form sends nothing do
+     * we fall back to the policy.
+     */
+    protected function defaultClientTransactionStatus(?string $requested = null): string
+    {
+        $requested = $requested !== null ? trim($requested) : '';
+        if (in_array($requested, ['approved', 'pending'], true)) {
+            return $requested;
+        }
+
+        try {
+            $settingsPath = __DIR__ . '/settings.json';
+            if (is_file($settingsPath)) {
+                $settings = json_decode((string) file_get_contents($settingsPath), true);
+                if (! empty($settings['client_transactions_default_pending'])) {
+                    return 'pending';
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fail safe — if settings.json is malformed, fall through to
+            // the historical default rather than blocking the form.
+        }
+
+        return 'approved';
+    }
+
+    /**
      * Append a row to audit_log. Failure of the audit insert is logged but
      * NEVER propagated — we will not let a logging hiccup break a payroll
      * deposit.

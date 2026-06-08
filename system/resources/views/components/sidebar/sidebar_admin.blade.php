@@ -285,6 +285,24 @@
                 {{$lang->write('Treasury by branch')}}
             </a>
         </li>
+        <li class="{{$page === 'revenue_by_service' ? 'active' : ''}}">
+            <a href="{{url('/accounting/revenue-by-service')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 4 4 5-6"/></svg>
+                {{$lang->write('Revenue by service')}}
+            </a>
+        </li>
+        <li class="{{$page === 'revenue_by_branch' ? 'active' : ''}}">
+            <a href="{{url('/accounting/revenue-by-branch')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="6" y="11" width="3" height="7"/><rect x="11" y="7" width="3" height="11"/><rect x="16" y="13" width="3" height="5"/></svg>
+                {{$lang->write('Revenue by branch')}}
+            </a>
+        </li>
+        <li class="{{$page === 'expense_by_branch' ? 'active' : ''}}">
+            <a href="{{url('/accounting/expense-by-branch')}}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="6" y="6" width="3" height="12"/><rect x="11" y="9" width="3" height="9"/><rect x="16" y="11" width="3" height="7"/></svg>
+                {{$lang->write('Expense by branch')}}
+            </a>
+        </li>
         <li class="{{$page === 'fx_history' ? 'active' : ''}}">
             <a href="{{url('/accounting/fx-history')}}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6l4 4M3 6l4-4M21 18l-4-4M21 18l-4 4"/></svg>

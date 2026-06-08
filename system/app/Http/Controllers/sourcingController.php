@@ -26,14 +26,31 @@ class sourcingController extends Controller
     /* ------------------------------------------------------------
      *  Index — shell + status filter (admin only).
      * ------------------------------------------------------------ */
-    public function index()
+    public function index(Request $request)
     {
         $this->requireAdminOrBranchAdmin();
         $lang = new langController();
+
+        // Optional deep-link: /sourcing?client_id=N — when present, the
+        // page boots with the table pre-filtered to that client. The
+        // front-end JS reads window.sourcingPrefilter to apply it on
+        // first load. See the "View proformas" button on the clients
+        // page.
+        $prefilter = [];
+        if ($cid = (int) $request->query('client_id', 0)) {
+            $client = DB::table('clients')->where('id', $cid)->first(['id', 'code', 'name']);
+            if ($client) {
+                $prefilter['client_id']   = $client->id;
+                $prefilter['client_code'] = $client->code;
+                $prefilter['client_name'] = $client->name;
+            }
+        }
+
         return view('pages.sourcing.index', [
-            'lang'    => $lang,
-            'section' => 'sourcing',
-            'page'    => 'sourcing',
+            'lang'      => $lang,
+            'section'   => 'sourcing',
+            'page'      => 'sourcing',
+            'prefilter' => $prefilter,
         ]);
     }
 
@@ -81,6 +98,12 @@ class sourcingController extends Controller
         }
         if ($from = $request->get('from')) $q->whereDate('sr.created_at', '>=', $from);
         if ($to   = $request->get('to'))   $q->whereDate('sr.created_at', '<=', $to);
+
+        // Optional filter: scope to one client. Enables the "View
+        // proformas" affordance on the clients page.
+        if ($clientId = $request->get('client_id')) {
+            $q->where('sr.client_id', (int) $clientId);
+        }
 
         // Branch scoping for non-admin: a branch admin only sees their branch.
         $user = auth()->user();

@@ -81,6 +81,38 @@ class journalController extends Controller
             }
         }
 
+        // CARDINAL RULE — every revenue (4xxx) and expense (5xxx) line
+        // must declare a source so analytics can answer "this revenue
+        // came from whom / which deliverable / which branch?" without
+        // backfilling from prose. The source can be supplied at the
+        // line level OR inherited from the entry-level defaults that
+        // record() also applies for cost_object / branch.
+        //
+        // The check is per-account-type, not per-account-code, so adding
+        // new revenue or expense codes inherits the rule automatically.
+        // See docs/MANUAL.md §11 + the user's "كل إيراد أو مصروف يجب أن
+        // يكون مربوطًا بمصدره" requirement.
+        $entryCostObject = !empty($entry['cost_object_type']) && !empty($entry['cost_object_id']);
+        $entryBranch     = !empty($entry['branch_id']);
+        foreach ($entry['lines'] as $i => $line) {
+            $code = $line['account_code'];
+            $type = $accounts[$code]->type ?? null;
+            if ($type !== 'revenue' && $type !== 'expense') {
+                continue;
+            }
+            $hasCounterparty = !empty($line['counterparty_type']) && !empty($line['counterparty_id']);
+            $hasCostObject   = (!empty($line['cost_object_type']) && !empty($line['cost_object_id'])) || $entryCostObject;
+            $hasBranch       = !empty($line['branch_id']) || $entryBranch;
+            if (!$hasCounterparty && !$hasCostObject && !$hasBranch) {
+                throw new \InvalidArgumentException(
+                    "line $i ({$type} account {$code}): missing source. " .
+                    "Every revenue/expense line must declare at least one of " .
+                    "(counterparty_type+id), (cost_object_type+id), or branch_id. " .
+                    "See docs/MANUAL.md §11."
+                );
+            }
+        }
+
         $user = auth()->user();
         $entryId = null;
 

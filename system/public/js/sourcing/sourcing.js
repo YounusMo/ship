@@ -10,6 +10,13 @@ function load() {
     formData.append('status', $('.status_filter').val());
     if (showTrash) formData.append('trash', 1);
 
+    // Optional pre-filter set by the server when the page was opened
+    // via /sourcing?client_id=N (e.g. the "View proformas" button on
+    // the clients page).
+    if (window.sourcingPrefilter && window.sourcingPrefilter.client_id) {
+        formData.append('client_id', window.sourcingPrefilter.client_id);
+    }
+
     tableLoader('show', '.main-table');
 
     $.ajax({

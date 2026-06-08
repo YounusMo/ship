@@ -1595,6 +1595,148 @@ class accountingController extends Controller
     }
 
     /* ============================================================
+     *  Revenue by Service — group revenue accounts by code over a
+     *  date range. Surfaces "كم صافي ربح الشركة من كل خدمة" without
+     *  making the operator pivot the trial balance by hand.
+     *
+     *  Looks at all 4xxx accounts except 4200 (FX gain), which is
+     *  reported separately at the bottom — it's not a service.
+     * ============================================================ */
+    public function revenueByService(Request $request)
+    {
+        $this->requireAdmin();
+
+        [$from, $to, $rangeLabel] = $this->resolveDateRange($request);
+        $lang = new langController();
+
+        // Revenue = sum(cr) - sum(dr) per (account_code, currency).
+        $rows = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
+            ->whereBetween('journal_entries.entry_date', [$from, $to])
+            ->where('journal_lines.account_code', 'like', '4%')
+            ->where('journal_lines.account_code', '!=', '4200')
+            ->select(
+                'journal_lines.account_code',
+                'journal_lines.account_name',
+                'journal_lines.currency',
+                DB::raw('SUM(cr) - SUM(dr) AS amount'),
+            )
+            ->groupBy('journal_lines.account_code', 'journal_lines.account_name', 'journal_lines.currency')
+            ->orderBy('journal_lines.account_code')
+            ->get();
+
+        $services = [];
+        foreach ($rows as $r) {
+            $key = $r->account_code . ' — ' . $r->account_name;
+            $services[$key]['code'] = $r->account_code;
+            $services[$key]['name'] = $r->account_name;
+            $services[$key]['by_currency'][$r->currency] = (float) $r->amount;
+        }
+
+        // FX gain reported separately.
+        $fxGain = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
+            ->whereBetween('journal_entries.entry_date', [$from, $to])
+            ->where('journal_lines.account_code', '4200')
+            ->select('journal_lines.currency', DB::raw('SUM(cr) - SUM(dr) AS amount'))
+            ->groupBy('journal_lines.currency')
+            ->get()
+            ->mapWithKeys(fn ($r) => [$r->currency => (float) $r->amount])
+            ->all();
+
+        return view('pages.accounting.revenue_by_service', [
+            'services'    => $services,
+            'fx_gain'     => $fxGain,
+            'currencies'  => $this->currencies,
+            'from'        => $from,
+            'to'          => $to,
+            'range_label' => $rangeLabel,
+            'lang'        => $lang,
+            'section'     => 'accounting',
+            'page'        => 'revenue_by_service',
+        ]);
+    }
+
+    /* ============================================================
+     *  Revenue by Branch — same pivot but grouped by branch_id.
+     * ============================================================ */
+    public function revenueByBranch(Request $request)
+    {
+        $this->requireAdmin();
+        [$from, $to, $rangeLabel] = $this->resolveDateRange($request);
+        return $this->byBranchReport($request, $from, $to, $rangeLabel, '4%', 'cr', 'revenue_by_branch');
+    }
+
+    /* ============================================================
+     *  Expense by Branch — mirrors revenueByBranch over 5xxx.
+     * ============================================================ */
+    public function expenseByBranch(Request $request)
+    {
+        $this->requireAdmin();
+        [$from, $to, $rangeLabel] = $this->resolveDateRange($request);
+        return $this->byBranchReport($request, $from, $to, $rangeLabel, '5%', 'dr', 'expense_by_branch');
+    }
+
+    /** Shared implementation for the two by-branch reports. */
+    private function byBranchReport(Request $request, string $from, string $to, string $rangeLabel, string $codePattern, string $normalSide, string $page)
+    {
+        $lang = new langController();
+
+        $amountExpr = $normalSide === 'cr'
+            ? 'SUM(cr) - SUM(dr)'
+            : 'SUM(dr) - SUM(cr)';
+
+        $rows = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.entry_id')
+            ->leftJoin('branches', 'branches.id', '=', 'journal_lines.branch_id')
+            ->whereBetween('journal_entries.entry_date', [$from, $to])
+            ->where('journal_lines.account_code', 'like', $codePattern)
+            ->select(
+                'journal_lines.branch_id',
+                'branches.name as branch_name',
+                'journal_lines.currency',
+                DB::raw("{$amountExpr} AS amount"),
+            )
+            ->groupBy('journal_lines.branch_id', 'branches.name', 'journal_lines.currency')
+            ->orderByRaw('CASE WHEN journal_lines.branch_id IS NULL THEN 1 ELSE 0 END, branches.name')
+            ->get();
+
+        $branches = [];
+        foreach ($rows as $r) {
+            $key  = $r->branch_id ?? '__unassigned';
+            $name = $r->branch_name ?? '(no branch)';
+            $branches[$key]['id']   = $r->branch_id;
+            $branches[$key]['name'] = $name;
+            $branches[$key]['by_currency'][$r->currency] = (float) $r->amount;
+        }
+
+        return view("pages.accounting.{$page}", [
+            'branches'    => $branches,
+            'currencies'  => $this->currencies,
+            'from'        => $from,
+            'to'          => $to,
+            'range_label' => $rangeLabel,
+            'lang'        => $lang,
+            'section'     => 'accounting',
+            'page'        => $page,
+        ]);
+    }
+
+    /**
+     * Parse ?from=YYYY-MM-DD&to=YYYY-MM-DD with a sensible default of
+     * "this month so far." Returns [from, to, human_label].
+     */
+    private function resolveDateRange(Request $request): array
+    {
+        $from = $request->query('from') ?: date('Y-m-01');
+        $to   = $request->query('to')   ?: date('Y-m-d');
+        $label = ($from === date('Y-m-01') && $to === date('Y-m-d'))
+            ? 'Month to date'
+            : "{$from} → {$to}";
+        return [$from, $to, $label];
+    }
+
+    /* ============================================================
      *  Helpers
      * ============================================================ */
     private function requireAdmin(): void
