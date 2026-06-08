@@ -21,7 +21,15 @@ The old `.env` is preserved at `system/.env.bak-<timestamp>` as a one-time snaps
 
 ### 1) `MAIL_PASSWORD` — Mailtrap
 
-Detected provider: `MAIL_HOST=live.smtp.mailtrap.io`.
+> **Currently N/A.** As of 2026-06-08 the local `.env` has
+> `MAIL_MAILER=log` and `MAIL_PASSWORD=` (empty) — emails dump to
+> `storage/logs/laravel.log` instead of going over the wire. No live
+> credential to rotate. The Mailtrap account password should still be
+> rotated at the provider since past `.env` history exposed it; once
+> rotated you can either leave the local mailer on `log` or swap back
+> to `smtp` by re-pasting the new password.
+
+Detected provider (from old config): `MAIL_HOST=live.smtp.mailtrap.io`.
 
 1. Log in at https://mailtrap.io/.
 2. **Sending Domains → SMTP/API Integration** → pick the active sending domain.
@@ -144,7 +152,7 @@ Stamp each row as you complete it.
 |--------|----------|--------|-----------|-------------|
 | APP_KEY | local | ✅ rotated | 2026-06-07 | `phpunit` green |
 | DB_PASSWORD | local MySQL | ✅ rotated | 2026-06-07 | `phpunit` green |
-| MAIL_PASSWORD | Mailtrap | pending | — | trigger password-reset email |
+| MAIL_PASSWORD | Mailtrap | N/A — local mailer set to `log` (2026-06-08) | — | dispatched test mail lands in storage/logs/laravel.log |
 | SHIPSGO_API_KEY | ShipsGo | ✅ rotated | 2026-06-08 | API probe → `404 NOT_FOUND` (auth OK) |
 | SHIPSGO_WEBHOOK_SECRET | ShipsGo | pending (deploy-time) | — | replay webhook from dashboard |
 | AUDIT_ADMIN_PASSWORD | local MySQL | not yet needed | — | requires production deploy first |

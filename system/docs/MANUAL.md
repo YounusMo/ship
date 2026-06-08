@@ -2084,7 +2084,10 @@ You don't need to install anything to use these:
 
 - Stored as **bcrypt** (`Hash::make($pw)`), cost factor 12 (Laravel default).
 - Never logged, never sent in webhook payloads, never written to receipts.
-- Reset is **admin-mediated only** — there is no self-serve forgot-password flow. The trade-off: simpler attack surface, but admins must respond promptly.
+- A self-serve reset flow exists at `/password/request` → `/password/reset/{token}` (`App\Http\Controllers\Auth\PasswordResetController`, gap #7 in `docs/GAPS.md`). **Email delivery depends on `MAIL_MAILER`:**
+  - If `MAIL_MAILER=smtp` (or any real driver), reset link is emailed to the user. Self-serve works end-to-end.
+  - If `MAIL_MAILER=log` (the default in the local dev `.env` as of 2026-06-08), the email goes to `storage/logs/laravel.log` instead. From the user's point of view, reset is **admin-mediated**: they request a reset, an admin greps the log for the link and forwards it. Set a real `MAIL_MAILER` to remove this manual step.
+- The legacy `pass_txt` column was dropped in `2026_05_13_120000_drop_pass_txt_columns.php`.
 - The legacy `pass_txt` column was dropped in `2026_05_13_120000_drop_pass_txt_columns.php`.
 
 ### 25.3 Token lifecycle
