@@ -55,10 +55,15 @@
         /* ---------- Header (title left, logo right) ---------- */
         /* Uses real <table> markup (not display:table on divs) because
            mpdf renders display:table inconsistently — title and logo
-           end up stacked instead of side-by-side. */
+           end up stacked instead of side-by-side.
+           Row height is fixed at ~20% of A4 portrait height (842pt ×
+           20% ≈ 170pt ≈ 225px). The logo image itself is capped at
+           200px (smaller than the area) and sits centered inside it. */
         .header { width: 100%; margin-bottom: 14px; border-collapse: collapse; }
-        .header .h-left  { vertical-align: middle; width: 65%; }
-        .header .h-right { vertical-align: middle; width: 35%; text-align: right; }
+        .header .h-left,
+        .header .h-right { height: 225px; vertical-align: middle; }
+        .header .h-left  { width: 65%; }
+        .header .h-right { width: 35%; text-align: right; }
         .doc-title {
             font-size: 16pt;
             font-weight: 700;
@@ -66,12 +71,12 @@
             color: {{ $ink }};
             text-transform: uppercase;
         }
-        /* Logo: operator wants the brand mark prominent — around
-           20% of the printed page height (A4 portrait ≈ 1100px
-           usable, 20% ≈ 200px). Width is bumped to match. The
-           HTML width= attribute on the <img> below is what mpdf
-           actually honors; this is the upper safety cap. */
-        .logo-box img { max-height: 200px; max-width: 180px; }
+        /* Logo image is capped at 200px in BOTH axes. The 225px
+           header row above gives the logo BREATHING ROOM (20% of
+           the page is dedicated to the area), but the image itself
+           never exceeds 200px so it stays readable on small
+           stationery. */
+        .logo-box img { max-height: 200px; max-width: 200px; }
         .logo-box .brand-text {
             font-size: 12pt;
             font-weight: 700;
@@ -302,10 +307,11 @@
             </td>
             <td class="h-right">
                 @if ($logoPath)
-                    {{-- Operator request: logo ≈ 20% of page height.
-                         mpdf ignores CSS max-width on <img>; use HTML
-                         width= which it always honors. --}}
-                    <img src="{{ $logoPath }}" width="180" style="max-height:200px;">
+                    {{-- Image capped at 200px in both axes. The
+                         enclosing row reserves 225px of vertical
+                         space so the logo sits in ~20% of the page
+                         without being forced to fill it. --}}
+                    <img src="{{ $logoPath }}" width="200" style="max-height:200px;">
                 @else
                     <div class="brand-text">{{ $settings['company_name'] ?? 'Company' }}</div>
                 @endif
