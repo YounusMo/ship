@@ -38,32 +38,37 @@
     <meta charset="utf-8">
     <title>Proforma {{ $req->request_number }}</title>
     <style>
-        @page { margin: 56px 56px 60px; }
+        /* 32px margins all round — tighter than typical "letter"
+           but the whole point is to fit a normal proforma on ONE
+           page. Increase if your stationery has a printed header. */
+        @page { margin: 32px 36px 36px; }
         body {
             font-family: dejavusans, sans-serif;
             color: {{ $ink }};
             font-size: 9pt;
-            line-height: 1.45;
+            line-height: 1.4;
             margin: 0;
         }
 
         /* ---------- Header (title left, logo right) ---------- */
-        .header { display: table; width: 100%; margin-bottom: 36px; }
-        .header .h-left, .header .h-right {
-            display: table-cell;
-            vertical-align: top;
-        }
-        .header .h-right { text-align: right; }
+        /* Uses real <table> markup (not display:table on divs) because
+           mpdf renders display:table inconsistently — title and logo
+           end up stacked instead of side-by-side. */
+        .header { width: 100%; margin-bottom: 14px; border-collapse: collapse; }
+        .header .h-left  { vertical-align: middle; width: 65%; }
+        .header .h-right { vertical-align: middle; width: 35%; text-align: right; }
         .doc-title {
-            font-size: 18pt;
+            font-size: 16pt;
             font-weight: 700;
-            letter-spacing: 4px;
+            letter-spacing: 3px;
             color: {{ $ink }};
             text-transform: uppercase;
         }
-        .logo-box img { max-height: 56px; max-width: 180px; }
+        /* Logo capped per operator request: max 100px. Both axes
+           bounded so wide horizontal logos don't blow up vertically. */
+        .logo-box img { max-height: 50px; max-width: 100px; }
         .logo-box .brand-text {
-            font-size: 13pt;
+            font-size: 12pt;
             font-weight: 700;
             color: {{ $ink }};
             letter-spacing: 0.5px;
@@ -73,48 +78,50 @@
         .company-line {
             border-top: 1px solid {{ $rule }};
             border-bottom: 1px solid {{ $rule }};
-            padding: 8px 0;
-            font-size: 8.5pt;
+            padding: 4px 0;
+            font-size: 8pt;
             color: {{ $ink }};
-            margin-bottom: 28px;
+            margin-bottom: 14px;
         }
         .company-line strong { font-weight: 700; }
-        .company-line .meta-sep { color: {{ $rule }}; margin: 0 6px; }
+        .company-line .meta-sep { color: {{ $rule }}; margin: 0 5px; }
 
         /* ---------- Bill-to + metadata ---------- */
-        .info { display: table; width: 100%; margin-bottom: 32px; }
-        .info .info-left, .info .info-right {
-            display: table-cell;
-            vertical-align: top;
-            width: 50%;
-        }
-        .info .info-right { text-align: right; }
+        .info { width: 100%; margin-bottom: 16px; border-collapse: collapse; }
+        .info .info-left  { vertical-align: top; width: 50%; }
+        .info .info-right { vertical-align: top; width: 50%; text-align: right; }
         .info-label {
-            font-size: 8pt;
+            font-size: 7.5pt;
             font-weight: 700;
             color: {{ $ink }};
             letter-spacing: 0.4px;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
             text-transform: uppercase;
         }
-        .info-body { font-size: 9pt; line-height: 1.5; }
+        .info-body { font-size: 9pt; line-height: 1.4; }
         .info-body .muted { color: {{ $muted }}; }
 
-        .meta-table { width: auto; margin-left: auto; }
+        /* mpdf table-layout: the meta-table sits inside info-right
+           which is a fixed-width 50% cell. With width:auto the inner
+           table collapses to its content width and mpdf then squashes
+           the cells into vertical character stacks. Force the inner
+           table to fill its parent cell. */
+        .meta-table { width: 100%; }
         .meta-table td {
-            font-size: 9pt;
-            padding: 2px 0;
+            font-size: 8.5pt;
+            padding: 1px 0;
+            white-space: nowrap;
         }
-        .meta-table td.k { color: {{ $muted }}; padding-right: 22px; }
+        .meta-table td.k { color: {{ $muted }}; text-align: right; padding-right: 14px; width: 55%; }
         .meta-table td.v { font-weight: 700; text-align: right; }
 
-        .status-line { margin-top: 10px; }
+        .status-line { margin-top: 6px; }
         .status-pill {
             display: inline-block;
-            font-size: 7.5pt;
+            font-size: 7pt;
             font-weight: 700;
-            letter-spacing: 0.6px;
-            padding: 2px 8px;
+            letter-spacing: 0.5px;
+            padding: 1px 6px;
             color: {{ $statusInfo['fg'] }};
             background: {{ $statusInfo['bg'] }};
         }
@@ -124,10 +131,10 @@
         .items thead th {
             background: {{ $faint }};
             color: {{ $ink }};
-            font-size: 8.5pt;
+            font-size: 7.5pt;
             font-weight: 700;
-            letter-spacing: 0.5px;
-            padding: 10px 12px;
+            letter-spacing: 0.4px;
+            padding: 6px 8px;
             text-align: left;
             text-transform: uppercase;
             border-top: 1px solid {{ $rule }};
@@ -135,53 +142,53 @@
         }
         .items thead th.right { text-align: right; }
         .items tbody td {
-            padding: 10px 12px;
+            padding: 6px 8px;
             border-bottom: 1px solid {{ $rule }};
             vertical-align: top;
-            font-size: 9pt;
+            font-size: 8.5pt;
         }
         .items tbody td.right { text-align: right; }
         .items .thumb {
-            width: 34px; height: 34px;
+            width: 28px; height: 28px;
             object-fit: cover;
             border: 1px solid {{ $rule }};
         }
         .items .thumb-empty {
-            width: 34px; height: 34px;
+            width: 28px; height: 28px;
             background: {{ $faint }};
             border: 1px dashed {{ $rule }};
         }
         .items .item-name { font-weight: 700; color: {{ $ink }}; }
-        .items .item-meta { color: {{ $muted }}; font-size: 8pt; margin-top: 2px; }
-        .items .ccy-suffix { color: {{ $muted }}; font-size: 8pt; margin-left: 2px; }
+        .items .item-meta { color: {{ $muted }}; font-size: 7.5pt; margin-top: 1px; }
+        .items .ccy-suffix { color: {{ $muted }}; font-size: 7.5pt; margin-left: 2px; }
 
         /* ---------- Totals (right-aligned, two-row, second row dark) ---------- */
-        .totals-wrap { display: table; width: 100%; margin-top: 18px; margin-bottom: 30px; }
+        .totals-wrap { display: table; width: 100%; margin-top: 10px; margin-bottom: 14px; }
         .totals-spacer { display: table-cell; width: 50%; }
         .totals { display: table-cell; width: 50%; }
         .totals table { width: 100%; border-collapse: collapse; }
-        .totals td { padding: 8px 14px; font-size: 9pt; }
+        .totals td { padding: 5px 10px; font-size: 8.5pt; }
         .totals .label { background: {{ $faint }}; color: {{ $ink }}; font-weight: 700; }
         .totals .value { background: {{ $faint }}; text-align: right; }
         .totals .grand-row .label,
         .totals .grand-row .value {
             background: {{ $ink }};
             color: #ffffff;
-            font-size: 10pt;
+            font-size: 9.5pt;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
         }
         .totals .grand-row .value { text-align: right; }
 
         /* ---------- Section headers ---------- */
         .section-h {
-            font-size: 8.5pt;
+            font-size: 8pt;
             font-weight: 700;
             color: {{ $ink }};
-            margin: 22px 0 8px;
-            padding-bottom: 4px;
+            margin: 12px 0 5px;
+            padding-bottom: 3px;
             border-bottom: 1px solid {{ $rule }};
-            letter-spacing: 0.8px;
+            letter-spacing: 0.7px;
             text-transform: uppercase;
         }
 
@@ -190,19 +197,19 @@
         .schedule thead th {
             background: {{ $faint }};
             color: {{ $ink }};
-            font-size: 7.5pt;
+            font-size: 7pt;
             font-weight: 700;
             letter-spacing: 0.4px;
-            padding: 6px 10px;
+            padding: 4px 8px;
             text-align: left;
             text-transform: uppercase;
             border-bottom: 1px solid {{ $rule }};
         }
         .schedule thead th.right { text-align: right; }
         .schedule tbody td {
-            padding: 6px 10px;
+            padding: 4px 8px;
             border-bottom: 1px solid {{ $rule }};
-            font-size: 8.5pt;
+            font-size: 8pt;
         }
         .schedule tbody tr:last-child td { border-bottom: none; }
         .schedule td.right { text-align: right; }
@@ -220,32 +227,32 @@
         .badge-scheduled  { background: #e5e7eb; color: #374151; }
 
         /* ---------- Documents + terms ---------- */
-        .docs-list { font-size: 8.5pt; color: #374151; padding-inline-start: 16px; margin: 0; }
-        .docs-list li { margin-bottom: 3px; }
+        .docs-list { font-size: 8pt; color: #374151; padding-inline-start: 14px; margin: 0; }
+        .docs-list li { margin-bottom: 2px; }
         .terms-box {
-            font-size: 8.5pt;
+            font-size: 8pt;
             color: #374151;
             white-space: pre-wrap;
-            padding: 10px 12px;
+            padding: 6px 10px;
             background: {{ $faint }};
             border-left: 2px solid {{ $ink }};
-            line-height: 1.5;
+            line-height: 1.4;
         }
 
         /* ---------- Signature ---------- */
-        .signature-row { display: table; width: 100%; margin-top: 36px; }
+        .signature-row { display: table; width: 100%; margin-top: 18px; }
         .signature-spacer { display: table-cell; width: 55%; }
         .signature { display: table-cell; width: 45%; vertical-align: bottom; }
         .signature-label {
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: {{ $muted }};
             letter-spacing: 0.3px;
-            margin-bottom: 28px;
+            margin-bottom: 18px;
         }
         .signature-line {
             border-top: 1px solid {{ $ink }};
-            padding-top: 4px;
-            font-size: 7.5pt;
+            padding-top: 3px;
+            font-size: 7pt;
             color: {{ $muted }};
             text-align: left;
             letter-spacing: 0.4px;
@@ -255,9 +262,9 @@
         /* ---------- Footer band ---------- */
         .footer {
             border-top: 1px solid {{ $rule }};
-            margin-top: 46px;
-            padding-top: 10px;
-            font-size: 8pt;
+            margin-top: 16px;
+            padding-top: 6px;
+            font-size: 7.5pt;
             color: {{ $ink }};
             text-align: center;
         }
@@ -267,21 +274,25 @@
 </head>
 <body>
 
-    {{-- Header --}}
-    <div class="header">
-        <div class="h-left">
-            <div class="doc-title">PRO FORMA INVOICE</div>
-        </div>
-        <div class="h-right">
-            <div class="logo-box">
+    {{-- Header. Real <table> markup (not display:table on divs) so
+         mpdf renders title and logo on the SAME row instead of
+         stacking them. --}}
+    <table class="header" cellpadding="0" cellspacing="0">
+        <tr>
+            <td class="h-left">
+                <div class="doc-title">PRO FORMA INVOICE</div>
+            </td>
+            <td class="h-right">
                 @if ($logoPath)
-                    <img src="{{ $logoPath }}">
+                    {{-- mpdf ignores CSS max-width on <img>; use HTML
+                         width= attribute which it always honors. --}}
+                    <img src="{{ $logoPath }}" width="100" style="max-height:50px;">
                 @else
                     <div class="brand-text">{{ $settings['company_name'] ?? 'Company' }}</div>
                 @endif
-            </div>
-        </div>
-    </div>
+            </td>
+        </tr>
+    </table>
 
     {{-- Company strip --}}
     <div class="company-line">
@@ -291,59 +302,61 @@
         @if (!empty($settings['email']))<span class="meta-sep">·</span>{{ $settings['email'] }}@endif
     </div>
 
-    {{-- BILL TO + metadata --}}
-    <div class="info">
-        <div class="info-left">
-            <div class="info-label">BILL TO</div>
-            <div class="info-body">
-                <div style="font-weight:700;">{{ $client->name ?? '—' }}</div>
-                @if (!empty($client->code))<div class="muted">Client code: {{ $client->code }}</div>@endif
-                @if (!empty($client->phone))<div class="muted">{{ $client->phone }}</div>@endif
-                @if (!empty($client->email))<div class="muted">{{ $client->email }}</div>@endif
-            </div>
-
-            @if ($req->title)
-                <div style="margin-top:14px;">
-                    <div class="info-label">SUBJECT</div>
-                    <div class="info-body">
-                        <div style="font-weight:700;">{{ $req->title }}</div>
-                        @if ($req->description)<div class="muted">{{ $req->description }}</div>@endif
-                    </div>
+    {{-- BILL TO + metadata. Real <table> markup (same reason as header). --}}
+    <table class="info" cellpadding="0" cellspacing="0">
+        <tr>
+            <td class="info-left">
+                <div class="info-label">BILL TO</div>
+                <div class="info-body">
+                    <div style="font-weight:700;">{{ $client->name ?? '—' }}</div>
+                    @if (!empty($client->code))<div class="muted">Client code: {{ $client->code }}</div>@endif
+                    @if (!empty($client->phone))<div class="muted">{{ $client->phone }}</div>@endif
+                    @if (!empty($client->email))<div class="muted">{{ $client->email }}</div>@endif
                 </div>
-            @endif
-        </div>
-        <div class="info-right">
-            <table class="meta-table">
-                <tr>
-                    <td class="k">Pro forma No.:</td>
-                    <td class="v">{{ $req->request_number }}</td>
-                </tr>
-                <tr>
-                    <td class="k">Issue date:</td>
-                    <td class="v">{{ $req->sent_at ? substr($req->sent_at, 0, 10) : date('Y-m-d') }}</td>
-                </tr>
-                @if ($req->share_token_expires_at)
-                    <tr>
-                        <td class="k">Valid until:</td>
-                        <td class="v">{{ substr($req->share_token_expires_at, 0, 10) }}</td>
-                    </tr>
+
+                @if ($req->title)
+                    <div style="margin-top:10px;">
+                        <div class="info-label">SUBJECT</div>
+                        <div class="info-body">
+                            <div style="font-weight:700;">{{ $req->title }}</div>
+                            @if ($req->description)<div class="muted">{{ $req->description }}</div>@endif
+                        </div>
+                    </div>
                 @endif
-                @if ($req->fx_frozen_on)
+            </td>
+            <td class="info-right">
+                <table class="meta-table" cellpadding="0" cellspacing="0">
                     <tr>
-                        <td class="k">FX frozen on:</td>
-                        <td class="v">{{ $req->fx_frozen_on }}</td>
+                        <td class="k">Pro forma No.:</td>
+                        <td class="v">{{ $req->request_number }}</td>
                     </tr>
-                @endif
-                <tr>
-                    <td class="k">Currency:</td>
-                    <td class="v">{{ $displayCcy }}</td>
-                </tr>
-            </table>
-            <div class="status-line">
-                <span class="status-pill">{{ $statusInfo['label'] }}</span>
-            </div>
-        </div>
-    </div>
+                    <tr>
+                        <td class="k">Issue date:</td>
+                        <td class="v">{{ $req->sent_at ? substr($req->sent_at, 0, 10) : date('Y-m-d') }}</td>
+                    </tr>
+                    @if ($req->share_token_expires_at)
+                        <tr>
+                            <td class="k">Valid until:</td>
+                            <td class="v">{{ substr($req->share_token_expires_at, 0, 10) }}</td>
+                        </tr>
+                    @endif
+                    @if ($req->fx_frozen_on)
+                        <tr>
+                            <td class="k">FX frozen on:</td>
+                            <td class="v">{{ $req->fx_frozen_on }}</td>
+                        </tr>
+                    @endif
+                    <tr>
+                        <td class="k">Currency:</td>
+                        <td class="v">{{ $displayCcy }}</td>
+                    </tr>
+                </table>
+                <div class="status-line">
+                    <span class="status-pill">{{ $statusInfo['label'] }}</span>
+                </div>
+            </td>
+        </tr>
+    </table>
 
     {{-- Items --}}
     <table class="items">
