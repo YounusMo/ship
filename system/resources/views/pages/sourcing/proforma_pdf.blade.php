@@ -38,10 +38,11 @@
     <meta charset="utf-8">
     <title>Proforma {{ $req->request_number }}</title>
     <style>
-        /* 32px margins all round — tighter than typical "letter"
-           but the whole point is to fit a normal proforma on ONE
-           page. Increase if your stationery has a printed header. */
-        @page { margin: 32px 36px 36px; }
+        /* 32px top, 36px sides — but reserve 120px at the bottom
+           for the page-pinned signature + footer block. That way
+           the document always looks balanced top + bottom regardless
+           of how many items the proforma has. */
+        @page { margin: 32px 36px 120px; }
         body {
             font-family: dejavusans, sans-serif;
             color: {{ $ink }};
@@ -87,9 +88,17 @@
         .company-line .meta-sep { color: {{ $rule }}; margin: 0 5px; }
 
         /* ---------- Bill-to + metadata ---------- */
-        .info { width: 100%; margin-bottom: 16px; border-collapse: collapse; }
-        .info .info-left  { vertical-align: top; width: 50%; }
-        .info .info-right { vertical-align: top; width: 50%; text-align: right; }
+        /* Bordered cells per operator request — looks like a data
+           grid rather than free-floating text. */
+        .info { width: 100%; margin-bottom: 14px; border-collapse: collapse; }
+        .info .info-left,
+        .info .info-right {
+            vertical-align: top;
+            width: 50%;
+            border: 1px solid {{ $rule }};
+            padding: 8px 10px;
+        }
+        .info .info-right { text-align: right; }
         .info-label {
             font-size: 7.5pt;
             font-weight: 700;
@@ -106,13 +115,14 @@
            table collapses to its content width and mpdf then squashes
            the cells into vertical character stacks. Force the inner
            table to fill its parent cell. */
-        .meta-table { width: 100%; }
+        .meta-table { width: 100%; border-collapse: collapse; }
         .meta-table td {
             font-size: 8.5pt;
-            padding: 1px 0;
+            padding: 4px 8px;
             white-space: nowrap;
+            border: 1px solid {{ $rule }};
         }
-        .meta-table td.k { color: {{ $muted }}; text-align: right; padding-right: 14px; width: 55%; }
+        .meta-table td.k { color: {{ $muted }}; text-align: left;  width: 55%; }
         .meta-table td.v { font-weight: 700; text-align: right; }
 
         .status-line { margin-top: 6px; }
@@ -137,13 +147,12 @@
             padding: 6px 8px;
             text-align: left;
             text-transform: uppercase;
-            border-top: 1px solid {{ $rule }};
-            border-bottom: 1px solid {{ $rule }};
+            border: 1px solid {{ $rule }};
         }
         .items thead th.right { text-align: right; }
         .items tbody td {
             padding: 6px 8px;
-            border-bottom: 1px solid {{ $rule }};
+            border: 1px solid {{ $rule }};
             vertical-align: top;
             font-size: 8.5pt;
         }
@@ -163,11 +172,11 @@
         .items .ccy-suffix { color: {{ $muted }}; font-size: 7.5pt; margin-left: 2px; }
 
         /* ---------- Totals (right-aligned, two-row, second row dark) ---------- */
-        .totals-wrap { display: table; width: 100%; margin-top: 10px; margin-bottom: 14px; }
-        .totals-spacer { display: table-cell; width: 50%; }
-        .totals { display: table-cell; width: 50%; }
-        .totals table { width: 100%; border-collapse: collapse; }
-        .totals td { padding: 5px 10px; font-size: 8.5pt; }
+        .totals-wrap { width: 100%; margin-top: 10px; margin-bottom: 14px; border-collapse: collapse; }
+        .totals-spacer { width: 50%; border: none; }
+        .totals-cell { width: 50%; border: none; padding: 0; }
+        .totals { width: 100%; border-collapse: collapse; }
+        .totals td { padding: 5px 10px; font-size: 8.5pt; border: 1px solid {{ $rule }}; }
         .totals .label { background: {{ $faint }}; color: {{ $ink }}; font-weight: 700; }
         .totals .value { background: {{ $faint }}; text-align: right; }
         .totals .grand-row .label,
@@ -203,15 +212,14 @@
             padding: 4px 8px;
             text-align: left;
             text-transform: uppercase;
-            border-bottom: 1px solid {{ $rule }};
+            border: 1px solid {{ $rule }};
         }
         .schedule thead th.right { text-align: right; }
         .schedule tbody td {
             padding: 4px 8px;
-            border-bottom: 1px solid {{ $rule }};
+            border: 1px solid {{ $rule }};
             font-size: 8pt;
         }
-        .schedule tbody tr:last-child td { border-bottom: none; }
         .schedule td.right { text-align: right; }
         .badge {
             display: inline-block;
@@ -239,10 +247,10 @@
             line-height: 1.4;
         }
 
-        /* ---------- Signature ---------- */
-        .signature-row { display: table; width: 100%; margin-top: 18px; }
-        .signature-spacer { display: table-cell; width: 55%; }
-        .signature { display: table-cell; width: 45%; vertical-align: bottom; }
+        /* ---------- Signature (lives inside <htmlpagefooter>) ---------- */
+        .signature-row { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .signature-spacer { width: 55%; border: none; }
+        .signature { width: 45%; vertical-align: bottom; border: none; padding: 0; }
         .signature-label {
             font-size: 7.5pt;
             color: {{ $muted }};
@@ -409,29 +417,32 @@
         </tbody>
     </table>
 
-    {{-- Totals --}}
-    <div class="totals-wrap">
-        <div class="totals-spacer"></div>
-        <div class="totals">
-            <table>
-                <tr>
-                    <td class="label">TOTAL ({{ $displayCcy }}):</td>
-                    <td class="value">{{ number_format((float) $req->items_subtotal, 2) }}</td>
-                </tr>
-                @if ($req->commission_mode === 'visible_separate' && (float) $req->commission_amount > 0)
-                    @php $commDisp = $toDisplay((float) $req->commission_amount, $req->commission_currency ?: $displayCcy); @endphp
+    {{-- Totals — outer table is the layout (spacer + totals-cell);
+         inner table is the actual 2-row total grid. --}}
+    <table class="totals-wrap" cellpadding="0" cellspacing="0">
+        <tr>
+            <td class="totals-spacer"></td>
+            <td class="totals-cell">
+                <table class="totals" cellpadding="0" cellspacing="0">
                     <tr>
-                        <td class="label">SERVICE COMMISSION:</td>
-                        <td class="value">{{ number_format($commDisp, 2) }}</td>
+                        <td class="label">TOTAL ({{ $displayCcy }}):</td>
+                        <td class="value">{{ number_format((float) $req->items_subtotal, 2) }}</td>
                     </tr>
-                @endif
-                <tr class="grand-row">
-                    <td class="label">TOTAL DUE ({{ $displayCcy }})</td>
-                    <td class="value">{{ number_format((float) $req->proforma_total, 2) }}</td>
-                </tr>
-            </table>
-        </div>
-    </div>
+                    @if ($req->commission_mode === 'visible_separate' && (float) $req->commission_amount > 0)
+                        @php $commDisp = $toDisplay((float) $req->commission_amount, $req->commission_currency ?: $displayCcy); @endphp
+                        <tr>
+                            <td class="label">SERVICE COMMISSION:</td>
+                            <td class="value">{{ number_format($commDisp, 2) }}</td>
+                        </tr>
+                    @endif
+                    <tr class="grand-row">
+                        <td class="label">TOTAL DUE ({{ $displayCcy }})</td>
+                        <td class="value">{{ number_format((float) $req->proforma_total, 2) }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
     {{-- Payment schedule --}}
     @if (count($payments) > 0)
@@ -496,25 +507,31 @@
         <div class="terms-box">{{ $req->terms_text }}</div>
     @endif
 
-    {{-- Signature --}}
-    <div class="signature-row">
-        <div class="signature-spacer"></div>
-        <div class="signature">
-            <div class="signature-label">Issued by, signature:</div>
-            <div class="signature-line">AUTHORIZED SIGNATURE</div>
-        </div>
-    </div>
+    {{-- Page-footer block (signature + footer) — pinned to the
+         bottom of every page by mpdf. @page reserves 120px of
+         bottom margin for this region. --}}
+    <htmlpagefooter name="docfooter">
+        <table class="signature-row" cellpadding="0" cellspacing="0">
+            <tr>
+                <td class="signature-spacer"></td>
+                <td class="signature">
+                    <div class="signature-label">Issued by, signature:</div>
+                    <div class="signature-line">AUTHORIZED SIGNATURE</div>
+                </td>
+            </tr>
+        </table>
 
-    {{-- Footer --}}
-    <div class="footer">
-        @if (!empty($settings['company_name'])){{ $settings['company_name'] }}@endif
-        @if (!empty($settings['address']))<span class="sep">·</span>{{ $settings['address'] }}@endif
-        @if (!empty($settings['phone']))<span class="sep">·</span><span class="muted">Phone:</span> {{ $settings['phone'] }}@endif
-        @if (!empty($settings['email']))<span class="sep">·</span><span class="muted">Email:</span> {{ $settings['email'] }}@endif
-        @if (!empty($settings['receipt_footer']))
-            <div class="muted" style="margin-top:6px;">{{ $settings['receipt_footer'] }}</div>
-        @endif
-    </div>
+        <div class="footer">
+            @if (!empty($settings['company_name'])){{ $settings['company_name'] }}@endif
+            @if (!empty($settings['address']))<span class="sep">·</span>{{ $settings['address'] }}@endif
+            @if (!empty($settings['phone']))<span class="sep">·</span><span class="muted">Phone:</span> {{ $settings['phone'] }}@endif
+            @if (!empty($settings['email']))<span class="sep">·</span><span class="muted">Email:</span> {{ $settings['email'] }}@endif
+            @if (!empty($settings['receipt_footer']))
+                <div class="muted" style="margin-top:6px;">{{ $settings['receipt_footer'] }}</div>
+            @endif
+        </div>
+    </htmlpagefooter>
+    <sethtmlpagefooter name="docfooter" value="on" />
 
 </body>
 </html>
